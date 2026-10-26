@@ -61,3 +61,51 @@ export async function getJson<T>(env: Env, path: string): Promise<{ data: T | nu
 export async function putJson(env: Env, path: string, data: unknown, message: string, sha: string | null): Promise<void> {
   await putFile(env, path, JSON.stringify(data, null, 2), message, sha);
 }
+
+async function api<T>(env: Env, path: string, opts: RequestInit = {}): Promise<T> {
+  const res = await fetch(`${API_BASE}${path}`, { ...opts, headers: { ...headers(env), ...(opts.headers ?? {}) } });
+  if (!res.ok) throw new Error(`GitHub ${path} failed: ${res.status} ${await res.text()}`);
+  return res.json();
+}
+
+export interface BulkFile {
+  path: string;
+  content: string; // UTF-8 text content
+}
+
+/**
+ * Commits many files in ONE git commit via the Git Data API (a tree with
+ * inline `content` per entry — GitHub creates the blobs for us), instead of
+ * one REST "contents" PUT per file. Used for bulk historical imports where
+ * writing hundreds or thousands of files one at a time would be far too
+ * slow and would bloat history with one commit per file.
+ */
+export async function bulkCommit(env: Env, files: BulkFile[], message: string): Promise<void> {
+  const repo = `${env.GITHUB_OWNER}/${env.GITHUB_REPO}`;
+  const branch = env.GITHUB_DATA_BRANCH;
+
+  const ref = await api<{ object: { sha: string } }>(env, `/repos/${repo}/git/ref/heads/${branch}`);
+  const baseCommitSha = ref.object.sha;
+  const baseCommit = await api<{ tree: { sha: string } }>(env, `/repos/${repo}/git/commits/${baseCommitSha}`);
+
+  const tree = await api<{ sha: string }>(env, `/repos/${repo}/git/trees`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      base_tree: baseCommit.tree.sha,
+      tree: files.map((f) => ({ path: f.path, mode: "100644", type: "blob", content: f.content })),
+    }),
+  });
+
+  const commit = await api<{ sha: string }>(env, `/repos/${repo}/git/commits`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, tree: tree.sha, parents: [baseCommitSha] }),
+  });
+
+  await api(env, `/repos/${repo}/git/refs/heads/${branch}`, {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ sha: commit.sha }),
+  });
+}

@@ -1,5 +1,5 @@
 import type { BiologicalAgeResult, DailyMetrics, Env, UserProfile } from "./types";
-import { getJson, putJson } from "./github";
+import { bulkCommit, getJson, putJson, type BulkFile } from "./github";
 import { mergeDaily, normalizePayload } from "./normalize";
 import { estimateBiologicalAge } from "./analytics";
 import { renderDashboard } from "./dashboard";
@@ -84,6 +84,67 @@ async function handleIngest(req: Request, env: Env): Promise<Response> {
   return json({ ok: true, date: mergedDay.date, metrics: mergedDay, analytics });
 }
 
+/**
+ * Bulk import endpoint for the dashboard's "Import Apple Health export"
+ * button: the browser unzips export.xml, aggregates it into one record per
+ * day client-side, and posts the whole array here. We merge it into the
+ * series, recompute biological-age history for every day, and push
+ * everything in ONE git commit (via the Git Data API) instead of one
+ * contents-API write per day — a historical export can be thousands of days.
+ */
+async function handleImportBulk(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+
+  let body: { days?: unknown[] };
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "invalid json body" }, 400);
+  }
+  if (!Array.isArray(body.days) || body.days.length === 0) {
+    return json({ error: "body.days must be a non-empty array" }, 400);
+  }
+
+  const source = "health-export-import";
+  const incomingDays = body.days.map((d) => normalizePayload(d, source));
+
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const byDate = new Map(seriesData?.days.map((d) => [d.date, d]) ?? []);
+  for (const incoming of incomingDays) {
+    byDate.set(incoming.date, mergeDaily(byDate.get(incoming.date) ?? null, incoming));
+  }
+  const mergedDays = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(-MAX_SERIES_DAYS);
+
+  const { data: profile } = await getJson<UserProfile>(env, PROFILE_PATH);
+  let historyEntries: BiologicalAgeResult[] = [];
+  if (profile) {
+    for (let i = 0; i < mergedDays.length; i++) {
+      const window = mergedDays.slice(Math.max(0, i - ANALYTICS_WINDOW_DAYS + 1), i + 1);
+      const result = estimateBiologicalAge(window, profile, mergedDays[i].date);
+      if (result.markers.length > 0) historyEntries.push(result);
+    }
+    historyEntries = historyEntries.slice(-MAX_HISTORY_ENTRIES);
+  }
+  const latest = historyEntries[historyEntries.length - 1] ?? null;
+
+  const files: BulkFile[] = incomingDays.map((d) => ({
+    path: dayPath(d.date),
+    content: JSON.stringify(byDate.get(d.date), null, 2),
+  }));
+  files.push({ path: SERIES_PATH, content: JSON.stringify({ days: mergedDays }, null, 2) });
+  if (profile) {
+    files.push({ path: HISTORY_PATH, content: JSON.stringify({ entries: historyEntries }, null, 2) });
+    files.push({ path: LATEST_PATH, content: JSON.stringify(latest, null, 2) });
+  }
+
+  await bulkCommit(
+    env,
+    files,
+    `Import Apple Health export: ${incomingDays.length} days (${incomingDays[0].date} to ${incomingDays[incomingDays.length - 1].date})`
+  );
+  return json({ ok: true, daysImported: incomingDays.length, totalDays: mergedDays.length, latest });
+}
+
 async function handleGetSeries(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   const { data } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
@@ -124,6 +185,7 @@ export default {
     const url = new URL(req.url);
     try {
       if (req.method === "POST" && url.pathname === "/ingest") return await handleIngest(req, env);
+      if (req.method === "POST" && url.pathname === "/import-bulk") return await handleImportBulk(req, env);
       if (req.method === "GET" && url.pathname === "/api/series") return await handleGetSeries(req, env);
       if (req.method === "GET" && url.pathname === "/api/analytics") return await handleGetAnalytics(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
