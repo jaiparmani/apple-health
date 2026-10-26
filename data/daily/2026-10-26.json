@@ -1,11 +1,11 @@
 {
   "date": "2026-10-26",
-  "receivedAt": "2026-10-26T14:54:53.782Z",
+  "receivedAt": "2026-10-26T14:55:45.594Z",
   "source": "test",
-  "restingHeartRate": 56,
-  "hrv": 55,
-  "vo2max": 45,
-  "steps": 10500,
-  "sleepHours": 7.6,
-  "bodyFatPct": 15
+  "restingHeartRate": 60,
+  "hrv": 45,
+  "vo2max": 40,
+  "steps": 8000,
+  "sleepHours": 7,
+  "bodyFatPct": 18
 }
