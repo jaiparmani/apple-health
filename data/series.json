@@ -2845,6 +2845,23 @@
       "receivedAt": "2026-10-26T16:09:06.715Z"
     },
     {
+      "date": "2020-01-01",
+      "receivedAt": "2026-10-26T16:15:04.331Z",
+      "source": "health-export-import",
+      "restingHeartRate": 60,
+      "hrv": 45,
+      "steps": 5000
+    },
+    {
+      "date": "2020-01-02",
+      "receivedAt": "2026-10-26T16:15:04.336Z",
+      "source": "health-export-import",
+      "restingHeartRate": 58,
+      "hrv": 50,
+      "vo2max": 40,
+      "steps": 7000
+    },
+    {
       "date": "2020-03-20",
       "source": "health-export-import",
       "steps": 61,
