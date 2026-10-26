@@ -1,0 +1,13 @@
+{
+  "date": "2023-06-24",
+  "source": "health-export-import",
+  "restingHeartRate": 68,
+  "hrv": 37.6,
+  "vo2max": 39.1,
+  "steps": 5958,
+  "activeEnergy": 297,
+  "exerciseMinutes": 8,
+  "respiratoryRate": 16.2,
+  "sleepHours": 5.28,
+  "receivedAt": "2026-10-26T16:09:06.715Z"
+}

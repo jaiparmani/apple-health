@@ -1,0 +1,11 @@
+{
+  "date": "2023-03-07",
+  "source": "health-export-import",
+  "restingHeartRate": 61,
+  "hrv": 33.3,
+  "steps": 5522,
+  "activeEnergy": 268,
+  "exerciseMinutes": 11,
+  "respiratoryRate": 21,
+  "receivedAt": "2026-10-26T16:09:06.715Z"
+}
