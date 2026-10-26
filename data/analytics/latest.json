@@ -1,0 +1,20 @@
+{
+  "date": "2026-10-26",
+  "chronologicalAge": 25,
+  "biologicalAge": 40,
+  "deltaYears": 15,
+  "markers": [
+    {
+      "marker": "Heart rate variability",
+      "value": 29.21666666666667,
+      "markerAge": 56.30555555555555,
+      "weight": 0.25
+    },
+    {
+      "marker": "Resting heart rate",
+      "value": 71.2,
+      "markerAge": 60.66666666666668,
+      "weight": 0.2
+    }
+  ]
+}
