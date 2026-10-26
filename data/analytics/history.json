@@ -1,52 +1,6 @@
 {
   "entries": [
     {
-      "date": "2020-01-01",
-      "chronologicalAge": 19,
-      "biologicalAge": 22.6,
-      "deltaYears": 3.6,
-      "markers": [
-        {
-          "marker": "Heart rate variability",
-          "value": 45,
-          "markerAge": 35,
-          "weight": 0.25
-        },
-        {
-          "marker": "Resting heart rate",
-          "value": 60,
-          "markerAge": 5,
-          "weight": 0.2
-        }
-      ]
-    },
-    {
-      "date": "2020-01-02",
-      "chronologicalAge": 19,
-      "biologicalAge": 26.8,
-      "deltaYears": 7.8,
-      "markers": [
-        {
-          "marker": "VO2max (cardio fitness)",
-          "value": 40,
-          "markerAge": 33.333333333333336,
-          "weight": 0.35
-        },
-        {
-          "marker": "Heart rate variability",
-          "value": 47.5,
-          "markerAge": 32.5,
-          "weight": 0.25
-        },
-        {
-          "marker": "Resting heart rate",
-          "value": 59,
-          "markerAge": 5,
-          "weight": 0.2
-        }
-      ]
-    },
-    {
       "date": "2020-03-20",
       "chronologicalAge": 19,
       "biologicalAge": 26.8,
