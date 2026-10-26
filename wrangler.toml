@@ -1,0 +1,12 @@
+name = "apple-health"
+main = "src/index.ts"
+compatibility_date = "2024-11-01"
+
+[vars]
+GITHUB_OWNER = "jaiparmani"
+GITHUB_REPO = "apple-health"
+GITHUB_DATA_BRANCH = "main"
+
+# Secrets (set via `wrangler secret put <NAME>`, never committed):
+#   INGEST_TOKEN   - bearer token the Apple Shortcut must send
+#   GITHUB_TOKEN   - PAT with repo contents read/write on jaiparmani/apple-health
