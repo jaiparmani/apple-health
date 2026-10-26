@@ -8,8 +8,8 @@ const SERIES_PATH = "data/series.json";
 const PROFILE_PATH = "data/profile.json";
 const HISTORY_PATH = "data/analytics/history.json";
 const LATEST_PATH = "data/analytics/latest.json";
-const MAX_SERIES_DAYS = 400;
-const MAX_HISTORY_ENTRIES = 400;
+const MAX_SERIES_DAYS = 4000; // ~11 years, enough headroom for a full Apple Health export backfill
+const MAX_HISTORY_ENTRIES = 4000;
 const ANALYTICS_WINDOW_DAYS = 7;
 
 function unauthorized(): Response {
