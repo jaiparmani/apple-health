@@ -3,6 +3,14 @@
   "source": "health-export-import",
   "steps": 4929,
   "activeEnergy": 11,
-  "sleepHours": 10.26,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "sleepHours": 4.26,
+  "receivedAt": "2026-10-27T18:03:28.401Z",
+  "flightsClimbed": 11,
+  "distanceKm": 3.11,
+  "walkingSpeed": 1.1,
+  "walkingStepLength": 68.4,
+  "walkingAsymmetryPct": 0.03,
+  "walkingDoubleSupportPct": 0.289,
+  "sleepEfficiency": 0.115,
+  "sleepInBedHours": 37.05
 }

@@ -2,6 +2,17 @@
   "date": "2026-07-08",
   "source": "health-export-import",
   "steps": 576,
-  "activeEnergy": 2,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "activeEnergy": 1.52,
+  "receivedAt": "2026-10-27T18:03:28.401Z",
+  "basalEnergy": 2096.05,
+  "distanceKm": 0.43,
+  "activeEnergyGoal": 360,
+  "exerciseMinutesGoal": 30,
+  "standHours": 0,
+  "standHoursGoal": 6,
+  "extra": {
+    "HeadphoneAudioExposure": 57.358,
+    "PhysicalEffort": 1,
+    "AppleStandHourCount": 1
+  }
 }

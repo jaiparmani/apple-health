@@ -4,7 +4,28 @@
   "restingHeartRate": 68,
   "hrv": 42.4,
   "steps": 4546,
-  "activeEnergy": 310,
+  "activeEnergy": 310.21,
   "exerciseMinutes": 3,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "receivedAt": "2026-10-27T18:03:28.401Z",
+  "heartRateAvg": 79.9,
+  "heartRateMin": 65,
+  "heartRateMax": 128,
+  "walkingHeartRateAvg": 106,
+  "basalEnergy": 2038.72,
+  "standMinutes": 46,
+  "flightsClimbed": 1,
+  "distanceKm": 3.55,
+  "walkingSpeed": 1.1,
+  "walkingStepLength": 66.8,
+  "walkingAsymmetryPct": 0,
+  "walkingDoubleSupportPct": 0.291,
+  "sleepInBedHours": 8.06,
+  "activeEnergyGoal": 150,
+  "exerciseMinutesGoal": 30,
+  "standHours": 8,
+  "standHoursGoal": 12,
+  "extra": {
+    "AppleWalkingSteadiness": 1,
+    "AppleStandHourCount": 11
+  }
 }

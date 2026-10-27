@@ -2,5 +2,10 @@
   "date": "2025-08-23",
   "source": "health-export-import",
   "steps": 223,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "receivedAt": "2026-10-27T18:03:28.401Z",
+  "distanceKm": 0.16,
+  "activeEnergyGoal": 400,
+  "exerciseMinutesGoal": 30,
+  "standHours": 0,
+  "standHoursGoal": 6
 }

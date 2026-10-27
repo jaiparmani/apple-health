@@ -2,6 +2,19 @@
   "date": "2025-08-19",
   "source": "health-export-import",
   "steps": 555,
-  "activeEnergy": 0,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "activeEnergy": 0.19,
+  "receivedAt": "2026-10-27T18:03:28.401Z",
+  "heartRateAvg": 107,
+  "heartRateMin": 107,
+  "heartRateMax": 107,
+  "basalEnergy": 62.01,
+  "flightsClimbed": 1,
+  "distanceKm": 0.38,
+  "walkingSpeed": 1.1,
+  "walkingStepLength": 65.3,
+  "walkingDoubleSupportPct": 0.297,
+  "activeEnergyGoal": 400,
+  "exerciseMinutesGoal": 30,
+  "standHours": 0,
+  "standHoursGoal": 6
 }

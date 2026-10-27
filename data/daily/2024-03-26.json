@@ -2,5 +2,13 @@
   "date": "2024-03-26",
   "source": "health-export-import",
   "steps": 1623,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "receivedAt": "2026-10-27T18:03:28.401Z",
+  "basalEnergy": 369.74,
+  "flightsClimbed": 1,
+  "distanceKm": 1.22,
+  "walkingSpeed": 1.1,
+  "walkingStepLength": 67,
+  "walkingAsymmetryPct": 0.185,
+  "walkingDoubleSupportPct": 0.292,
+  "sleepInBedHours": 6.47
 }

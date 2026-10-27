@@ -4,5 +4,9 @@
   "steps": 1726,
   "activeEnergy": 31,
   "sleepHours": 16.37,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "receivedAt": "2026-10-27T18:03:28.401Z",
+  "distanceKm": 0.57,
+  "sleepEfficiency": 0.196,
+  "sleepAwakeHours": 0.03,
+  "sleepInBedHours": 83.43
 }

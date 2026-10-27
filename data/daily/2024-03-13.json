@@ -3,8 +3,28 @@
   "source": "health-export-import",
   "hrv": 24,
   "steps": 7232,
-  "activeEnergy": 164,
+  "activeEnergy": 163.93,
   "exerciseMinutes": 12,
   "respiratoryRate": 22.9,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "receivedAt": "2026-10-27T18:03:28.401Z",
+  "heartRateAvg": 79.1,
+  "heartRateMin": 48,
+  "heartRateMax": 148,
+  "walkingHeartRateAvg": 112.5,
+  "basalEnergy": 1837.08,
+  "standMinutes": 34,
+  "flightsClimbed": 14,
+  "distanceKm": 5.45,
+  "walkingSpeed": 1.2,
+  "walkingStepLength": 69.8,
+  "walkingAsymmetryPct": 0.01,
+  "walkingDoubleSupportPct": 0.284,
+  "sleepInBedHours": 8.65,
+  "activeEnergyGoal": 10,
+  "exerciseMinutesGoal": 15,
+  "standHours": 4,
+  "standHoursGoal": 6,
+  "extra": {
+    "AppleStandHourCount": 6
+  }
 }

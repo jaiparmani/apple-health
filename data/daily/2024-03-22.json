@@ -2,5 +2,15 @@
   "date": "2024-03-22",
   "source": "health-export-import",
   "steps": 3593,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "receivedAt": "2026-10-27T18:03:28.401Z",
+  "basalEnergy": 437.78,
+  "distanceKm": 2.7,
+  "walkingSpeed": 1.1,
+  "walkingStepLength": 66.9,
+  "walkingAsymmetryPct": 0.024,
+  "walkingDoubleSupportPct": 0.294,
+  "sleepInBedHours": 7.31,
+  "extra": {
+    "AppleWalkingSteadiness": 1
+  }
 }

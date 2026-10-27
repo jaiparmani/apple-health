@@ -3,5 +3,10 @@
   "source": "health-export-import",
   "steps": 2233,
   "activeEnergy": 26,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "receivedAt": "2026-10-27T18:03:28.401Z",
+  "distanceKm": 0.84,
+  "walkingSpeed": 1.1,
+  "walkingStepLength": 69.2,
+  "walkingAsymmetryPct": 0,
+  "walkingDoubleSupportPct": 0.307
 }

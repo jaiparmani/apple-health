@@ -2,6 +2,10 @@
   "date": "2022-09-29",
   "source": "health-export-import",
   "steps": 437,
-  "activeEnergy": 6,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "activeEnergy": 5.52,
+  "receivedAt": "2026-10-27T18:03:28.401Z",
+  "basalEnergy": 1469.33,
+  "distanceKm": 0.29,
+  "activeEnergyGoal": 120,
+  "standHours": 0
 }

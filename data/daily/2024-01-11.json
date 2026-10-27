@@ -5,8 +5,28 @@
   "hrv": 41.6,
   "vo2max": 40.6,
   "steps": 18274,
-  "activeEnergy": 592,
+  "activeEnergy": 592.2,
   "exerciseMinutes": 33,
   "respiratoryRate": 18.7,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "receivedAt": "2026-10-27T18:03:28.401Z",
+  "heartRateAvg": 85,
+  "heartRateMin": 57,
+  "heartRateMax": 140,
+  "walkingHeartRateAvg": 108,
+  "basalEnergy": 2031.94,
+  "standMinutes": 134,
+  "flightsClimbed": 2,
+  "distanceKm": 14.65,
+  "walkingSpeed": 1.2,
+  "walkingStepLength": 70.5,
+  "walkingAsymmetryPct": 0.036,
+  "walkingDoubleSupportPct": 0.286,
+  "sleepInBedHours": 6.61,
+  "activeEnergyGoal": 10,
+  "exerciseMinutesGoal": 15,
+  "standHours": 12,
+  "standHoursGoal": 6,
+  "extra": {
+    "AppleStandHourCount": 15
+  }
 }

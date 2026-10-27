@@ -4,7 +4,31 @@
   "restingHeartRate": 69,
   "hrv": 29.8,
   "steps": 9206,
-  "activeEnergy": 1215,
+  "activeEnergy": 1215.44,
   "exerciseMinutes": 88,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "receivedAt": "2026-10-27T18:03:28.401Z",
+  "heartRateAvg": 92.9,
+  "heartRateMin": 65,
+  "heartRateMax": 142,
+  "walkingHeartRateAvg": 112,
+  "basalEnergy": 2354.86,
+  "standMinutes": 114,
+  "distanceKm": 7.02,
+  "daylightMinutes": 86,
+  "walkingSpeed": 1.3,
+  "walkingStepLength": 72.8,
+  "walkingAsymmetryPct": 0,
+  "walkingDoubleSupportPct": 0.287,
+  "workoutCount": 1,
+  "workoutMinutes": 83.7,
+  "activeEnergyGoal": 360,
+  "exerciseMinutesGoal": 30,
+  "standHours": 8,
+  "standHoursGoal": 6,
+  "extra": {
+    "HeadphoneAudioExposure": 37.921,
+    "PhysicalEffort": 3.469,
+    "AppleStandHourCount": 9
+  },
+  "workoutType": "Pickleball"
 }
