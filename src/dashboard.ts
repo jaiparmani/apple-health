@@ -9,21 +9,27 @@ export function renderDashboard(): string {
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   /*
-    Design direction: a clinical vitals-monitor readout, not a wellness app
-    and not a generic analytics SaaS card grid. Numbers are the content;
-    structure (hairlines, not boxes) carries information. Color is reserved
-    for physiological signal — one accent for the single hero metric,
-    green/coral only for direction, nothing else.
+    Design direction: a fitness-first performance app (WHOOP/Strava/Nike
+    vernacular), not a clinical instrument and not a generic SaaS
+    dashboard. This product's own metrics (Strain, Readiness, WHOOP-style
+    recovery) are already fitness-tracker DNA, so the design matches that
+    energy: bold condensed numerals, true black, color-coded by
+    physiological direction (green/amber/coral) rather than one timid
+    accent, confident filled CTAs.
   */
   :root {
-    --void:#07090b; --panel:#0d1013; --panel2:#101316; --line:#1b2024;
-    --ink:#e4e7e9; --dim:#80878c; --faint:#50565b;
-    --pulse:#5ba8a0; --up:#5fad7e; --down:#c4604a;
-    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
-    --sans: -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+    --void:#000000; --panel:#121212; --panel2:#181818; --line:#262626;
+    --ink:#ffffff; --dim:#8a8a8a; --faint:#555555;
+    --pulse:#b4ff39; --up:#34d399; --down:#f76b4d; --caution:#fbbf24;
+    /* kept the name --mono from the prior design pass (it's used ~40 places
+       for every numeric readout) even though Barlow Condensed isn't a
+       monospace face — renaming the token would mean touching every call
+       site for no functional gain; what matters is the value. */
+    --mono: 'Barlow Condensed', -apple-system, sans-serif;
+    --sans: 'Inter', -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
   }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { margin:0; padding:0; }
@@ -44,111 +50,111 @@ export function renderDashboard(): string {
   a { color:inherit; }
   .sub { color:var(--dim); font-size:13px; line-height:1.5; }
   .faint { color:var(--faint); font-size:12px; }
-  .num { font-family:var(--mono); font-variant-numeric:tabular-nums; }
+  .num { font-family:var(--mono); font-weight:700; }
 
   /* ---- gate ---- */
   #gate { max-width:360px; margin:18vh auto; padding:0; text-align:left; }
-  #gate .mark { font-family:var(--mono); font-size:22px; color:var(--pulse); margin-bottom:10px; }
-  #gate h1 { font-size:18px; margin:0 0 6px; font-weight:600; }
-  #gate input { width:100%; padding:11px 12px; margin:16px 0 10px; border-radius:4px; border:1px solid var(--line); background:var(--panel2); color:var(--ink); font-size:14px; font-family:var(--mono); text-align:left; }
+  #gate .mark { font-family:var(--mono); font-weight:700; font-size:26px; color:var(--pulse); margin-bottom:10px; }
+  #gate h1 { font-size:19px; margin:0 0 6px; font-weight:700; }
+  #gate input { width:100%; padding:11px 12px; margin:16px 0 10px; border-radius:6px; border:1px solid var(--line); background:var(--panel2); color:var(--ink); font-size:14px; font-family:var(--sans); text-align:left; }
   #gate input:focus { outline:none; border-color:var(--pulse); }
   button { font:inherit; }
-  .btn { padding:10px 16px; border-radius:4px; border:1px solid var(--pulse); background:transparent; color:var(--pulse); font-weight:600; cursor:pointer; font-size:13.5px; transition:background .15s, color .15s; }
-  .btn:hover { background:var(--pulse); color:var(--void); } .btn:active { opacity:.8; }
-  .btn:disabled { opacity:.4; cursor:default; background:transparent; color:var(--pulse); }
-  .btn-ghost { background:transparent; color:var(--dim); border:1px solid var(--line); }
-  .btn-ghost:hover { background:var(--panel2); color:var(--ink); }
-  .btn-sm { padding:6px 11px; font-size:12px; border-radius:4px; }
+  .btn { padding:11px 18px; border-radius:6px; border:none; background:var(--pulse); color:var(--void); font-weight:700; cursor:pointer; font-size:13.5px; transition:transform .1s, opacity .15s; }
+  .btn:hover { opacity:.9; } .btn:active { transform:scale(.97); }
+  .btn:disabled { opacity:.35; cursor:default; }
+  .btn-ghost { background:var(--panel2); color:var(--ink); border:1px solid var(--line); font-weight:600; }
+  .btn-ghost:hover { border-color:var(--pulse); }
+  .btn-sm { padding:7px 12px; font-size:12px; border-radius:5px; }
   #gate .btn { width:100%; text-align:center; }
   #gateError { color:var(--down); min-height:16px; font-size:13px; }
 
   /* ---- shell ---- */
   #app { display:none; max-width:900px; margin:0 auto; padding:0 20px 60px; }
-  header.top { position:sticky; top:0; z-index:20; background:rgba(7,9,11,.92); backdrop-filter:blur(10px); padding:18px 20px 10px; margin:0 -20px 20px; border-bottom:1px solid var(--line); }
+  header.top { position:sticky; top:0; z-index:20; background:rgba(0,0,0,.92); backdrop-filter:blur(10px); padding:18px 20px 10px; margin:0 -20px 20px; border-bottom:1px solid var(--line); }
   header.top .row { display:flex; align-items:baseline; justify-content:space-between; max-width:900px; margin:0 auto; }
-  header.top h1 { font-size:17px; margin:0; font-weight:600; letter-spacing:.01em; }
-  header.top .sub { font-family:var(--mono); font-size:12px; }
-  .tabs { display:flex; gap:2px; overflow-x:auto; margin-top:14px; padding-bottom:1px; max-width:900px; margin-left:auto; margin-right:auto; scrollbar-width:none; }
+  header.top h1 { font-size:18px; margin:0; font-weight:800; letter-spacing:-.01em; }
+  header.top .sub { font-family:var(--mono); font-weight:600; font-size:13px; }
+  .tabs { display:flex; gap:6px; overflow-x:auto; margin-top:14px; padding-bottom:2px; max-width:900px; margin-left:auto; margin-right:auto; scrollbar-width:none; }
   .tabs::-webkit-scrollbar { display:none; }
-  .tab { white-space:nowrap; padding:8px 12px; border-radius:0; background:transparent; border:none; border-bottom:2px solid transparent; color:var(--dim); cursor:pointer; font-size:13px; font-weight:500; }
-  .tab.active { color:var(--ink); border-bottom-color:var(--pulse); }
+  .tab { white-space:nowrap; padding:7px 13px; border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--dim); cursor:pointer; font-size:13px; font-weight:600; }
+  .tab.active { color:var(--void); background:var(--pulse); border-color:var(--pulse); }
 
   .section { display:none; }
   .section.active { display:block; }
 
-  /* ---- hero: the one place the accent appears ---- */
+  /* ---- hero: big, bold, color-coded — this is the first thing you see ---- */
   .hero { display:grid; grid-template-columns:auto 1fr; gap:28px; padding:0 0 22px; margin-bottom:22px; border-bottom:1px solid var(--line); align-items:center; }
-  .ring-wrap { position:relative; width:132px; height:132px; flex-shrink:0; }
+  .ring-wrap { position:relative; width:140px; height:140px; flex-shrink:0; }
   .ring-wrap svg { transform:rotate(-90deg); }
   .ring-label { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  .ring-label .n { font-family:var(--mono); font-size:32px; font-weight:500; letter-spacing:-.01em; line-height:1; color:var(--pulse); }
-  .ring-label .u { font-size:10.5px; color:var(--dim); margin-top:4px; }
-  .hero-meta .delta { display:inline-flex; align-items:center; gap:5px; padding:3px 0; font-family:var(--mono); font-size:13px; font-weight:500; margin-bottom:8px; }
+  .ring-label .n { font-family:var(--mono); font-size:46px; font-weight:800; letter-spacing:-.01em; line-height:1; color:var(--pulse); }
+  .ring-label .u { font-size:11px; color:var(--dim); margin-top:2px; font-weight:600; }
+  .hero-meta .delta { display:inline-flex; align-items:center; gap:5px; padding:3px 0; font-family:var(--mono); font-size:16px; font-weight:700; margin-bottom:8px; }
   .delta.good { color:var(--up); }
   .delta.bad { color:var(--down); }
-  .hero-meta h2 { margin:0 0 4px; font-size:15px; font-weight:500; color:var(--ink); }
-  .readiness-chip { display:inline-flex; align-items:center; gap:7px; margin-top:10px; margin-right:14px; font-size:12.5px; color:var(--dim); }
-  .readiness-chip .num { color:var(--ink); }
-  .dot { width:6px; height:6px; border-radius:50%; }
+  .hero-meta h2 { margin:0 0 4px; font-size:16px; font-weight:600; color:var(--ink); }
+  .readiness-chip { display:inline-flex; align-items:center; gap:7px; margin-top:10px; margin-right:14px; font-size:13px; font-weight:600; color:var(--dim); }
+  .readiness-chip .num { color:var(--ink); font-weight:700; }
+  .dot { width:8px; height:8px; border-radius:50%; }
 
-  /* ---- grid / readouts (no boxes — hairline rule under each) ---- */
+  /* ---- grid / readouts: color-coded left edge by trend direction ---- */
   .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0; margin-bottom:22px; border-top:1px solid var(--line); }
-  .stat { padding:12px 14px 12px 0; border-bottom:1px solid var(--line); }
-  .stat .label { color:var(--dim); font-size:12px; display:flex; align-items:center; gap:6px; }
-  .stat .value { font-family:var(--mono); font-size:19px; font-weight:500; margin-top:5px; letter-spacing:-.01em; }
-  .stat .value .unit { font-size:11.5px; color:var(--dim); font-weight:400; margin-left:3px; font-family:var(--sans); }
-  .stat .trend { font-family:var(--mono); font-size:11px; margin-top:3px; }
+  .stat { padding:13px 14px 13px 12px; border-bottom:1px solid var(--line); border-left:3px solid var(--line); }
+  .stat .label { color:var(--dim); font-size:12px; font-weight:600; display:flex; align-items:center; gap:6px; }
+  .stat .value { font-family:var(--mono); font-size:26px; font-weight:800; margin-top:4px; letter-spacing:-.01em; }
+  .stat .value .unit { font-size:12px; color:var(--dim); font-weight:600; margin-left:3px; font-family:var(--sans); }
+  .stat .trend { font-family:var(--mono); font-size:12px; font-weight:700; margin-top:3px; }
   .trend.up { color:var(--up); } .trend.down { color:var(--down); } .trend.flat { color:var(--faint); }
+  .stat:has(.trend.up) { border-left-color:var(--up); }
+  .stat:has(.trend.down) { border-left-color:var(--down); }
 
   /* A panel still exists where content needs real grouping (forms, lists,
-     AI output) — but it's a flat fill with a hairline edge, not a
-     rounded, shadowed card, and every panel on a page shares no
-     decorative border-radius flourish. */
-  .card { background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:18px; margin-bottom:12px; }
-  .card h3 { margin:0 0 4px; font-size:13.5px; font-weight:600; display:flex; align-items:center; gap:8px; color:var(--ink); }
+     AI output) — flat fill, hairline edge, no decorative shadow. */
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:18px; margin-bottom:12px; }
+  .card h3 { margin:0 0 4px; font-size:14px; font-weight:700; display:flex; align-items:center; gap:8px; color:var(--ink); }
   .card .card-sub { color:var(--dim); font-size:12.5px; margin-bottom:12px; }
   .chart-empty { height:240px; display:flex; align-items:center; justify-content:center; color:var(--faint); font-size:13px; text-align:center; padding:0 20px; }
   .simple-table { width:100%; font-size:13px; border-collapse:collapse; }
-  .simple-table td { padding:7px 10px 7px 0; border-bottom:1px solid var(--line); color:var(--ink); font-family:var(--mono); }
-  .simple-table td:first-child { color:var(--dim); white-space:nowrap; font-family:var(--sans); }
+  .simple-table td { padding:7px 10px 7px 0; border-bottom:1px solid var(--line); color:var(--ink); font-family:var(--mono); font-weight:600; }
+  .simple-table td:first-child { color:var(--dim); white-space:nowrap; font-family:var(--sans); font-weight:400; }
   canvas { max-height:240px; }
 
-  /* ---- AI insights: same panel system, no purple-gradient treatment ---- */
-  .ai-card { background:var(--panel); border:1px solid var(--line); border-left:2px solid var(--pulse); border-radius:0 3px 3px 0; }
+  /* ---- AI insights: same panel, lime accent stripe (this app's brand) ---- */
+  .ai-card { background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--pulse); border-radius:0 8px 8px 0; }
   .ai-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
-  .ai-headline { font-size:15px; font-weight:500; margin:2px 0 10px; color:var(--ink); }
+  .ai-headline { font-size:16px; font-weight:700; margin:2px 0 10px; color:var(--ink); }
   .ai-list { margin:0 0 10px; padding-left:16px; font-size:13.5px; line-height:1.7; color:var(--ink); }
-  .ai-list.concerns li { color:#d9a08f; }
-  .ai-list.recs li { color:#9bb8c4; }
-  .ai-section-title { font-size:11px; color:var(--dim); margin:12px 0 4px; }
+  .ai-list.concerns li { color:var(--down); }
+  .ai-list.recs li { color:var(--pulse); }
+  .ai-section-title { font-size:11px; color:var(--dim); font-weight:700; margin:12px 0 4px; }
   .ai-meta { color:var(--faint); font-size:11.5px; margin-top:8px; font-family:var(--mono); }
-  .skeleton { height:12px; border-radius:2px; background:linear-gradient(90deg,var(--panel2),#181c1f,var(--panel2)); background-size:200% 100%; animation:shimmer 1.4s infinite; margin:8px 0; }
+  .skeleton { height:12px; border-radius:2px; background:linear-gradient(90deg,var(--panel2),#202020,var(--panel2)); background-size:200% 100%; animation:shimmer 1.4s infinite; margin:8px 0; }
   @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
 
   /* ---- bests / markers ---- */
   .bests { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:0; border-top:1px solid var(--line); }
   .best { padding:12px 14px 12px 0; border-bottom:1px solid var(--line); }
-  .best .label { color:var(--dim); font-size:11.5px; }
-  .best .value { font-family:var(--mono); font-size:16px; font-weight:500; margin-top:4px; color:var(--ink); }
+  .best .label { color:var(--dim); font-size:11.5px; font-weight:600; }
+  .best .value { font-family:var(--mono); font-size:20px; font-weight:800; margin-top:4px; color:var(--pulse); }
   .best .date { color:var(--faint); font-size:11px; margin-top:2px; font-family:var(--mono); }
 
   .extra-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:0; border-top:1px solid var(--line); }
   .extra-tile { padding:10px 12px 10px 0; border-bottom:1px solid var(--line); }
   .extra-tile .label { color:var(--dim); font-size:10.5px; }
-  .extra-tile .value { font-family:var(--mono); font-size:14px; font-weight:500; margin-top:2px; }
+  .extra-tile .value { font-family:var(--mono); font-size:16px; font-weight:700; margin-top:2px; }
 
   .markers-list { display:flex; flex-direction:column; gap:10px; }
   .marker-row { display:flex; align-items:center; gap:10px; }
   .marker-row .mname { flex:1; font-size:13px; color:var(--dim); }
-  .marker-row .mval { font-family:var(--mono); font-size:13px; font-weight:500; width:64px; text-align:right; color:var(--ink); }
-  .marker-bar { flex:2; height:3px; background:var(--panel2); overflow:hidden; }
+  .marker-row .mval { font-family:var(--mono); font-size:15px; font-weight:700; width:64px; text-align:right; color:var(--ink); }
+  .marker-bar { flex:2; height:4px; background:var(--panel2); overflow:hidden; border-radius:2px; }
   .marker-bar > div { height:100%; }
 
   /* ---- profile / import ---- */
   .profile-form, .import-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-  .profile-form input, .profile-form select { padding:8px 10px; border-radius:4px; border:1px solid var(--line); background:var(--panel2); color:var(--ink); font-size:13.5px; }
+  .profile-form input, .profile-form select { padding:8px 10px; border-radius:6px; border:1px solid var(--line); background:var(--panel2); color:var(--ink); font-size:13.5px; }
   input[type="file"] { color:var(--dim); font-size:13px; }
-  progress { width:100%; height:3px; border-radius:0; overflow:hidden; accent-color:var(--pulse); margin-top:8px; }
+  progress { width:100%; height:4px; border-radius:2px; overflow:hidden; accent-color:var(--pulse); margin-top:8px; }
 
   footer { color:var(--faint); font-size:11.5px; text-align:left; padding:28px 0 10px; border-top:1px solid var(--line); margin-top:10px; }
 
@@ -196,7 +202,7 @@ export function renderDashboard(): string {
           <circle id="bioRing" cx="74" cy="74" r="64" fill="none" stroke="url(#ringGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="402" stroke-dashoffset="402" />
           <defs>
             <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#5ba8a0" /><stop offset="100%" stop-color="#7a8bb0" />
+              <stop offset="0%" stop-color="#b4ff39" /><stop offset="100%" stop-color="#60a5fa" />
             </linearGradient>
           </defs>
         </svg>
@@ -212,7 +218,7 @@ export function renderDashboard(): string {
             <span id="readinessText">Readiness —</span>
           </div>
           <div class="readiness-chip" id="strainChip" style="display:none;">
-            <span class="dot" id="strainDot" style="background:#c89a4a;"></span>
+            <span class="dot" id="strainDot" style="background:#fbbf24;"></span>
             <span id="strainText">Strain —</span>
           </div>
         </div>
@@ -553,9 +559,9 @@ function upsertChart(id, config) {
   el.style.display = '';
 
   config.options = Object.assign({ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-    plugins:{ legend:{ labels:{ color:'#80878c', boxWidth:10, font:{size:11, family:"'IBM Plex Mono',monospace"} } } },
-    scales:{ x:{ ticks:{ color:'#50565b', maxTicksLimit:8, font:{size:10, family:"'IBM Plex Mono',monospace"} }, grid:{ color:'#1b2024' } },
-             y:{ ticks:{ color:'#50565b', font:{size:10, family:"'IBM Plex Mono',monospace"} }, grid:{ color:'#1b2024' } } } }, config.options || {});
+    plugins:{ legend:{ labels:{ color:'#8a8a8a', boxWidth:10, font:{size:11, family:"'IBM Plex Mono',monospace"} } } },
+    scales:{ x:{ ticks:{ color:'#8a8a8a', maxTicksLimit:8, font:{size:10, family:"'IBM Plex Mono',monospace"} }, grid:{ color:'#262626' } },
+             y:{ ticks:{ color:'#8a8a8a', font:{size:10, family:"'IBM Plex Mono',monospace"} }, grid:{ color:'#262626' } } } }, config.options || {});
   el.parentElement.style.height = '240px';
   charts[id] = new Chart(el, config);
 }
@@ -610,7 +616,7 @@ function renderReadiness(score) {
   var chip = document.getElementById('readinessChip');
   if (score === null || score === undefined) { chip.style.display = 'none'; return; }
   chip.style.display = 'inline-flex';
-  var color = score >= 70 ? '#5fad7e' : score >= 45 ? '#c89a4a' : '#c4604a';
+  var color = score >= 70 ? '#34d399' : score >= 45 ? '#fbbf24' : '#f76b4d';
   document.getElementById('readinessDot').style.background = color;
   document.getElementById('readinessText').textContent = 'Readiness ' + score + '/100';
 }
@@ -619,7 +625,7 @@ function renderStrain(strain) {
   var chip = document.getElementById('strainChip');
   if (strain === null || strain === undefined) { chip.style.display = 'none'; return; }
   chip.style.display = 'inline-flex';
-  var color = strain >= 14 ? '#c4604a' : strain >= 8 ? '#c89a4a' : '#5fad7e';
+  var color = strain >= 14 ? '#f76b4d' : strain >= 8 ? '#fbbf24' : '#34d399';
   document.getElementById('strainDot').style.background = color;
   document.getElementById('strainText').textContent = 'Strain ' + fmt(strain, 1) + '/21';
 }
@@ -643,9 +649,9 @@ function renderActivityRings(today) {
     return; // leave the default "no data yet" message in place
   }
   var rings = [
-    { label: 'Move', actual: today.activeEnergy, goal: today.activeEnergyGoal, unit: 'kcal', color: '#c4604a' },
-    { label: 'Exercise', actual: today.exerciseMinutes, goal: today.exerciseMinutesGoal, unit: 'min', color: '#5fad7e' },
-    { label: 'Stand', actual: today.standHours, goal: today.standHoursGoal, unit: 'hr', color: '#5ba8a0' },
+    { label: 'Move', actual: today.activeEnergy, goal: today.activeEnergyGoal, unit: 'kcal', color: '#f76b4d' },
+    { label: 'Exercise', actual: today.exerciseMinutes, goal: today.exerciseMinutesGoal, unit: 'min', color: '#34d399' },
+    { label: 'Stand', actual: today.standHours, goal: today.standHoursGoal, unit: 'hr', color: '#b4ff39' },
   ];
   el.innerHTML = '<div class="grid">' + rings.map(function (r) {
     if (r.goal === undefined) return '';
@@ -681,7 +687,7 @@ function renderBioHero(latest, days) {
 function renderMarkers(latest) {
   var el = document.getElementById('markersList');
   if (!latest || !latest.markers.length) { el.innerHTML = '<p class="sub">No markers yet.</p>'; return; }
-  var colors = ['#5ba8a0', '#7a8bb0', '#c4604a', '#5fad7e', '#c89a4a'];
+  var colors = ['#b4ff39', '#60a5fa', '#f76b4d', '#34d399', '#fbbf24'];
   el.innerHTML = latest.markers.map(function (m, i) {
     var pct = Math.max(4, Math.min(100, (m.markerAge / 90) * 100));
     return '<div class="marker-row"><div class="mname">' + m.marker + '</div>' +
@@ -736,7 +742,7 @@ async function askHealthQuestion(evt) {
   }
 }
 
-var AI_CHART_COLORS = ['#5ba8a0', '#c89a4a', '#5fad7e'];
+var AI_CHART_COLORS = ['#b4ff39', '#fbbf24', '#34d399'];
 
 async function askForChart(evt) {
   evt.preventDefault();
@@ -770,40 +776,40 @@ function buildCharts(days, history) {
   var pick = function (f) { return days.map(function (d) { return d[f] !== undefined ? d[f] : null; }); };
 
   upsertChart('heartChart', { type: 'line', data: { labels: labels, datasets: [
-    { label: 'Resting HR', data: pick('restingHeartRate'), borderColor: '#c4604a', backgroundColor: 'transparent', tension: .3, pointRadius: 0, borderWidth: 1.5 },
-    { label: 'HRV', data: pick('hrv'), borderColor: '#5ba8a0', backgroundColor: 'transparent', tension: .3, pointRadius: 0, borderWidth: 1.5 },
+    { label: 'Resting HR', data: pick('restingHeartRate'), borderColor: '#f76b4d', backgroundColor: 'transparent', tension: .3, pointRadius: 0, borderWidth: 1.5 },
+    { label: 'HRV', data: pick('hrv'), borderColor: '#b4ff39', backgroundColor: 'transparent', tension: .3, pointRadius: 0, borderWidth: 1.5 },
   ]}});
 
   upsertChart('hrRangeChart', { type: 'line', data: { labels: labels, datasets: [
-    { label: 'Avg HR', data: pick('heartRateAvg'), borderColor: '#c89a4a', tension: .3, pointRadius: 0, borderWidth: 1.5 },
-    { label: 'Max HR', data: pick('heartRateMax'), borderColor: '#c4604a', tension: .3, pointRadius: 0, borderWidth: 1 },
-    { label: 'Min HR', data: pick('heartRateMin'), borderColor: '#5fad7e', tension: .3, pointRadius: 0, borderWidth: 1 },
+    { label: 'Avg HR', data: pick('heartRateAvg'), borderColor: '#fbbf24', tension: .3, pointRadius: 0, borderWidth: 1.5 },
+    { label: 'Max HR', data: pick('heartRateMax'), borderColor: '#f76b4d', tension: .3, pointRadius: 0, borderWidth: 1 },
+    { label: 'Min HR', data: pick('heartRateMin'), borderColor: '#34d399', tension: .3, pointRadius: 0, borderWidth: 1 },
   ]}});
 
   upsertChart('vo2Chart', { type: 'line', data: { labels: labels, datasets: [
-    { label: 'VO2max', data: pick('vo2max'), borderColor: '#9b8bc4', tension: .3, pointRadius: 2, borderWidth: 1.5, spanGaps: true },
+    { label: 'VO2max', data: pick('vo2max'), borderColor: '#a78bfa', tension: .3, pointRadius: 2, borderWidth: 1.5, spanGaps: true },
   ]}});
 
   upsertChart('stepsChart', { type: 'bar', data: { labels: labels, datasets: [
-    { label: 'Steps', data: pick('steps'), backgroundColor: '#5fad7e99' },
+    { label: 'Steps', data: pick('steps'), backgroundColor: '#34d39999' },
   ]}});
 
   upsertChart('energyChart', { type: 'bar', data: { labels: labels, datasets: [
-    { label: 'Active energy (kcal)', data: pick('activeEnergy'), backgroundColor: '#c89a4a99' },
-    { label: 'Exercise (min)', data: pick('exerciseMinutes'), backgroundColor: '#5ba8a099' },
+    { label: 'Active energy (kcal)', data: pick('activeEnergy'), backgroundColor: '#fbbf2499' },
+    { label: 'Exercise (min)', data: pick('exerciseMinutes'), backgroundColor: '#b4ff3999' },
   ]}});
 
   upsertChart('standChart', { type: 'bar', data: { labels: labels, datasets: [
-    { label: 'Stand minutes', data: pick('standMinutes'), backgroundColor: '#5fad7e99' },
-    { label: 'Flights climbed', data: pick('flightsClimbed'), backgroundColor: '#c89a4a99' },
+    { label: 'Stand minutes', data: pick('standMinutes'), backgroundColor: '#34d39999' },
+    { label: 'Flights climbed', data: pick('flightsClimbed'), backgroundColor: '#fbbf2499' },
   ]}});
 
   upsertChart('gaitChart', { type: 'line', data: { labels: labels, datasets: [
-    { label: 'Walking speed (m/s)', data: pick('walkingSpeed'), borderColor: '#5ba8a0', tension: .3, pointRadius: 0, borderWidth: 1.5, spanGaps: true },
+    { label: 'Walking speed (m/s)', data: pick('walkingSpeed'), borderColor: '#b4ff39', tension: .3, pointRadius: 0, borderWidth: 1.5, spanGaps: true },
   ]}});
 
   upsertChart('workoutChart', { type: 'bar', data: { labels: labels, datasets: [
-    { label: 'Workout minutes', data: pick('workoutMinutes'), backgroundColor: '#c89a4a99' },
+    { label: 'Workout minutes', data: pick('workoutMinutes'), backgroundColor: '#fbbf2499' },
   ]}});
 
   var workoutDays = days.filter(function (d) { return d.workoutCount; }).slice(-15).reverse();
@@ -820,26 +826,26 @@ function buildCharts(days, history) {
   }
 
   upsertChart('sleepChart', { type: 'bar', data: { labels: labels, datasets: [
-    { label: 'Sleep hours', data: pick('sleepHours'), backgroundColor: '#7a8bb099' },
+    { label: 'Sleep hours', data: pick('sleepHours'), backgroundColor: '#60a5fa99' },
   ]}});
 
   upsertChart('sleepStagesChart', { type: 'bar', data: { labels: labels, datasets: [
-    { label: 'Core', data: pick('sleepCoreHours'), backgroundColor: '#7a8bb0' },
-    { label: 'Deep', data: pick('sleepDeepHours'), backgroundColor: '#4f5f8a' },
-    { label: 'REM', data: pick('sleepRemHours'), backgroundColor: '#9b8bc4' },
-    { label: 'Awake', data: pick('sleepAwakeHours'), backgroundColor: '#c4604a' },
+    { label: 'Core', data: pick('sleepCoreHours'), backgroundColor: '#60a5fa' },
+    { label: 'Deep', data: pick('sleepDeepHours'), backgroundColor: '#3b82f6' },
+    { label: 'REM', data: pick('sleepRemHours'), backgroundColor: '#a78bfa' },
+    { label: 'Awake', data: pick('sleepAwakeHours'), backgroundColor: '#f76b4d' },
   ]}, options: { scales: {
-    x: { stacked: true, ticks: { color: '#50565b', maxTicksLimit: 8, font: { size: 10 } }, grid: { color: '#1b2024' } },
-    y: { stacked: true, ticks: { color: '#50565b', font: { size: 10 } }, grid: { color: '#1b2024' } },
+    x: { stacked: true, ticks: { color: '#8a8a8a', maxTicksLimit: 8, font: { size: 10 } }, grid: { color: '#262626' } },
+    y: { stacked: true, ticks: { color: '#8a8a8a', font: { size: 10 } }, grid: { color: '#262626' } },
   } }});
 
   upsertChart('weightChart', { type: 'line', data: { labels: labels, datasets: [
-    { label: 'Weight (kg)', data: pick('weightKg'), borderColor: '#c89a4a', tension: .3, pointRadius: 1, borderWidth: 1.5, spanGaps: true },
+    { label: 'Weight (kg)', data: pick('weightKg'), borderColor: '#fbbf24', tension: .3, pointRadius: 1, borderWidth: 1.5, spanGaps: true },
   ]}});
 
   upsertChart('ageChart', { type: 'line', data: { labels: history.map(function (h) { return h.date; }), datasets: [
-    { label: 'Biological age', data: history.map(function (h) { return h.biologicalAge; }), borderColor: '#5ba8a0', tension: .3, pointRadius: 0, borderWidth: 1.5 },
-    { label: 'Chronological age', data: history.map(function (h) { return h.chronologicalAge; }), borderColor: '#50565b', borderDash: [5, 5], pointRadius: 0, borderWidth: 1 },
+    { label: 'Biological age', data: history.map(function (h) { return h.biologicalAge; }), borderColor: '#b4ff39', tension: .3, pointRadius: 0, borderWidth: 1.5 },
+    { label: 'Chronological age', data: history.map(function (h) { return h.chronologicalAge; }), borderColor: '#8a8a8a', borderDash: [5, 5], pointRadius: 0, borderWidth: 1 },
   ]}});
 }
 
