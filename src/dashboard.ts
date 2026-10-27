@@ -972,6 +972,15 @@ function healthParseNaive(ts) {
 function healthDurationMinutes(startDate, endDate) {
   return (healthParseNaive(endDate) - healthParseNaive(startDate)) / 60000;
 }
+function healthSleepNightDate(startDate) {
+  var date = startDate.slice(0, 10);
+  var hour = Number(startDate.slice(11, 13));
+  if (hour < 18) return date;
+  var parts = date.split('-').map(Number);
+  var dt = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+  dt.setUTCDate(dt.getUTCDate() + 1);
+  return dt.toISOString().slice(0, 10);
+}
 function healthSpeedToMps(value, unit) {
   if (!unit) return value;
   var u = unit.toLowerCase();
@@ -1093,8 +1102,21 @@ function healthProcessLine(days, line) {
 
   // Category record
   if (name === 'SleepAnalysis') {
+    // A night's sleep stage records naturally straddle midnight (e.g. Core
+    // 23:00->23:45, Deep 23:45->01:30, ...), and attributing each record by
+    // its own startDate splits one night's sleep across two calendar days —
+    // the pre-midnight minutes land on the date sleep started, the rest on
+    // the next date, understating both. Apple's own Health app attributes a
+    // whole night to the WAKE date, so: any record starting at 18:00 or
+    // later is attributed to the following calendar day, matching that
+    // convention and keeping a full night together. Naps (which start well
+    // before 18:00) are unaffected.
     var stageField = SLEEP_STAGE_MAP[value];
-    if (stageField && endDate) d[stageField] += healthDurationMinutes(startDate, endDate);
+    if (stageField && endDate) {
+      var sleepDate = healthSleepNightDate(startDate);
+      if (!days.has(sleepDate)) days.set(sleepDate, healthNewDayAcc());
+      days.get(sleepDate)[stageField] += healthDurationMinutes(startDate, endDate);
+    }
     return;
   }
   if (name === 'MindfulSession') {
