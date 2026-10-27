@@ -162,9 +162,11 @@ still open:
 - **Workout `<Route>`/GPS data, ECG, and `<ActivitySummary>` Activity
   Ring data** — `<Workout>` sessions are parsed, but not these related
   export elements.
-- **Multi-day/overnight sleep splitting** — a sleep session crossing
-  midnight still has its minutes attributed entirely to the date it
-  started, documented as a known simplification, not fixed.
+- ✅ **Multi-day/overnight sleep splitting — fixed.** Sleep records
+  starting at 18:00 or later are now attributed to the following
+  calendar day (the wake date), matching Apple Health's own convention,
+  instead of splitting one night across two dates. Requires a re-import
+  to apply to already-stored historical data.
 - Experiments and knowledge-base notes have no UI test coverage beyond
   the deterministic computation layer (`experiments.ts` itself is
   tested; the dashboard wiring around it is only manually verified).
