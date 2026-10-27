@@ -4,8 +4,31 @@
   "restingHeartRate": 59,
   "hrv": 30.8,
   "steps": 14190,
-  "activeEnergy": 686,
+  "activeEnergy": 685.97,
   "exerciseMinutes": 72,
   "respiratoryRate": 16.1,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "receivedAt": "2026-10-27T17:58:32.940Z",
+  "heartRateAvg": 99.9,
+  "heartRateMin": 51,
+  "heartRateMax": 134,
+  "walkingHeartRateAvg": 108.5,
+  "basalEnergy": 1941.65,
+  "standMinutes": 117,
+  "flightsClimbed": 1,
+  "distanceKm": 11.86,
+  "walkingSpeed": 1.1,
+  "walkingStepLength": 69,
+  "walkingAsymmetryPct": 0.009,
+  "walkingDoubleSupportPct": 0.288,
+  "sleepInBedHours": 8.06,
+  "workoutCount": 2,
+  "workoutMinutes": 51.8,
+  "activeEnergyGoal": 250,
+  "exerciseMinutesGoal": 30,
+  "standHours": 7,
+  "standHoursGoal": 12,
+  "extra": {
+    "AppleStandHourCount": 14
+  },
+  "workoutType": "Badminton"
 }

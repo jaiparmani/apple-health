@@ -2,5 +2,7 @@
   "date": "2017-11-14",
   "source": "health-export-import",
   "steps": 7008,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "receivedAt": "2026-10-27T17:58:32.940Z",
+  "flightsClimbed": 6,
+  "distanceKm": 4.4
 }

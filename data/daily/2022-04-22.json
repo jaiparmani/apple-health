@@ -4,5 +4,11 @@
   "steps": 4880,
   "activeEnergy": 66,
   "sleepHours": 1.57,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "receivedAt": "2026-10-27T17:58:32.940Z",
+  "distanceKm": 1.62,
+  "walkingSpeed": 0.9,
+  "walkingStepLength": 61.6,
+  "walkingDoubleSupportPct": 0.322,
+  "sleepEfficiency": 0.989,
+  "sleepInBedHours": 1.58
 }

@@ -2,5 +2,18 @@
   "date": "2025-01-27",
   "source": "health-export-import",
   "steps": 5894,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "receivedAt": "2026-10-27T17:58:32.940Z",
+  "flightsClimbed": 1,
+  "distanceKm": 4.49,
+  "walkingSpeed": 1.3,
+  "walkingStepLength": 67.2,
+  "walkingAsymmetryPct": 0.037,
+  "walkingDoubleSupportPct": 0.277,
+  "activeEnergyGoal": 400,
+  "exerciseMinutesGoal": 30,
+  "standHours": 0,
+  "standHoursGoal": 6,
+  "extra": {
+    "HeadphoneAudioExposure": 67.576
+  }
 }

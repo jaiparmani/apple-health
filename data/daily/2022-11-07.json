@@ -2,6 +2,15 @@
   "date": "2022-11-07",
   "source": "health-export-import",
   "steps": 4780,
-  "activeEnergy": 95,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "activeEnergy": 94.92,
+  "receivedAt": "2026-10-27T17:58:32.940Z",
+  "basalEnergy": 1467.06,
+  "flightsClimbed": 1,
+  "distanceKm": 2.99,
+  "walkingSpeed": 1,
+  "walkingStepLength": 63.9,
+  "walkingAsymmetryPct": 0,
+  "walkingDoubleSupportPct": 0.312,
+  "activeEnergyGoal": 120,
+  "standHours": 0
 }

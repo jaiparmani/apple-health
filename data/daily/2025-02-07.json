@@ -2,6 +2,23 @@
   "date": "2025-02-07",
   "source": "health-export-import",
   "steps": 2314,
-  "activeEnergy": 2,
-  "receivedAt": "2026-10-26T16:09:06.715Z"
+  "activeEnergy": 2.12,
+  "receivedAt": "2026-10-27T17:58:32.940Z",
+  "heartRateAvg": 86,
+  "heartRateMin": 86,
+  "heartRateMax": 86,
+  "basalEnergy": 571.82,
+  "distanceKm": 1.8,
+  "walkingSpeed": 1,
+  "walkingStepLength": 66.9,
+  "walkingAsymmetryPct": 0.083,
+  "walkingDoubleSupportPct": 0.297,
+  "activeEnergyGoal": 400,
+  "exerciseMinutesGoal": 30,
+  "standHours": 0,
+  "standHoursGoal": 6,
+  "extra": {
+    "HeadphoneAudioExposure": 57.744,
+    "AppleWalkingSteadiness": 0.939
+  }
 }
