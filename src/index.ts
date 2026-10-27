@@ -38,7 +38,6 @@ function insightsCacheKey(domain: ReviewDomain): string {
   // report, recent rows...) — don't serve reviews generated without it.
   return `insights:v4:${domain}`;
 }
-const INSIGHTS_FRESH_SECONDS = 60 * 60; // served as-is for 1 hour
 // Kept in KV well past "fresh" so a flaky llm-gateway call can fall back to
 // the last good review (flagged stale) instead of an empty error card.
 const INSIGHTS_KEEP_SECONDS = 7 * 24 * 60 * 60;
@@ -214,6 +213,7 @@ async function handleGetTrends(req: Request, env: Env): Promise<Response> {
 
 interface InsightsCacheEntry {
   generatedAt: string;
+  dataVersion?: string; // reviewVersion() when written
   insights: AiInsights;
 }
 
@@ -228,55 +228,156 @@ async function loadGoalProgress(env: Env, days: DailyMetrics[]): Promise<GoalPro
   return (data?.goals ?? []).map((g) => computeGoalProgress(days, g, today));
 }
 
-type ReviewResult = InsightsCacheEntry & { cached: boolean; stale?: boolean };
+type ReviewResult = InsightsCacheEntry & { cached: boolean; stale?: boolean; refreshing?: boolean };
 
 /**
- * AI-generated narrative review for one domain (overview/today/weekly/
- * longterm/training/recovery/activity/sleep/body/discoveries). Same caching
- * for every domain: an entry is served as-is while fresh (1 hour by
- * default), regenerated after that or on force, and kept for a week so a
- * failed regeneration can fall back to the last good review (stale: true)
- * instead of an error. Shared by the dashboard and the morning brief.
+ * AI reviews are written AHEAD of time, not on page open:
+ *   - warmAllReviews() runs hourly (cron) and right after every sync, and
+ *     rewrites any review whose inputs changed;
+ *   - opening the dashboard always gets the cached review instantly; if it
+ *     is out of date, it is refreshed in the background (ctx.waitUntil) and
+ *     the page picks up the new one a minute later.
+ * "Out of date" = the data changed since it was written (DATA_VERSION_KEY,
+ * bumped on every sync), the day changed, or it's older than 6 hours.
+ * Entries are kept a week, so a failed rewrite never empties a card.
  */
-async function getReview(env: Env, domain: ReviewDomain, opts: { force?: boolean; freshSeconds?: number } = {}): Promise<ReviewResult | { error: string; status: number }> {
-  const cacheKey = insightsCacheKey(domain);
-  const cached = await env.INSIGHTS_CACHE.get<InsightsCacheEntry>(cacheKey, "json");
-  const ageSeconds = cached ? (Date.now() - Date.parse(cached.generatedAt)) / 1000 : Infinity;
-  if (cached && !opts.force && ageSeconds < (opts.freshSeconds ?? INSIGHTS_FRESH_SECONDS)) return { ...cached, cached: true };
+const DATA_VERSION_KEY = "data:version";
+const REVIEW_MAX_AGE_SECONDS = 6 * 60 * 60;
+const REVIEW_LOCK_SECONDS = 120;
 
-  const [{ data: seriesData }, { data: profile }, { data: latest }, { data: knowledge }, history] = await Promise.all([
+async function reviewVersion(env: Env): Promise<string> {
+  const data = (await env.INSIGHTS_CACHE.get(DATA_VERSION_KEY)) ?? "none";
+  return `${localToday(env)}|${data}`;
+}
+
+async function bumpDataVersion(env: Env): Promise<void> {
+  await env.INSIGHTS_CACHE.put(DATA_VERSION_KEY, new Date().toISOString());
+}
+
+function isOutOfDate(entry: InsightsCacheEntry, version: string): boolean {
+  const age = (Date.now() - Date.parse(entry.generatedAt)) / 1000;
+  return entry.dataVersion !== version || age > REVIEW_MAX_AGE_SECONDS;
+}
+
+interface AiInputs {
+  days: DailyMetrics[];
+  profile: UserProfile | null;
+  latest: BiologicalAgeResult | null;
+  knowledge: UserKnowledge | null;
+  bioHistory: BiologicalAgeResult[];
+  goals: GoalProgress[];
+}
+
+async function loadAiInputs(env: Env): Promise<AiInputs> {
+  const [{ data: seriesData }, { data: profile }, { data: latest }, { data: knowledge }, { data: history }] = await Promise.all([
     getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
     getJson<UserProfile>(env, PROFILE_PATH),
     getJson<BiologicalAgeResult>(env, LATEST_PATH),
     getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
-    domain === "body" || domain === "longterm" ? getJson<{ entries: BiologicalAgeResult[] }>(env, HISTORY_PATH) : Promise.resolve({ data: null }),
+    getJson<{ entries: BiologicalAgeResult[] }>(env, HISTORY_PATH),
   ]);
   const days = seriesData?.days ?? [];
-  if (days.length === 0) return { error: "no data yet", status: 400 };
-  if (!env.LLM_GATEWAY_URL || !env.LLM_GATEWAY_TOKEN) return { error: "AI insights not configured", status: 503 };
+  return { days, profile, latest, knowledge, bioHistory: history?.entries ?? [], goals: await loadGoalProgress(env, days) };
+}
 
-  const trends = computeTrends(days);
-  const goals = ["today", "training", "weekly", "overview", "longterm"].includes(domain) ? await loadGoalProgress(env, days) : [];
-  const context = buildReviewContext(domain, { days, profile, knowledge, bioHistory: history.data?.entries ?? [], goals });
-  let insights: AiInsights;
+/** Writes one review from already-loaded inputs and stores it. Throws on failure. */
+async function writeReview(env: Env, domain: ReviewDomain, inputs: AiInputs, version: string): Promise<InsightsCacheEntry> {
+  const { days, profile, latest, knowledge, bioHistory, goals } = inputs;
+  const context = buildReviewContext(domain, { days, profile, knowledge, bioHistory, goals });
+  const insights = await generateReview(env, domain, days, computeTrends(days), profile ? latest : null, context);
+  const entry: InsightsCacheEntry = { generatedAt: new Date().toISOString(), dataVersion: version, insights };
+  await env.INSIGHTS_CACHE.put(insightsCacheKey(domain), JSON.stringify(entry), { expirationTtl: INSIGHTS_KEEP_SECONDS });
+  return entry;
+}
+
+/** A short KV lock so a page load and the cron don't write the same review at once. */
+async function tryLock(env: Env, domain: ReviewDomain): Promise<boolean> {
+  const key = `lock:review:${domain}`;
+  if (await env.INSIGHTS_CACHE.get(key)) return false;
+  await env.INSIGHTS_CACHE.put(key, "1", { expirationTtl: REVIEW_LOCK_SECONDS });
+  return true;
+}
+
+async function refreshReview(env: Env, domain: ReviewDomain, inputs?: AiInputs): Promise<void> {
+  if (!(await tryLock(env, domain))) return;
   try {
-    insights = await generateReview(env, domain, days, trends, profile ? latest : null, context);
+    const version = await reviewVersion(env);
+    await writeReview(env, domain, inputs ?? (await loadAiInputs(env)), version);
+  } catch {
+    // keep the previous review; the next warm-up tries again
+  } finally {
+    await env.INSIGHTS_CACHE.delete(`lock:review:${domain}`);
+  }
+}
+
+/**
+ * Pre-writes every out-of-date review (and makes sure this week's plan
+ * exists), loading the data once. Run by the hourly cron and after syncs.
+ */
+async function warmAllReviews(env: Env): Promise<{ written: string[]; skipped: string[]; failed: string[] }> {
+  const out = { written: [] as string[], skipped: [] as string[], failed: [] as string[] };
+  if (!env.LLM_GATEWAY_URL || !env.LLM_GATEWAY_TOKEN) return out;
+  const inputs = await loadAiInputs(env);
+  if (inputs.days.length === 0) return out;
+  const version = await reviewVersion(env);
+
+  const todo: ReviewDomain[] = [];
+  for (const domain of REVIEW_DOMAINS) {
+    const cached = await env.INSIGHTS_CACHE.get<InsightsCacheEntry>(insightsCacheKey(domain), "json");
+    if (cached && !isOutOfDate(cached, version)) out.skipped.push(domain);
+    else todo.push(domain);
+  }
+  // Three at a time: fast enough, gentle on the free-tier gateway.
+  for (let i = 0; i < todo.length; i += 3) {
+    await Promise.all(
+      todo.slice(i, i + 3).map(async (domain) => {
+        if (!(await tryLock(env, domain))) return out.skipped.push(domain);
+        try {
+          await writeReview(env, domain, inputs, version);
+          out.written.push(domain);
+        } catch {
+          out.failed.push(domain);
+        } finally {
+          await env.INSIGHTS_CACHE.delete(`lock:review:${domain}`);
+        }
+      })
+    );
+  }
+  await loadPlan(env).catch(() => null);
+  return out;
+}
+
+/**
+ * Cached review, instantly. Out of date → served anyway and refreshed in the
+ * background (when a ctx is given). Nothing cached yet, or force → written
+ * now. Shared by the dashboard and the morning brief.
+ */
+async function getReview(env: Env, domain: ReviewDomain, opts: { force?: boolean; ctx?: ExecutionContext } = {}): Promise<ReviewResult | { error: string; status: number }> {
+  const cached = await env.INSIGHTS_CACHE.get<InsightsCacheEntry>(insightsCacheKey(domain), "json");
+  const version = await reviewVersion(env);
+  if (cached && !opts.force) {
+    const outOfDate = isOutOfDate(cached, version);
+    if (outOfDate && opts.ctx) opts.ctx.waitUntil(refreshReview(env, domain));
+    return { ...cached, cached: true, refreshing: outOfDate && !!opts.ctx };
+  }
+  if (!env.LLM_GATEWAY_URL || !env.LLM_GATEWAY_TOKEN) return { error: "AI insights not configured", status: 503 };
+  const inputs = await loadAiInputs(env);
+  if (inputs.days.length === 0) return { error: "no data yet", status: 400 };
+  try {
+    return { ...(await writeReview(env, domain, inputs, version)), cached: false };
   } catch (err) {
     if (cached) return { ...cached, cached: true, stale: true };
     throw err;
   }
-  const entry: InsightsCacheEntry = { generatedAt: new Date().toISOString(), insights };
-  await env.INSIGHTS_CACHE.put(cacheKey, JSON.stringify(entry), { expirationTtl: INSIGHTS_KEEP_SECONDS });
-  return { ...entry, cached: false };
 }
 
-async function handleGetInsights(req: Request, env: Env): Promise<Response> {
+async function handleGetInsights(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   const url = new URL(req.url);
   const force = url.searchParams.get("force") === "1";
   const domainParam = url.searchParams.get("domain");
   const domain: ReviewDomain = REVIEW_DOMAINS.includes(domainParam as ReviewDomain) ? (domainParam as ReviewDomain) : "overview";
-  const result = await getReview(env, domain, { force });
+  const result = await getReview(env, domain, { force, ctx });
   if ("error" in result) return json({ error: result.error }, result.status);
   return json(result);
 }
@@ -321,6 +422,7 @@ async function handlePostGoal(req: Request, env: Env): Promise<Response> {
   const { data: existing, sha } = await getJson<{ goals: Goal[] }>(env, GOALS_PATH);
   const goals = [...(existing?.goals ?? []), goal].slice(-MAX_GOALS);
   await putJson(env, GOALS_PATH, { goals }, `goals: add "${goal.title}"`, sha);
+  await bumpDataVersion(env);
   return json({ ok: true, goal });
 }
 
@@ -331,6 +433,7 @@ async function handleDeleteGoal(req: Request, env: Env): Promise<Response> {
   const { data: existing, sha } = await getJson<{ goals: Goal[] }>(env, GOALS_PATH);
   const goals = (existing?.goals ?? []).filter((g) => g.id !== id);
   await putJson(env, GOALS_PATH, { goals }, `goals: delete ${id}`, sha);
+  await bumpDataVersion(env);
   return json({ ok: true });
 }
 
@@ -426,9 +529,8 @@ async function handleTelegramBrief(req: Request, env: Env): Promise<Response> {
   const [plan, goals, review] = await Promise.all([
     loadPlan(env).catch(() => null),
     loadGoalProgress(env, days),
-    // A review written in the last 3 hours is current enough for 7am; else
-    // write a fresh one (falls back to the last good one on failure).
-    getReview(env, "today", { freshSeconds: 3 * 60 * 60 }).catch(() => null),
+    // Pre-written by the hourly warm-up (06:45 run covers the 07:00 brief).
+    getReview(env, "today").catch(() => null),
   ]);
   const fitness = computeFitnessReport(days, profile, 7.5);
   const text = healthBriefMessage({
@@ -744,15 +846,24 @@ async function handlePutProfile(req: Request, env: Env): Promise<Response> {
 }
 
 export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+  async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
     try {
-      if (req.method === "POST" && url.pathname === "/ingest") return await handleIngest(req, env);
-      if (req.method === "POST" && url.pathname === "/import-bulk") return await handleImportBulk(req, env);
+      if (req.method === "POST" && (url.pathname === "/ingest" || url.pathname === "/import-bulk")) {
+        const res = url.pathname === "/ingest" ? await handleIngest(req, env) : await handleImportBulk(req, env);
+        // New data: mark every review out of date and rewrite them now, so the
+        // dashboard already has them by the time it's opened.
+        if (res.ok) ctx.waitUntil(bumpDataVersion(env).then(() => warmAllReviews(env)).catch(() => undefined));
+        return res;
+      }
+      if (req.method === "POST" && url.pathname === "/api/warm") {
+        if (!isAuthed(req, env)) return unauthorized();
+        return json(await warmAllReviews(env));
+      }
       if (req.method === "GET" && url.pathname === "/api/series") return await handleGetSeries(req, env);
       if (req.method === "GET" && url.pathname === "/api/analytics") return await handleGetAnalytics(req, env);
       if (req.method === "GET" && url.pathname === "/api/trends") return await handleGetTrends(req, env);
-      if (req.method === "GET" && url.pathname === "/api/insights") return await handleGetInsights(req, env);
+      if (req.method === "GET" && url.pathname === "/api/insights") return await handleGetInsights(req, env, ctx);
       if (req.method === "POST" && url.pathname === "/telegram/brief") return await handleTelegramBrief(req, env);
       if (req.method === "GET" && url.pathname === "/api/goals") return await handleGetGoals(req, env);
       if (req.method === "POST" && url.pathname === "/api/goals") return await handlePostGoal(req, env);
@@ -784,5 +895,10 @@ export default {
     } catch (err) {
       return json({ error: "internal error", detail: (err as Error).message }, 500);
     }
+  },
+
+  /** Hourly: pre-write every out-of-date AI review and this week's plan. */
+  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
+    ctx.waitUntil(warmAllReviews(env).catch(() => undefined));
   },
 };

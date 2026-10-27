@@ -732,8 +732,8 @@ function showTab(id) {
   document.querySelector('.tab[data-tab="' + id + '"]').classList.add('active');
   try { localStorage.setItem('healthTab', id); } catch (e) {}
 
-  // AI reviews are slow on a cache miss (an LLM call), so each is loaded
-  // lazily on first visit to its tab rather than all at once in boot().
+  // Reviews are pre-written server-side and all loaded at boot (see
+  // loadAllReviews); this only covers a tab opened before that finished.
   if (appBooted) (TAB_REVIEWS[id] || []).forEach(function (domain) {
     if (!reviewLoadedOnce[domain]) { reviewLoadedOnce[domain] = true; loadReview(domain, false); }
   });
@@ -1391,7 +1391,15 @@ async function loadFitness() {
 // Generic AI review loader — same KV-cached-for-an-hour-with-retry
 // architecture for every domain (overview/training/sleep/...); only the
 // domain query param and the target DOM ids change per call site.
-async function loadReview(domain, force) {
+// Every review at once, the visible tab's first. They're pre-written on the
+// server, so this is a handful of instant cache reads, not LLM calls.
+function loadAllReviews(firstTab) {
+  var order = (TAB_REVIEWS[firstTab] || []).slice();
+  Object.keys(TAB_REVIEWS).forEach(function (t) { TAB_REVIEWS[t].forEach(function (d) { if (order.indexOf(d) < 0) order.push(d); }); });
+  order.forEach(function (d) { if (!reviewLoadedOnce[d]) { reviewLoadedOnce[d] = true; loadReview(d, false); } });
+}
+
+async function loadReview(domain, force, silent) {
   var btn = document.getElementById('review-' + domain + '-btn');
   var body = document.getElementById('review-' + domain);
   if (!btn || !body) return;
@@ -1400,7 +1408,7 @@ async function loadReview(domain, force) {
   var slow = setTimeout(function () {
     if (body.querySelector('.skeleton') && !body.querySelector('.ai-loading')) body.insertAdjacentHTML('beforeend', '<div class="ai-loading">Writing your review. First run takes about 30 seconds.</div>');
   }, 2500);
-  if (force) body.innerHTML = '<div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:90%"></div><div class="skeleton" style="width:55%"></div>';
+  if (force && !silent) body.innerHTML = '<div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:90%"></div><div class="skeleton" style="width:55%"></div>';
   try {
     var res = await authedFetch('/api/insights?domain=' + domain + (force ? '&force=1' : ''));
     var ins = res.insights;
@@ -1412,7 +1420,10 @@ async function loadReview(domain, force) {
     if (ins.concerns && ins.concerns.length) {
       html += '<div class="ai-section-title">Keep an eye on</div><ul class="ai-list concerns">' + ins.concerns.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
     }
-    html += '<div class="ai-meta">' + (res.stale ? 'Couldn\\'t refresh just now. Showing the review from ' + timeAgo(res.generatedAt) + '.' : res.cached ? 'Updated ' + timeAgo(res.generatedAt) : 'Just updated') + '</div>';
+    // Out of date: the server is rewriting it in the background — pick up
+    // the new version shortly, without a loading state.
+    if (res.refreshing && !silent) setTimeout(function () { loadReview(domain, false, true); }, 45000);
+    html += '<div class="ai-meta">' + (res.refreshing ? 'Updated ' + timeAgo(res.generatedAt) + ' · refreshing with your latest data' : res.stale ? 'Couldn\\'t refresh just now. Showing the review from ' + timeAgo(res.generatedAt) + '.' : res.cached ? 'Updated ' + timeAgo(res.generatedAt) : 'Just updated') + '</div>';
     body.innerHTML = html;
   } catch (err) {
     body.innerHTML = '<p class="sub">Couldn\\'t load this review (' + err.message + ').</p>';
@@ -1593,7 +1604,9 @@ async function boot() {
   var savedTab = null;
   try { savedTab = localStorage.getItem('healthTab'); } catch (e) {}
   appBooted = true;
-  showTab(savedTab && document.getElementById('tab-' + savedTab) ? savedTab : 'overview');
+  var firstTab = savedTab && document.getElementById('tab-' + savedTab) ? savedTab : 'overview';
+  showTab(firstTab);
+  loadAllReviews(firstTab);
 
   loadFitness();
   loadOverview();

@@ -27,3 +27,10 @@ service = "llm-gateway"
 #   LLM_GATEWAY_TOKEN - client token issued by llm-gateway for the AI insights feature
 #   BRIEF_TOKEN       - bearer token brain-chat and telegram-router send to POST /telegram/brief
 #                       (stored there as APPLE_HEALTH_TOKEN)
+
+# Hourly at :15 — pre-writes every AI review whose data changed (or that's
+# >6h old / from yesterday) and this week's plan, so the dashboard opens with
+# everything already there. The 01:15 UTC run (06:45 IST) also covers the
+# 07:00 IST Telegram brief. Syncs trigger the same warm-up immediately.
+[triggers]
+crons = ["15 * * * *"]
