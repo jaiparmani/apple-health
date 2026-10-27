@@ -326,6 +326,12 @@ export function renderDashboard(): string {
       <div class="card-sub">What's normal for <em>you</em>, not a population average — mean, trend, and how far today sits from your own recent baseline (in standard deviations). Needs enough recent samples to be trustworthy; metrics without enough history are skipped.</div>
       <div id="baselineList"></div>
     </div>
+    <div class="card">
+      <h3>Export your data</h3>
+      <p class="card-sub">Every stored day, every column discovered from your actual data — CSV, straight to your downloads.</p>
+      <button class="btn btn-sm" onclick="exportCsv()" id="exportBtn">Download CSV</button>
+      <p id="exportStatus" class="sub"></p>
+    </div>
   </section>
 
   <footer>Estimates only, not medical advice. Data lives in your own GitHub repo.</footer>
@@ -1011,6 +1017,31 @@ function healthFinalizeDays(days) {
 
 function setImportStatus(text) {
   document.getElementById('importStatus').textContent = text;
+}
+
+async function exportCsv() {
+  var btn = document.getElementById('exportBtn');
+  var status = document.getElementById('exportStatus');
+  btn.disabled = true;
+  status.textContent = 'Preparing download…';
+  try {
+    var res = await fetch('/api/export', { headers: { Authorization: 'Bearer ' + getToken() } });
+    if (!res.ok) throw new Error('request failed: ' + res.status);
+    var blob = await res.blob();
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement('a');
+    a.href = url;
+    a.download = 'health-export.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    status.textContent = 'Downloaded.';
+  } catch (err) {
+    status.textContent = 'Could not export (' + err.message + ').';
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 async function importExportZip() {

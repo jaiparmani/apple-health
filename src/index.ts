@@ -8,6 +8,7 @@ import { computeCoverage } from "./coverage";
 import { computeCorrelations } from "./correlations";
 import { detectAnomalies } from "./anomalies";
 import { computePeriodReport, type ReportPeriod } from "./report";
+import { toCsv } from "./export";
 import { generateInsights, answerHealthQuestion, type AiInsights } from "./ai";
 import { renderDashboard } from "./dashboard";
 
@@ -228,6 +229,19 @@ async function handleGetDiscoveries(req: Request, env: Env): Promise<Response> {
   });
 }
 
+async function handleExport(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const days = seriesData?.days ?? [];
+  const csv = toCsv(days);
+  return new Response(csv, {
+    headers: {
+      "Content-Type": "text/csv; charset=utf-8",
+      "Content-Disposition": `attachment; filename="health-export-${new Date().toISOString().slice(0, 10)}.csv"`,
+    },
+  });
+}
+
 async function handleGetReport(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   const url = new URL(req.url);
@@ -321,6 +335,7 @@ export default {
       if (req.method === "POST" && url.pathname === "/api/ask") return await handleAsk(req, env);
       if (req.method === "GET" && url.pathname === "/api/discoveries") return await handleGetDiscoveries(req, env);
       if (req.method === "GET" && url.pathname === "/api/report") return await handleGetReport(req, env);
+      if (req.method === "GET" && url.pathname === "/api/export") return await handleExport(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
       if (req.method === "GET" && url.pathname === "/") {
         return new Response(renderDashboard(), { headers: { "Content-Type": "text/html; charset=utf-8" } });
