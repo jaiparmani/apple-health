@@ -3,6 +3,8 @@ import { bulkCommit, getJson, putJson, type BulkFile } from "./github";
 import { mergeDaily, normalizePayload } from "./normalize";
 import { chronologicalAge, computeStrain, estimateBiologicalAge } from "./analytics";
 import { computeTrends } from "./trends";
+import { computeBaselines } from "./baselines";
+import { computeCoverage } from "./coverage";
 import { generateInsights, type AiInsights } from "./ai";
 import { renderDashboard } from "./dashboard";
 
@@ -213,6 +215,24 @@ async function handleGetInsights(req: Request, env: Env): Promise<Response> {
   return json({ ...entry, cached: false });
 }
 
+const BASELINE_WINDOWS = [7, 30, 90];
+
+async function handleGetBaselines(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const days = seriesData?.days ?? [];
+  const windows: Record<string, ReturnType<typeof computeBaselines>> = {};
+  for (const w of BASELINE_WINDOWS) windows[String(w)] = computeBaselines(days, w);
+  return json({ windows });
+}
+
+async function handleGetCoverage(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const days = seriesData?.days ?? [];
+  return json(computeCoverage(days));
+}
+
 async function handlePutProfile(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   let body: Partial<UserProfile>;
@@ -244,6 +264,8 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/analytics") return await handleGetAnalytics(req, env);
       if (req.method === "GET" && url.pathname === "/api/trends") return await handleGetTrends(req, env);
       if (req.method === "GET" && url.pathname === "/api/insights") return await handleGetInsights(req, env);
+      if (req.method === "GET" && url.pathname === "/api/baselines") return await handleGetBaselines(req, env);
+      if (req.method === "GET" && url.pathname === "/api/coverage") return await handleGetCoverage(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
       if (req.method === "GET" && url.pathname === "/") {
         return new Response(renderDashboard(), { headers: { "Content-Type": "text/html; charset=utf-8" } });

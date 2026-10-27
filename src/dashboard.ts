@@ -283,6 +283,17 @@ export function renderDashboard(): string {
       <progress id="importProgress" value="0" max="100" style="display:none;"></progress>
       <p id="importStatus" class="sub"></p>
     </div>
+    <div class="card">
+      <h3>Data coverage</h3>
+      <div class="card-sub">How complete your stored history is, per metric — missing days are shown honestly rather than filled in.</div>
+      <div id="coverageSummary" class="sub">Loading…</div>
+      <div id="coverageList"></div>
+    </div>
+    <div class="card">
+      <h3>Personal baselines (30-day)</h3>
+      <div class="card-sub">What's normal for <em>you</em>, not a population average — mean, trend, and how far today sits from your own recent baseline (in standard deviations). Needs enough recent samples to be trustworthy; metrics without enough history are skipped.</div>
+      <div id="baselineList"></div>
+    </div>
   </section>
 
   <footer>Estimates only, not medical advice. Data lives in your own GitHub repo.</footer>
@@ -605,6 +616,41 @@ async function boot() {
   if (savedTab) showTab(savedTab);
 
   loadInsights(false);
+  loadDataQuality();
+}
+
+async function loadDataQuality() {
+  try {
+    var results = await Promise.all([authedFetch('/api/coverage'), authedFetch('/api/baselines')]);
+    renderCoverage(results[0]);
+    renderBaselines((results[1].windows && results[1].windows['30']) || []);
+  } catch (err) {
+    document.getElementById('coverageSummary').textContent = 'Could not load (' + err.message + ').';
+  }
+}
+
+function renderCoverage(cov) {
+  var summaryEl = document.getElementById('coverageSummary');
+  var listEl = document.getElementById('coverageList');
+  if (!cov || !cov.totalDays) { summaryEl.textContent = 'No data yet.'; listEl.innerHTML = ''; return; }
+  var gapNote = cov.recentGapDays > 1 ? ' — last record is ' + cov.recentGapDays + ' days old.' : '';
+  summaryEl.textContent = cov.totalDays + ' days stored (' + cov.dateRange.start + ' to ' + cov.dateRange.end + ')' + gapNote;
+  listEl.innerHTML = '<table class="simple-table"><tbody>' + cov.metrics.slice(0, 20).map(function (m) {
+    var pct = Math.round(m.coveragePct * 100);
+    var staleNote = m.staleDays > 14 ? ' <span style="color:var(--bad)">stale ' + m.staleDays + 'd</span>' : '';
+    return '<tr><td>' + m.metric + '</td><td>' + pct + '%</td><td>' + m.daysPresent + '/' + m.totalDays + ' days' + staleNote + '</td></tr>';
+  }).join('') + '</tbody></table>';
+}
+
+function renderBaselines(list) {
+  var el = document.getElementById('baselineList');
+  if (!list || list.length === 0) { el.innerHTML = '<div class="sub">Not enough recent history yet.</div>'; return; }
+  var arrows = { up: '↑', down: '↓', flat: '→', unknown: '—' };
+  el.innerHTML = '<table class="simple-table"><tbody>' + list.map(function (b) {
+    var z = b.zScore !== undefined ? (b.zScore > 0 ? '+' : '') + b.zScore.toFixed(1) + 'σ' : '—';
+    var insufficient = !b.sufficient ? ' <span class="sub">(limited history)</span>' : '';
+    return '<tr><td>' + b.metric + '</td><td>' + b.mean + '</td><td>' + arrows[b.trend] + '</td><td>' + z + insufficient + '</td></tr>';
+  }).join('') + '</tbody></table>';
 }
 
 /* ---------------- Apple Health export.xml parsing (client-side) ----------------
