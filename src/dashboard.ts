@@ -80,6 +80,9 @@ export function renderDashboard(): string {
   .card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:18px; margin-bottom:14px; }
   .card h3 { margin:0 0 4px; font-size:14.5px; font-weight:650; display:flex; align-items:center; gap:8px; }
   .card .card-sub { color:var(--muted); font-size:12.5px; margin-bottom:12px; }
+  .simple-table { width:100%; font-size:13px; border-collapse:collapse; }
+  .simple-table td { padding:6px 10px 6px 0; border-bottom:1px solid #1a1e26; color:var(--text); }
+  .simple-table td:first-child { color:var(--muted); white-space:nowrap; }
   canvas { max-height:240px; }
 
   /* ---- AI insights ---- */
@@ -225,6 +228,11 @@ export function renderDashboard(): string {
     <div class="card"><h3>Active energy &amp; exercise minutes</h3><canvas id="energyChart"></canvas></div>
     <div class="card"><h3>Stand minutes &amp; flights climbed</h3><canvas id="standChart"></canvas></div>
     <div class="card"><h3>Walking speed &amp; gait quality</h3><div class="card-sub">Gait speed is one of the better-studied single predictors of healthy aging.</div><canvas id="gaitChart"></canvas></div>
+    <div class="card"><h3>Workouts</h3><canvas id="workoutChart"></canvas></div>
+    <div class="card">
+      <h3>Recent sessions</h3>
+      <div id="workoutList" class="card-sub">No workout sessions in the imported data yet.</div>
+    </div>
   </section>
 
   <!-- SLEEP -->
@@ -522,6 +530,23 @@ function buildCharts(days, history) {
     { label: 'Walking speed (m/s)', data: pick('walkingSpeed'), borderColor: '#64d2ff', tension: .3, pointRadius: 0, borderWidth: 1.5, spanGaps: true },
   ]}});
 
+  upsertChart('workoutChart', { type: 'bar', data: { labels: labels, datasets: [
+    { label: 'Workout minutes', data: pick('workoutMinutes'), backgroundColor: '#ff9f0a99' },
+  ]}});
+
+  var workoutDays = days.filter(function (d) { return d.workoutCount; }).slice(-15).reverse();
+  var listEl = document.getElementById('workoutList');
+  if (workoutDays.length === 0) {
+    listEl.textContent = 'No workout sessions in the imported data yet.';
+  } else {
+    listEl.innerHTML = '<table class="simple-table"><tbody>' + workoutDays.map(function (d) {
+      var parts = [d.date, d.workoutType || 'Workout', d.workoutMinutes + ' min'];
+      if (d.workoutEnergy) parts.push(Math.round(d.workoutEnergy) + ' kcal');
+      if (d.workoutDistanceKm) parts.push(d.workoutDistanceKm.toFixed(1) + ' km');
+      return '<tr>' + parts.map(function (p) { return '<td>' + p + '</td>'; }).join('') + '</tr>';
+    }).join('') + '</tbody></table>';
+  }
+
   upsertChart('sleepChart', { type: 'bar', data: { labels: labels, datasets: [
     { label: 'Sleep hours', data: pick('sleepHours'), backgroundColor: '#5e5ce699' },
   ]}});
@@ -655,6 +680,8 @@ function healthNewDayAcc() {
     extraAvg: {}, // identifier -> array of values
     extraSum: {}, // identifier -> running sum
     extraCount: {}, // category identifier -> occurrence count
+    workoutCount: 0, workoutMinutes: 0, workoutEnergy: 0, workoutDistanceKm: 0,
+    workoutTypes: {}, // HKWorkoutActivityType (prefix stripped) -> count
   };
 }
 function healthAvg(arr) { return arr.length ? arr.reduce(function (a, b) { return a + b; }, 0) / arr.length : undefined; }
@@ -683,7 +710,46 @@ var SLEEP_STAGE_MAP = {
   HKCategoryValueSleepAnalysisInBed: 'sleepInBedMin',
 };
 
+function healthToKm(value, unit) {
+  if (!unit) return value;
+  var u = unit.toLowerCase();
+  if (u === 'mi') return value * 1.60934;
+  if (u === 'm') return value / 1000;
+  return value; // already km
+}
+
+// <Workout> elements are a separate record kind from <Record> — one per
+// exercise session, with its own duration/energy/distance attributes
+// directly on the opening tag (even though the element itself usually has
+// nested <WorkoutEvent>/<MetadataEntry> children on later lines).
+function healthProcessWorkoutLine(days, line) {
+  var startDate = healthAttr(line, 'startDate');
+  var endDate = healthAttr(line, 'endDate');
+  if (!startDate) return;
+  var date = startDate.slice(0, 10);
+  if (!days.has(date)) days.set(date, healthNewDayAcc());
+  var d = days.get(date);
+
+  var durationStr = healthAttr(line, 'duration');
+  var minutes = durationStr ? Number(durationStr) : NaN;
+  if (!minutes || Number.isNaN(minutes)) minutes = endDate ? healthDurationMinutes(startDate, endDate) : 0;
+
+  var energyStr = healthAttr(line, 'totalEnergyBurned');
+  var distanceStr = healthAttr(line, 'totalDistance');
+  var distanceUnit = healthAttr(line, 'totalDistanceUnit');
+
+  d.workoutCount += 1;
+  if (minutes > 0) d.workoutMinutes += minutes;
+  if (energyStr) d.workoutEnergy += Number(energyStr) || 0;
+  if (distanceStr) d.workoutDistanceKm += healthToKm(Number(distanceStr) || 0, distanceUnit);
+
+  var typeMatch = line.match(/workoutActivityType="HKWorkoutActivityType([A-Za-z0-9]+)"/);
+  var typeName = typeMatch ? typeMatch[1] : 'Other';
+  d.workoutTypes[typeName] = (d.workoutTypes[typeName] || 0) + 1;
+}
+
 function healthProcessLine(days, line) {
+  if (line.indexOf('<Workout ') !== -1) { healthProcessWorkoutLine(days, line); return; }
   if (line.indexOf('<Record ') === -1) return;
   var typeMatch = line.match(/type="HK(Quantity|Category)TypeIdentifier([A-Za-z0-9]+)"/);
   if (!typeMatch) return;
@@ -762,6 +828,16 @@ function healthFinalizeDays(days) {
       if (sleepHours > 0) rec.sleepEfficiency = healthRound(Math.min(1, sleepHours / (d.sleepInBedMin / 60)), 3);
     }
     if (d.mindfulMinutes > 0) rec.mindfulMinutes = Math.round(d.mindfulMinutes);
+
+    if (d.workoutCount > 0) {
+      rec.workoutCount = d.workoutCount;
+      rec.workoutMinutes = healthRound(d.workoutMinutes, 1);
+      if (d.workoutEnergy > 0) rec.workoutEnergy = healthRound(d.workoutEnergy, 1);
+      if (d.workoutDistanceKm > 0) rec.workoutDistanceKm = healthRound(d.workoutDistanceKm, 2);
+      var topType = null, topCount = 0;
+      for (var wt in d.workoutTypes) { if (d.workoutTypes[wt] > topCount) { topType = wt; topCount = d.workoutTypes[wt]; } }
+      if (topType) rec.workoutType = topType;
+    }
 
     var extra = {};
     for (var avgKey in d.extraAvg) extra[avgKey] = healthRound(healthAvg(d.extraAvg[avgKey]), 3);

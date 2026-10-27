@@ -3,7 +3,10 @@ import type { DailyMetrics } from "./types";
 // Apple Shortcuts can only build simple dictionaries, so the ingest endpoint
 // accepts a loose, case-insensitive set of aliases for each metric rather
 // than requiring an exact schema from the Shortcut author.
-const ALIASES: Record<keyof Omit<DailyMetrics, "date" | "receivedAt" | "source" | "extra">, string[]> = {
+const ALIASES: Record<
+  keyof Omit<DailyMetrics, "date" | "receivedAt" | "source" | "extra" | "workoutType">,
+  string[]
+> = {
   restingHeartRate: ["restingheartrate", "resting_heart_rate", "rhr"],
   heartRateAvg: ["heartrateavg", "heart_rate_avg", "avgheartrate", "heartrate"],
   heartRateMin: ["heartratemin", "heart_rate_min", "minheartrate"],
@@ -41,6 +44,10 @@ const ALIASES: Record<keyof Omit<DailyMetrics, "date" | "receivedAt" | "source" 
   bloodPressureDiastolic: ["bloodpressurediastolic", "diastolic", "bpdiastolic"],
   bloodGlucose: ["bloodglucose", "blood_glucose", "glucose"],
   strain: ["strain", "dailystrain"],
+  workoutCount: ["workoutcount", "workout_count"],
+  workoutMinutes: ["workoutminutes", "workout_minutes"],
+  workoutEnergy: ["workoutenergy", "workout_energy"],
+  workoutDistanceKm: ["workoutdistancekm", "workout_distance_km"],
 };
 
 function toNumber(v: unknown): number | undefined {
@@ -107,6 +114,10 @@ export function normalizePayload(raw: unknown, source?: string): DailyMetrics {
       if (num !== undefined) extra[k] = num;
     }
     if (Object.keys(extra).length > 0) metrics.extra = extra;
+  }
+
+  if (typeof obj.workoutType === "string" && obj.workoutType.trim() !== "") {
+    metrics.workoutType = obj.workoutType;
   }
 
   return metrics;

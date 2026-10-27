@@ -55,6 +55,12 @@ export interface DailyMetrics {
   bloodGlucose?: number; // mg/dL
   // WHOOP-style daily load
   strain?: number; // 0-21, cardiovascular load for the day from HR-zone time
+  // Workout sessions (from <Workout> elements, distinct from <Record>)
+  workoutCount?: number;
+  workoutMinutes?: number;
+  workoutEnergy?: number; // kcal
+  workoutDistanceKm?: number;
+  workoutType?: string; // most common HKWorkoutActivityType that day
   // Every other HealthKit quantity/category type the export contains, so
   // nothing from "Export All Health Data" is ever silently dropped. Keyed by
   // the HK identifier with its HKQuantityTypeIdentifier/HKCategoryTypeIdentifier
