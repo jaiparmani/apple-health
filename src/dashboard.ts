@@ -219,6 +219,12 @@ export function renderDashboard(): string {
       </form>
       <div id="askBody"></div>
     </div>
+
+    <div class="card">
+      <h3>Discoveries</h3>
+      <div class="card-sub">Correlation, not causation — a fixed set of physiologically plausible pairs, checked against your own history, with a minimum sample size before anything is reported.</div>
+      <div id="discoveriesBody" class="sub">Loading…</div>
+    </div>
   </section>
 
   <!-- HEART & RECOVERY -->
@@ -652,6 +658,33 @@ async function boot() {
 
   loadInsights(false);
   loadDataQuality();
+  loadDiscoveries();
+}
+
+async function loadDiscoveries() {
+  var el = document.getElementById('discoveriesBody');
+  try {
+    var res = await authedFetch('/api/discoveries');
+    var reportable = (res.correlations || []).filter(function (c) { return c.strength !== 'negligible' && c.strength !== 'insufficient_data'; });
+    var html = '';
+    if (reportable.length === 0) {
+      html += '<div class="sub">No correlations above a meaningful threshold found yet in your data.</div>';
+    } else {
+      html += '<div class="ai-section-title">Correlations (not causation)</div><ul class="ai-list">' + reportable.map(function (c) {
+        return '<li>' + c.label + ': r=' + c.r + ' (' + c.strength + ', ' + c.direction + '), n=' + c.sampleSize + ' days. ' + c.hypothesis + '</li>';
+      }).join('') + '</ul>';
+    }
+    var anomalies = (res.anomalies || []).slice(0, 8);
+    if (anomalies.length > 0) {
+      html += '<div class="ai-section-title">Recent anomalies</div><ul class="ai-list concerns">' + anomalies.map(function (a) {
+        var ctx = Object.keys(a.relatedObservations).map(function (k) { return k + '=' + a.relatedObservations[k]; }).join(', ');
+        return '<li>' + a.date + ': ' + a.metric + ' was ' + a.value + ' (' + a.direction + ' baseline of ' + a.baselineMean + ' by ' + Math.abs(a.zScore).toFixed(1) + 'σ)' + (ctx ? ' — same day: ' + ctx : '') + '</li>';
+      }).join('') + '</ul>';
+    }
+    el.innerHTML = html || '<div class="sub">Not enough history yet to find discoveries.</div>';
+  } catch (err) {
+    el.textContent = 'Could not load (' + err.message + ').';
+  }
 }
 
 async function loadDataQuality() {
