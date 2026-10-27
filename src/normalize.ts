@@ -3,7 +3,7 @@ import type { DailyMetrics } from "./types";
 // Apple Shortcuts can only build simple dictionaries, so the ingest endpoint
 // accepts a loose, case-insensitive set of aliases for each metric rather
 // than requiring an exact schema from the Shortcut author.
-const ALIASES: Record<keyof Omit<DailyMetrics, "date" | "receivedAt" | "source">, string[]> = {
+const ALIASES: Record<keyof Omit<DailyMetrics, "date" | "receivedAt" | "source" | "extra">, string[]> = {
   restingHeartRate: ["restingheartrate", "resting_heart_rate", "rhr"],
   heartRateAvg: ["heartrateavg", "heart_rate_avg", "avgheartrate", "heartrate"],
   heartRateMin: ["heartratemin", "heart_rate_min", "minheartrate"],
@@ -30,11 +30,17 @@ const ALIASES: Record<keyof Omit<DailyMetrics, "date" | "receivedAt" | "source">
   walkingDoubleSupportPct: ["walkingdoublesupportpct", "walking_double_support_pct", "walkingdoublesupportpercentage"],
   sleepHours: ["sleephours", "sleep_hours", "sleepduration", "timeasleep"],
   sleepEfficiency: ["sleepefficiency", "sleep_efficiency"],
+  sleepCoreHours: ["sleepcorehours", "sleep_core_hours"],
+  sleepDeepHours: ["sleepdeephours", "sleep_deep_hours"],
+  sleepRemHours: ["sleepremhours", "sleep_rem_hours"],
+  sleepAwakeHours: ["sleepawakehours", "sleep_awake_hours"],
+  sleepInBedHours: ["sleepinbedhours", "sleep_in_bed_hours"],
   weightKg: ["weightkg", "weight_kg", "bodymass", "weight"],
   bodyFatPct: ["bodyfatpct", "body_fat_pct", "bodyfatpercentage"],
   bloodPressureSystolic: ["bloodpressuresystolic", "systolic", "bpsystolic"],
   bloodPressureDiastolic: ["bloodpressurediastolic", "diastolic", "bpdiastolic"],
   bloodGlucose: ["bloodglucose", "blood_glucose", "glucose"],
+  strain: ["strain", "dailystrain"],
 };
 
 function toNumber(v: unknown): number | undefined {
@@ -90,6 +96,19 @@ export function normalizePayload(raw: unknown, source?: string): DailyMetrics {
     metrics.walkingDoubleSupportPct = metrics.walkingDoubleSupportPct / 100;
   }
 
+  // `extra` carries every other HealthKit type the client-side export parser
+  // found that isn't one of the named fields above — passed straight through
+  // rather than run through the alias lookup, since its keys are already
+  // the canonical (prefix-stripped) HK identifiers.
+  if (obj.extra && typeof obj.extra === "object") {
+    const extra: Record<string, number> = {};
+    for (const [k, v] of Object.entries(obj.extra as Record<string, unknown>)) {
+      const num = toNumber(v);
+      if (num !== undefined) extra[k] = num;
+    }
+    if (Object.keys(extra).length > 0) metrics.extra = extra;
+  }
+
   return metrics;
 }
 
@@ -102,6 +121,11 @@ export function mergeDaily(existing: DailyMetrics | null, incoming: DailyMetrics
     if (incoming[key] === undefined && existing[key] !== undefined) {
       (merged as unknown as Record<string, unknown>)[key] = existing[key];
     }
+  }
+  // `extra` is a nested bag of arbitrary HK types — merge its keys rather
+  // than letting one side's object wholesale replace the other's.
+  if (existing.extra || incoming.extra) {
+    merged.extra = { ...existing.extra, ...incoming.extra };
   }
   return merged;
 }

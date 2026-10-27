@@ -1,7 +1,7 @@
 import type { BiologicalAgeResult, DailyMetrics, Env, UserProfile } from "./types";
 import { bulkCommit, getJson, putJson, type BulkFile } from "./github";
 import { mergeDaily, normalizePayload } from "./normalize";
-import { estimateBiologicalAge } from "./analytics";
+import { chronologicalAge, computeStrain, estimateBiologicalAge } from "./analytics";
 import { computeTrends } from "./trends";
 import { generateInsights, type AiInsights } from "./ai";
 import { renderDashboard } from "./dashboard";
@@ -165,9 +165,16 @@ async function handleGetAnalytics(req: Request, env: Env): Promise<Response> {
 
 async function handleGetTrends(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
-  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const [{ data: seriesData }, { data: profile }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<UserProfile>(env, PROFILE_PATH),
+  ]);
   const days = seriesData?.days ?? [];
-  return json(computeTrends(days));
+  const age = profile ? chronologicalAge(profile.birthDate, new Date().toISOString().slice(0, 10)) : null;
+  const strain7 = days.slice(-7).map((d) => ({ date: d.date, strain: d.strain ?? computeStrain(d, age) }));
+  const today = days[days.length - 1];
+  const todayStrain = today ? (today.strain ?? computeStrain(today, age)) : null;
+  return json({ ...computeTrends(days), todayStrain, strain7 });
 }
 
 interface InsightsCacheEntry {

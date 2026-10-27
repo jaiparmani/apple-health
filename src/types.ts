@@ -41,12 +41,24 @@ export interface DailyMetrics {
   // Sleep
   sleepHours?: number;
   sleepEfficiency?: number; // 0-1
+  sleepCoreHours?: number;
+  sleepDeepHours?: number;
+  sleepRemHours?: number;
+  sleepAwakeHours?: number;
+  sleepInBedHours?: number;
   // Body
   weightKg?: number;
   bodyFatPct?: number;
   bloodPressureSystolic?: number;
   bloodPressureDiastolic?: number;
   bloodGlucose?: number; // mg/dL
+  // WHOOP-style daily load
+  strain?: number; // 0-21, cardiovascular load for the day from HR-zone time
+  // Every other HealthKit quantity/category type the export contains, so
+  // nothing from "Export All Health Data" is ever silently dropped. Keyed by
+  // the HK identifier with its HKQuantityTypeIdentifier/HKCategoryTypeIdentifier
+  // prefix stripped (e.g. "PhysicalEffort", "UVExposure", "NumberOfTimesFallen").
+  extra?: Record<string, number>;
   receivedAt: string; // ISO timestamp of ingest
   source?: string;
 }

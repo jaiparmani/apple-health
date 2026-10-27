@@ -219,3 +219,37 @@ export function average(values: number[]): number | null {
   if (values.length === 0) return null;
   return values.reduce((a, b) => a + b, 0) / values.length;
 }
+
+/**
+ * Tanaka, Monahan & Seals (2001) — a more accurate age-predicted max heart
+ * rate than the old "220 minus age" rule of thumb.
+ */
+export function estimateMaxHeartRate(age: number): number {
+  return 208 - 0.7 * age;
+}
+
+/**
+ * A WHOOP-*inspired* daily cardiovascular load score on a 0-21 scale — not
+ * WHOOP's proprietary algorithm (which uses continuous heart-rate-zone time
+ * we don't have access to), but built the same way conceptually: how hard,
+ * and for how long, your heart worked today relative to YOUR OWN resting
+ * and estimated max heart rate. Built from average heart rate elevation
+ * above resting (a Karvonen-style intensity fraction), exercise minutes and
+ * active energy. The 0-21 range is logarithmic/saturating on purpose: the
+ * jump from "somewhat active" to "very active" should compress, the same
+ * way WHOOP's own scale does, rather than growing without bound.
+ *
+ * Returns null when there isn't enough data (no heart rate or resting HR
+ * for the day) to say anything meaningful.
+ */
+export function computeStrain(day: DailyMetrics, age: number | null): number | null {
+  if (day.heartRateAvg === undefined || day.restingHeartRate === undefined) return null;
+  const maxHr = estimateMaxHeartRate(age ?? 35);
+  const reserve = Math.max(1, maxHr - day.restingHeartRate);
+  const intensity = Math.max(0, Math.min(1, (day.heartRateAvg - day.restingHeartRate) / reserve));
+  const minutes = day.exerciseMinutes ?? 0;
+  const energy = day.activeEnergy ?? 0;
+  const rawLoad = intensity * minutes * 1.2 + energy / 12;
+  const strain = 21 * (1 - Math.exp(-rawLoad / 55));
+  return Math.round(strain * 10) / 10;
+}

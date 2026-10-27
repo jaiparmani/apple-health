@@ -101,6 +101,11 @@ export function renderDashboard(): string {
   .best .value { font-size:17px; font-weight:700; margin-top:4px; }
   .best .date { color:var(--faint); font-size:11px; margin-top:2px; }
 
+  .extra-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; }
+  .extra-tile { background:var(--card2); border-radius:12px; padding:10px 12px; }
+  .extra-tile .label { color:var(--muted); font-size:10.5px; }
+  .extra-tile .value { font-size:15px; font-weight:650; margin-top:2px; }
+
   .markers-list { display:flex; flex-direction:column; gap:10px; }
   .marker-row { display:flex; align-items:center; gap:10px; }
   .marker-row .mname { flex:1; font-size:13px; color:var(--muted); }
@@ -146,6 +151,7 @@ export function renderDashboard(): string {
       <button class="tab" data-tab="activity" onclick="showTab('activity')">Activity &amp; Mobility</button>
       <button class="tab" data-tab="sleep" onclick="showTab('sleep')">Sleep</button>
       <button class="tab" data-tab="age" onclick="showTab('age')">Biological Age</button>
+      <button class="tab" data-tab="more" onclick="showTab('more')">Everything Else</button>
       <button class="tab" data-tab="settings" onclick="showTab('settings')">Import &amp; Settings</button>
     </nav>
   </header>
@@ -169,9 +175,15 @@ export function renderDashboard(): string {
         <div id="bioDelta" class="delta good">—</div>
         <h2 id="bioHeadline">Set your profile to see your biological age</h2>
         <div class="sub" id="bioSub"></div>
-        <div class="readiness-chip" id="readinessChip" style="display:none;">
-          <span class="dot" id="readinessDot"></span>
-          <span id="readinessText">Readiness —</span>
+        <div style="display:flex; flex-wrap:wrap; gap:8px;">
+          <div class="readiness-chip" id="readinessChip" style="display:none;">
+            <span class="dot" id="readinessDot"></span>
+            <span id="readinessText">Readiness —</span>
+          </div>
+          <div class="readiness-chip" id="strainChip" style="display:none;">
+            <span class="dot" id="strainDot" style="background:#ff9f0a;"></span>
+            <span id="strainText">Strain —</span>
+          </div>
         </div>
       </div>
     </div>
@@ -218,6 +230,7 @@ export function renderDashboard(): string {
   <!-- SLEEP -->
   <section class="section" id="tab-sleep">
     <div class="card"><h3>Sleep duration</h3><canvas id="sleepChart"></canvas></div>
+    <div class="card"><h3>Sleep stages</h3><div class="card-sub">Core, deep, REM and awake time, where your export has stage-level detail.</div><canvas id="sleepStagesChart"></canvas></div>
     <div class="card"><h3>Weight</h3><canvas id="weightChart"></canvas></div>
   </section>
 
@@ -228,6 +241,15 @@ export function renderDashboard(): string {
       <h3>What's driving it</h3>
       <div class="card-sub">Each marker's "marker age" is the age at which that value is typical. Closer to the left (younger) is better.</div>
       <div class="markers-list" id="markersList"></div>
+    </div>
+  </section>
+
+  <!-- EVERYTHING ELSE -->
+  <section class="section" id="tab-more">
+    <div class="card">
+      <h3>Everything else your export contained</h3>
+      <div class="card-sub">Every HealthKit type that isn't one of the named metrics elsewhere in this dashboard — captured and stored, even without a dedicated chart yet.</div>
+      <div id="extraList"></div>
     </div>
   </section>
 
@@ -380,6 +402,28 @@ function renderReadiness(score) {
   document.getElementById('readinessText').textContent = 'Readiness ' + score + '/100';
 }
 
+function renderStrain(strain) {
+  var chip = document.getElementById('strainChip');
+  if (strain === null || strain === undefined) { chip.style.display = 'none'; return; }
+  chip.style.display = 'inline-flex';
+  var color = strain >= 14 ? '#ff453a' : strain >= 8 ? '#ff9f0a' : '#30d158';
+  document.getElementById('strainDot').style.background = color;
+  document.getElementById('strainText').textContent = 'Strain ' + fmt(strain, 1) + '/21';
+}
+
+function renderExtraMetrics(days) {
+  var el = document.getElementById('extraList');
+  var latest = null;
+  for (var i = days.length - 1; i >= 0; i--) {
+    if (days[i].extra && Object.keys(days[i].extra).length) { latest = days[i]; break; }
+  }
+  if (!latest) { el.innerHTML = '<p class="sub">Nothing extra captured yet — re-run Import once your export has more record types, or they\\'ll show up here automatically.</p>'; return; }
+  var keys = Object.keys(latest.extra).sort();
+  el.innerHTML = '<p class="sub" style="margin-bottom:10px;">As of ' + latest.date + ':</p><div class="extra-grid">' + keys.map(function (k) {
+    return '<div class="extra-tile"><div class="label">' + k.replace(/([A-Z])/g, ' $1').trim() + '</div><div class="value">' + fmt(latest.extra[k], 2) + '</div></div>';
+  }).join('') + '</div>';
+}
+
 function renderBioHero(latest, days) {
   var ring = document.getElementById('bioRing');
   var circumference = 402;
@@ -482,6 +526,16 @@ function buildCharts(days, history) {
     { label: 'Sleep hours', data: pick('sleepHours'), backgroundColor: '#5e5ce699' },
   ]}});
 
+  upsertChart('sleepStagesChart', { type: 'bar', data: { labels: labels, datasets: [
+    { label: 'Core', data: pick('sleepCoreHours'), backgroundColor: '#5e5ce6' },
+    { label: 'Deep', data: pick('sleepDeepHours'), backgroundColor: '#3634a3' },
+    { label: 'REM', data: pick('sleepRemHours'), backgroundColor: '#bf5af2' },
+    { label: 'Awake', data: pick('sleepAwakeHours'), backgroundColor: '#ff453a' },
+  ]}, options: { scales: {
+    x: { stacked: true, ticks: { color: '#565d6b', maxTicksLimit: 8, font: { size: 10 } }, grid: { color: '#1a1e26' } },
+    y: { stacked: true, ticks: { color: '#565d6b', font: { size: 10 } }, grid: { color: '#1a1e26' } },
+  } }});
+
   upsertChart('weightChart', { type: 'line', data: { labels: labels, datasets: [
     { label: 'Weight (kg)', data: pick('weightKg'), borderColor: '#ff9f0a', tension: .3, pointRadius: 1, borderWidth: 1.5, spanGaps: true },
   ]}});
@@ -517,6 +571,8 @@ async function boot() {
   renderQuickStats(today, trends);
   renderBests(trends.bests);
   renderReadiness(trends.readinessScore);
+  renderStrain(trends.todayStrain);
+  renderExtraMetrics(days);
   buildCharts(days.slice(-180), history.slice(-180));
 
   var savedTab = null;
@@ -526,45 +582,56 @@ async function boot() {
   loadInsights(false);
 }
 
-/* ---------------- Apple Health export.xml parsing (client-side) ---------------- */
+/* ---------------- Apple Health export.xml parsing (client-side) ----------------
+ * Captures EVERY HKQuantityTypeIdentifier and HKCategoryTypeIdentifier record
+ * the export contains, not just a curated subset: named fields we know how to
+ * chart/analyze get their own DailyMetrics property; anything else lands in
+ * \`extra\`, keyed by the bare HK identifier, aggregated by a sum-vs-average
+ * heuristic. Nothing from "Export All Health Data" is silently dropped.
+ */
 
-var HEALTH_RECORD_TYPES = [
-  'HKQuantityTypeIdentifierRestingHeartRate',
-  'HKQuantityTypeIdentifierHeartRate',
-  'HKQuantityTypeIdentifierWalkingHeartRateAverage',
-  'HKQuantityTypeIdentifierHeartRateVariabilitySDNN',
-  'HKQuantityTypeIdentifierRespiratoryRate',
-  'HKQuantityTypeIdentifierOxygenSaturation',
-  'HKQuantityTypeIdentifierBodyTemperature',
-  'HKQuantityTypeIdentifierVO2Max',
-  'HKQuantityTypeIdentifierStepCount',
-  'HKQuantityTypeIdentifierActiveEnergyBurned',
-  'HKQuantityTypeIdentifierBasalEnergyBurned',
-  'HKQuantityTypeIdentifierAppleExerciseTime',
-  'HKQuantityTypeIdentifierAppleStandTime',
-  'HKQuantityTypeIdentifierFlightsClimbed',
-  'HKQuantityTypeIdentifierDistanceWalkingRunning',
-  'HKQuantityTypeIdentifierDistanceCycling',
-  'HKQuantityTypeIdentifierTimeInDaylight',
-  'HKQuantityTypeIdentifierWalkingSpeed',
-  'HKQuantityTypeIdentifierWalkingStepLength',
-  'HKQuantityTypeIdentifierWalkingAsymmetryPercentage',
-  'HKQuantityTypeIdentifierWalkingDoubleSupportPercentage',
-  'HKQuantityTypeIdentifierBodyMass',
-  'HKQuantityTypeIdentifierBodyFatPercentage',
-  'HKQuantityTypeIdentifierBloodPressureSystolic',
-  'HKQuantityTypeIdentifierBloodPressureDiastolic',
-  'HKQuantityTypeIdentifierBloodGlucose',
-  'HKCategoryTypeIdentifierSleepAnalysis',
-  'HKCategoryTypeIdentifierMindfulSession',
-];
+// identifier (without the HK.../TypeIdentifier prefix) -> { field, agg }
+// agg: 'avg' (default), 'sum', 'last', or 'speed' (avg + unit-aware km/h->m/s)
+var KNOWN_QUANTITY_FIELDS = {
+  RestingHeartRate: { field: 'restingHeartRate', agg: 'avg' },
+  HeartRate: { field: 'heartRateAvg', agg: 'avg' }, // min/max handled specially
+  WalkingHeartRateAverage: { field: 'walkingHeartRateAvg', agg: 'avg' },
+  HeartRateVariabilitySDNN: { field: 'hrv', agg: 'avg' },
+  RespiratoryRate: { field: 'respiratoryRate', agg: 'avg' },
+  OxygenSaturation: { field: 'oxygenSaturation', agg: 'avg' },
+  BodyTemperature: { field: 'bodyTemperature', agg: 'avg' },
+  VO2Max: { field: 'vo2max', agg: 'avg' },
+  StepCount: { field: 'steps', agg: 'sum' },
+  ActiveEnergyBurned: { field: 'activeEnergy', agg: 'sum' },
+  BasalEnergyBurned: { field: 'basalEnergy', agg: 'sum' },
+  AppleExerciseTime: { field: 'exerciseMinutes', agg: 'sum' },
+  AppleStandTime: { field: 'standMinutes', agg: 'sum' },
+  FlightsClimbed: { field: 'flightsClimbed', agg: 'sum' },
+  DistanceWalkingRunning: { field: 'distanceKm', agg: 'sum' },
+  DistanceCycling: { field: 'distanceCyclingKm', agg: 'sum' },
+  TimeInDaylight: { field: 'daylightMinutes', agg: 'sum' },
+  WalkingSpeed: { field: 'walkingSpeed', agg: 'speed' },
+  WalkingStepLength: { field: 'walkingStepLength', agg: 'avg' },
+  WalkingAsymmetryPercentage: { field: 'walkingAsymmetryPct', agg: 'avg' },
+  WalkingDoubleSupportPercentage: { field: 'walkingDoubleSupportPct', agg: 'avg' },
+  BodyMass: { field: 'weightKg', agg: 'last' },
+  BodyFatPercentage: { field: 'bodyFatPct', agg: 'last' },
+  BloodPressureSystolic: { field: 'bloodPressureSystolic', agg: 'avg' },
+  BloodPressureDiastolic: { field: 'bloodPressureDiastolic', agg: 'avg' },
+  BloodGlucose: { field: 'bloodGlucose', agg: 'avg' },
+};
+
+// Heuristic for anything NOT in the known-fields map above: does the name
+// look like a cumulative quantity (sum it) or an instantaneous reading /
+// rate / percentage (average it)?
+var EXTRA_SUM_HINT = /Energy|Distance|Count|Time|Duration|Flights|Steps|Water|Caffeine|Protein|Carbohydrate|Fat[A-Z]|Sugar|Sodium|Fiber|Cholesterol|Calcium|Iron|Vitamin|NumberOf|UsageEvent/;
 
 function healthAttr(line, name) {
   var m = line.match(new RegExp(name + '="([^"]*)"'));
   return m ? m[1] : undefined;
 }
 function healthParseNaive(ts) {
-  var m = ts.match(/^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})/);
+  var m = ts.match(/^(\\d{4})-(\\d{2})-(\\d{2}) (\\d{2}):(\\d{2}):(\\d{2})/);
   if (!m) return NaN;
   return Date.UTC(+m[1], +m[2] - 1, +m[3], +m[4], +m[5], +m[6]);
 }
@@ -580,11 +647,14 @@ function healthSpeedToMps(value, unit) {
 }
 function healthNewDayAcc() {
   return {
-    restingHeartRate: [], heartRate: [], walkingHeartRateAvg: [], hrv: [], respiratoryRate: [], oxygenSaturation: [], bodyTemperature: [], vo2max: [],
-    steps: 0, activeEnergy: 0, basalEnergy: 0, exerciseMinutes: 0, standMinutes: 0, flightsClimbed: 0, distanceKm: 0, distanceCyclingKm: 0, daylightMinutes: 0, mindfulMinutes: 0,
-    walkingSpeed: [], walkingStepLength: [], walkingAsymmetryPct: [], walkingDoubleSupportPct: [],
-    weightKg: [], bodyFatPct: [], bloodPressureSystolic: [], bloodPressureDiastolic: [], bloodGlucose: [],
-    sleepHours: 0,
+    known: {}, // field name -> array of values (for avg/speed)
+    knownSum: {}, // field name -> running sum (for sum fields)
+    heartRate: [],
+    sleepCoreMin: 0, sleepDeepMin: 0, sleepRemMin: 0, sleepUnspecMin: 0, sleepAwakeMin: 0, sleepInBedMin: 0,
+    mindfulMinutes: 0,
+    extraAvg: {}, // identifier -> array of values
+    extraSum: {}, // identifier -> running sum
+    extraCount: {}, // category identifier -> occurrence count
   };
 }
 function healthAvg(arr) { return arr.length ? arr.reduce(function (a, b) { return a + b; }, 0) / arr.length : undefined; }
@@ -596,13 +666,29 @@ function healthRound(n, dp) {
   var f = Math.pow(10, dp || 0);
   return Math.round(n * f) / f;
 }
+function healthPushKnown(bucket, field, value) {
+  if (!bucket[field]) bucket[field] = [];
+  bucket[field].push(value);
+}
+function healthAddSum(bucket, field, value) {
+  bucket[field] = (bucket[field] || 0) + (value || 0);
+}
+
+var SLEEP_STAGE_MAP = {
+  HKCategoryValueSleepAnalysisAsleepCore: 'sleepCoreMin',
+  HKCategoryValueSleepAnalysisAsleepDeep: 'sleepDeepMin',
+  HKCategoryValueSleepAnalysisAsleepREM: 'sleepRemMin',
+  HKCategoryValueSleepAnalysisAsleepUnspecified: 'sleepUnspecMin',
+  HKCategoryValueSleepAnalysisAwake: 'sleepAwakeMin',
+  HKCategoryValueSleepAnalysisInBed: 'sleepInBedMin',
+};
 
 function healthProcessLine(days, line) {
-  var type = null;
-  for (var i = 0; i < HEALTH_RECORD_TYPES.length; i++) {
-    if (line.indexOf(HEALTH_RECORD_TYPES[i] + '"') !== -1) { type = HEALTH_RECORD_TYPES[i]; break; }
-  }
-  if (!type) return;
+  if (line.indexOf('<Record ') === -1) return;
+  var typeMatch = line.match(/type="HK(Quantity|Category)TypeIdentifier([A-Za-z0-9]+)"/);
+  if (!typeMatch) return;
+  var isQuantity = typeMatch[1] === 'Quantity';
+  var name = typeMatch[2];
   var startDate = healthAttr(line, 'startDate');
   var endDate = healthAttr(line, 'endDate');
   var value = healthAttr(line, 'value');
@@ -611,41 +697,38 @@ function healthProcessLine(days, line) {
   var date = startDate.slice(0, 10);
   if (!days.has(date)) days.set(date, healthNewDayAcc());
   var d = days.get(date);
-  var num = Number(value);
-  switch (type) {
-    case 'HKQuantityTypeIdentifierRestingHeartRate': d.restingHeartRate.push(num); break;
-    case 'HKQuantityTypeIdentifierHeartRate': d.heartRate.push(num); break;
-    case 'HKQuantityTypeIdentifierWalkingHeartRateAverage': d.walkingHeartRateAvg.push(num); break;
-    case 'HKQuantityTypeIdentifierHeartRateVariabilitySDNN': d.hrv.push(num); break;
-    case 'HKQuantityTypeIdentifierRespiratoryRate': d.respiratoryRate.push(num); break;
-    case 'HKQuantityTypeIdentifierOxygenSaturation': d.oxygenSaturation.push(num); break;
-    case 'HKQuantityTypeIdentifierBodyTemperature': d.bodyTemperature.push(num); break;
-    case 'HKQuantityTypeIdentifierVO2Max': d.vo2max.push(num); break;
-    case 'HKQuantityTypeIdentifierStepCount': d.steps += num || 0; break;
-    case 'HKQuantityTypeIdentifierActiveEnergyBurned': d.activeEnergy += num || 0; break;
-    case 'HKQuantityTypeIdentifierBasalEnergyBurned': d.basalEnergy += num || 0; break;
-    case 'HKQuantityTypeIdentifierAppleExerciseTime': d.exerciseMinutes += num || 0; break;
-    case 'HKQuantityTypeIdentifierAppleStandTime': d.standMinutes += num || 0; break;
-    case 'HKQuantityTypeIdentifierFlightsClimbed': d.flightsClimbed += num || 0; break;
-    case 'HKQuantityTypeIdentifierDistanceWalkingRunning': d.distanceKm += num || 0; break;
-    case 'HKQuantityTypeIdentifierDistanceCycling': d.distanceCyclingKm += num || 0; break;
-    case 'HKQuantityTypeIdentifierTimeInDaylight': d.daylightMinutes += num || 0; break;
-    case 'HKQuantityTypeIdentifierWalkingSpeed': d.walkingSpeed.push(healthSpeedToMps(num, unit)); break;
-    case 'HKQuantityTypeIdentifierWalkingStepLength': d.walkingStepLength.push(num); break;
-    case 'HKQuantityTypeIdentifierWalkingAsymmetryPercentage': d.walkingAsymmetryPct.push(num); break;
-    case 'HKQuantityTypeIdentifierWalkingDoubleSupportPercentage': d.walkingDoubleSupportPct.push(num); break;
-    case 'HKQuantityTypeIdentifierBodyMass': d.weightKg.push(num); break;
-    case 'HKQuantityTypeIdentifierBodyFatPercentage': d.bodyFatPct.push(num <= 1 ? num * 100 : num); break;
-    case 'HKQuantityTypeIdentifierBloodPressureSystolic': d.bloodPressureSystolic.push(num); break;
-    case 'HKQuantityTypeIdentifierBloodPressureDiastolic': d.bloodPressureDiastolic.push(num); break;
-    case 'HKQuantityTypeIdentifierBloodGlucose': d.bloodGlucose.push(num); break;
-    case 'HKCategoryTypeIdentifierSleepAnalysis':
-      if (value && value.indexOf('Asleep') !== -1 && endDate) d.sleepHours += healthDurationMinutes(startDate, endDate) / 60;
-      break;
-    case 'HKCategoryTypeIdentifierMindfulSession':
-      if (endDate) d.mindfulMinutes += healthDurationMinutes(startDate, endDate);
-      break;
+
+  if (isQuantity) {
+    var num = Number(value);
+    if (Number.isNaN(num)) return;
+    if (name === 'HeartRate') { d.heartRate.push(num); return; }
+    if (name === 'BodyFatPercentage') { healthPushKnown(d.known, 'bodyFatPct', num <= 1 ? num * 100 : num); return; }
+    var known = KNOWN_QUANTITY_FIELDS[name];
+    if (known) {
+      if (known.agg === 'sum') healthAddSum(d.knownSum, known.field, num);
+      else if (known.agg === 'speed') healthPushKnown(d.known, known.field, healthSpeedToMps(num, unit));
+      else healthPushKnown(d.known, known.field, num); // avg or last both collect; finalize picks
+      return;
+    }
+    // Unrecognized quantity type: generic bucket, sum or average by heuristic.
+    if (EXTRA_SUM_HINT.test(name)) healthAddSum(d.extraSum, name, num);
+    else healthPushKnown(d.extraAvg, name, num);
+    return;
   }
+
+  // Category record
+  if (name === 'SleepAnalysis') {
+    var stageField = SLEEP_STAGE_MAP[value];
+    if (stageField && endDate) d[stageField] += healthDurationMinutes(startDate, endDate);
+    return;
+  }
+  if (name === 'MindfulSession') {
+    if (endDate) d.mindfulMinutes += healthDurationMinutes(startDate, endDate);
+    return;
+  }
+  // Any other category record (e.g. IrregularHeartRhythmEvent, HighHeartRateEvent):
+  // count occurrences per day.
+  d.extraCount[name] = (d.extraCount[name] || 0) + 1;
 }
 
 function healthFinalizeDays(days) {
@@ -653,36 +736,39 @@ function healthFinalizeDays(days) {
   days.forEach(function (d, date) {
     var rec = { date: date, source: 'health-export-import' };
     var set = function (key, val) { if (val !== undefined && !Number.isNaN(val)) rec[key] = val; };
-    set('restingHeartRate', healthRound(healthAvg(d.restingHeartRate), 1));
+
+    // Known avg/speed/last fields collected as arrays.
+    for (var field in d.known) {
+      var isLast = field === 'weightKg' || field === 'bodyFatPct';
+      var v = isLast ? healthLast(d.known[field]) : healthAvg(d.known[field]);
+      set(field, healthRound(v, field === 'oxygenSaturation' || field.indexOf('Pct') !== -1 ? 3 : 1));
+    }
+    // Known sum fields.
+    for (var sumField in d.knownSum) {
+      if (d.knownSum[sumField] > 0) rec[sumField] = healthRound(d.knownSum[sumField], 2);
+    }
     set('heartRateAvg', healthRound(healthAvg(d.heartRate), 1));
     set('heartRateMin', healthRound(healthMin(d.heartRate), 0));
     set('heartRateMax', healthRound(healthMax(d.heartRate), 0));
-    set('walkingHeartRateAvg', healthRound(healthAvg(d.walkingHeartRateAvg), 1));
-    set('hrv', healthRound(healthAvg(d.hrv), 1));
-    set('respiratoryRate', healthRound(healthAvg(d.respiratoryRate), 1));
-    set('oxygenSaturation', healthRound(healthAvg(d.oxygenSaturation), 3));
-    set('bodyTemperature', healthRound(healthAvg(d.bodyTemperature), 2));
-    set('vo2max', healthRound(healthAvg(d.vo2max), 1));
-    if (d.steps > 0) rec.steps = Math.round(d.steps);
-    if (d.activeEnergy > 0) rec.activeEnergy = Math.round(d.activeEnergy);
-    if (d.basalEnergy > 0) rec.basalEnergy = Math.round(d.basalEnergy);
-    if (d.exerciseMinutes > 0) rec.exerciseMinutes = Math.round(d.exerciseMinutes);
-    if (d.standMinutes > 0) rec.standMinutes = Math.round(d.standMinutes);
-    if (d.flightsClimbed > 0) rec.flightsClimbed = Math.round(d.flightsClimbed);
-    if (d.distanceKm > 0) rec.distanceKm = healthRound(d.distanceKm, 2);
-    if (d.distanceCyclingKm > 0) rec.distanceCyclingKm = healthRound(d.distanceCyclingKm, 2);
-    if (d.daylightMinutes > 0) rec.daylightMinutes = Math.round(d.daylightMinutes);
+
+    var sleepHours = (d.sleepCoreMin + d.sleepDeepMin + d.sleepRemMin + d.sleepUnspecMin) / 60;
+    if (sleepHours > 0) rec.sleepHours = healthRound(sleepHours, 2);
+    if (d.sleepCoreMin > 0) rec.sleepCoreHours = healthRound(d.sleepCoreMin / 60, 2);
+    if (d.sleepDeepMin > 0) rec.sleepDeepHours = healthRound(d.sleepDeepMin / 60, 2);
+    if (d.sleepRemMin > 0) rec.sleepRemHours = healthRound(d.sleepRemMin / 60, 2);
+    if (d.sleepAwakeMin > 0) rec.sleepAwakeHours = healthRound(d.sleepAwakeMin / 60, 2);
+    if (d.sleepInBedMin > 0) {
+      rec.sleepInBedHours = healthRound(d.sleepInBedMin / 60, 2);
+      if (sleepHours > 0) rec.sleepEfficiency = healthRound(Math.min(1, sleepHours / (d.sleepInBedMin / 60)), 3);
+    }
     if (d.mindfulMinutes > 0) rec.mindfulMinutes = Math.round(d.mindfulMinutes);
-    set('walkingSpeed', healthRound(healthAvg(d.walkingSpeed), 2));
-    set('walkingStepLength', healthRound(healthAvg(d.walkingStepLength), 1));
-    set('walkingAsymmetryPct', healthRound(healthAvg(d.walkingAsymmetryPct), 3));
-    set('walkingDoubleSupportPct', healthRound(healthAvg(d.walkingDoubleSupportPct), 3));
-    set('weightKg', healthRound(healthLast(d.weightKg), 1));
-    set('bodyFatPct', healthRound(healthLast(d.bodyFatPct), 1));
-    set('bloodPressureSystolic', healthRound(healthAvg(d.bloodPressureSystolic), 0));
-    set('bloodPressureDiastolic', healthRound(healthAvg(d.bloodPressureDiastolic), 0));
-    set('bloodGlucose', healthRound(healthAvg(d.bloodGlucose), 1));
-    if (d.sleepHours > 0) rec.sleepHours = healthRound(d.sleepHours, 2);
+
+    var extra = {};
+    for (var avgKey in d.extraAvg) extra[avgKey] = healthRound(healthAvg(d.extraAvg[avgKey]), 3);
+    for (var sumKey in d.extraSum) if (d.extraSum[sumKey] > 0) extra[sumKey] = healthRound(d.extraSum[sumKey], 2);
+    for (var countKey in d.extraCount) extra[countKey + 'Count'] = d.extraCount[countKey];
+    if (Object.keys(extra).length > 0) rec.extra = extra;
+
     result.push(rec);
   });
   result.sort(function (a, b) { return a.date < b.date ? -1 : a.date > b.date ? 1 : 0; });
