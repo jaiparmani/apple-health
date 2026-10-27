@@ -6,6 +6,7 @@ export interface Env {
   INGEST_TOKEN: string;
   LLM_GATEWAY_URL: string;
   LLM_GATEWAY_TOKEN: string;
+  LLM_GATEWAY: Fetcher;
   INSIGHTS_CACHE: KVNamespace;
 }
 

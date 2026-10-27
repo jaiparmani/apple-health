@@ -54,17 +54,27 @@ export async function generateInsights(
     { role: "user", content: `Snapshot:\n${JSON.stringify(snapshot, null, 2)}` },
   ];
 
-  const res = await fetch(`${env.LLM_GATEWAY_URL}/v1/json`, {
-    method: "POST",
-    headers: {
-      Authorization: `Bearer ${env.LLM_GATEWAY_TOKEN}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ messages, expect_key: "headline", max_tokens: 700 }),
-  });
+  // The gateway round-robins across free-tier models; an individual model
+  // occasionally fails to return clean JSON even after the gateway's own
+  // internal retries, so retry the whole request a couple of times here —
+  // a retry usually lands on a different, better-behaved model.
+  let res: Response | undefined;
+  let lastError = "";
+  for (let attempt = 0; attempt < 3; attempt++) {
+    res = await env.LLM_GATEWAY.fetch(`${env.LLM_GATEWAY_URL}/v1/json`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${env.LLM_GATEWAY_TOKEN}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ messages, expect_key: "headline", max_tokens: 700 }),
+    });
+    if (res.ok) break;
+    lastError = `${res.status} ${await res.text()}`;
+  }
 
-  if (!res.ok) {
-    throw new Error(`llm-gateway request failed: ${res.status} ${await res.text()}`);
+  if (!res || !res.ok) {
+    throw new Error(`llm-gateway request failed: ${lastError}`);
   }
 
   const body = await res.json<{ data: Record<string, unknown> }>();

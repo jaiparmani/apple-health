@@ -12,6 +12,13 @@ LLM_GATEWAY_URL = "https://llm-gateway.brain-store.workers.dev"
 binding = "INSIGHTS_CACHE"
 id = "6814485a982543cfbf487dcadd4478d4"
 
+# Service binding to llm-gateway: a worker can't fetch() another worker's
+# *.workers.dev hostname directly (Cloudflare error 1042, same-zone subrequest
+# restriction) — a service binding calls it in-process instead, bypassing that.
+[[services]]
+binding = "LLM_GATEWAY"
+service = "llm-gateway"
+
 # Secrets (set via `wrangler secret put <NAME>`, never committed):
 #   INGEST_TOKEN      - bearer token the Apple Shortcut must send
 #   GITHUB_TOKEN      - PAT with repo contents read/write on jaiparmani/apple-health
