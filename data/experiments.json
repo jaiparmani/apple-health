@@ -1,0 +1,11 @@
+{
+  "experiments": [
+    {
+      "id": "86cb3933-a275-4633-850e-6a84906a3e84",
+      "title": "Test experiment",
+      "metric": "hrv",
+      "startDate": "2026-10-01",
+      "adherenceDates": []
+    }
+  ]
+}
