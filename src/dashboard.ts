@@ -154,6 +154,8 @@ export function renderDashboard(): string {
       <button class="tab" data-tab="activity" onclick="showTab('activity')">Activity &amp; Mobility</button>
       <button class="tab" data-tab="sleep" onclick="showTab('sleep')">Sleep</button>
       <button class="tab" data-tab="age" onclick="showTab('age')">Biological Age</button>
+      <button class="tab" data-tab="ai" onclick="showTab('ai')">AI Analyst</button>
+      <button class="tab" data-tab="discoveries" onclick="showTab('discoveries')">Discoveries</button>
       <button class="tab" data-tab="more" onclick="showTab('more')">Everything Else</button>
       <button class="tab" data-tab="settings" onclick="showTab('settings')">Import &amp; Settings</button>
     </nav>
@@ -193,6 +195,14 @@ export function renderDashboard(): string {
 
     <div class="grid" id="quickStats"></div>
 
+    <div class="card">
+      <h3>Personal bests</h3>
+      <div class="bests" id="bestsGrid"></div>
+    </div>
+  </section>
+
+  <!-- AI ANALYST -->
+  <section class="section" id="tab-ai">
     <div class="card ai-card">
       <div class="ai-head">
         <h3>✦ AI Insights</h3>
@@ -205,11 +215,6 @@ export function renderDashboard(): string {
       </div>
     </div>
 
-    <div class="card">
-      <h3>Personal bests</h3>
-      <div class="bests" id="bestsGrid"></div>
-    </div>
-
     <div class="card ai-card">
       <h3>✦ Ask my health data</h3>
       <div class="card-sub">Picks a metric, date range, and aggregation from a fixed menu and computes the answer in code — the model never does the arithmetic itself.</div>
@@ -219,7 +224,10 @@ export function renderDashboard(): string {
       </form>
       <div id="askBody"></div>
     </div>
+  </section>
 
+  <!-- DISCOVERIES -->
+  <section class="section" id="tab-discoveries">
     <div class="card">
       <h3>Report
         <button class="btn btn-ghost btn-sm" onclick="loadReport('week')" style="margin-left:8px;">Week</button>
