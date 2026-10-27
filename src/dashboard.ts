@@ -7,12 +7,23 @@ export function renderDashboard(): string {
 <title>Health</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+  /*
+    Design direction: a clinical vitals-monitor readout, not a wellness app
+    and not a generic analytics SaaS card grid. Numbers are the content;
+    structure (hairlines, not boxes) carries information. Color is reserved
+    for physiological signal — one accent for the single hero metric,
+    green/coral only for direction, nothing else.
+  */
   :root {
-    --bg:#05070a; --bg2:#0a0d12; --card:#12151b; --card2:#171b22; --border:#23272f;
-    --text:#f2f3f5; --muted:#8b92a0; --faint:#565d6b;
-    --heart:#ff375f; --activity:#30d158; --sleep:#5e5ce6; --mobility:#64d2ff; --ai:#bf5af2; --amber:#ffd60a;
-    --good:#30d158; --bad:#ff453a; --accent:#0a84ff;
+    --void:#07090b; --panel:#0d1013; --panel2:#101316; --line:#1b2024;
+    --ink:#e4e7e9; --dim:#80878c; --faint:#50565b;
+    --pulse:#5ba8a0; --up:#5fad7e; --down:#c4604a;
+    --mono: 'IBM Plex Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+    --sans: -apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
   }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { margin:0; padding:0; }
@@ -20,125 +31,129 @@ export function renderDashboard(): string {
      added anywhere never falls back to the browser's light-mode default
      (which stands out badly against this dark theme) unless it opts out. */
   input, select, textarea {
-    background:var(--bg2); color:var(--text); border:1px solid var(--border);
-    border-radius:10px; padding:9px 12px; font-size:13.5px; font-family:inherit;
+    background:var(--panel2); color:var(--ink); border:1px solid var(--line);
+    border-radius:4px; padding:8px 10px; font-size:13.5px; font-family:var(--sans);
     color-scheme: dark;
   }
-  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--pulse); }
   input::placeholder, textarea::placeholder { color:var(--faint); }
   body {
-    background:radial-gradient(ellipse 1200px 600px at 50% -10%, #141a24 0%, var(--bg) 55%);
-    color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
+    background:var(--void); color:var(--ink); font-family:var(--sans);
     min-height:100vh; -webkit-font-smoothing:antialiased;
   }
   a { color:inherit; }
-  .sub { color:var(--muted); font-size:13px; line-height:1.5; }
+  .sub { color:var(--dim); font-size:13px; line-height:1.5; }
   .faint { color:var(--faint); font-size:12px; }
+  .num { font-family:var(--mono); font-variant-numeric:tabular-nums; }
 
   /* ---- gate ---- */
-  #gate { max-width:380px; margin:18vh auto; padding:32px 28px; background:var(--card); border:1px solid var(--border); border-radius:20px; text-align:center; }
-  #gate .mark { font-size:34px; margin-bottom:6px; }
-  #gate h1 { font-size:19px; margin:0 0 6px; font-weight:650; }
-  #gate input { width:100%; padding:12px 14px; margin:14px 0 10px; border-radius:12px; border:1px solid var(--border); background:var(--bg2); color:var(--text); font-size:15px; text-align:center; }
-  #gate input:focus { outline:none; border-color:var(--accent); }
+  #gate { max-width:360px; margin:18vh auto; padding:0; text-align:left; }
+  #gate .mark { font-family:var(--mono); font-size:22px; color:var(--pulse); margin-bottom:10px; }
+  #gate h1 { font-size:18px; margin:0 0 6px; font-weight:600; }
+  #gate input { width:100%; padding:11px 12px; margin:16px 0 10px; border-radius:4px; border:1px solid var(--line); background:var(--panel2); color:var(--ink); font-size:14px; font-family:var(--mono); text-align:left; }
+  #gate input:focus { outline:none; border-color:var(--pulse); }
   button { font:inherit; }
-  .btn { padding:11px 18px; border-radius:12px; border:none; background:var(--accent); color:#fff; font-weight:600; cursor:pointer; font-size:14px; transition:opacity .15s, transform .1s; }
-  .btn:hover { opacity:.88; } .btn:active { transform:scale(.97); }
-  .btn:disabled { opacity:.45; cursor:default; }
-  .btn-ghost { background:var(--card2); color:var(--text); border:1px solid var(--border); }
-  .btn-sm { padding:7px 12px; font-size:12.5px; border-radius:9px; }
-  #gate .btn { width:100%; }
-  #gateError { color:var(--bad); min-height:16px; }
+  .btn { padding:10px 16px; border-radius:4px; border:1px solid var(--pulse); background:transparent; color:var(--pulse); font-weight:600; cursor:pointer; font-size:13.5px; transition:background .15s, color .15s; }
+  .btn:hover { background:var(--pulse); color:var(--void); } .btn:active { opacity:.8; }
+  .btn:disabled { opacity:.4; cursor:default; background:transparent; color:var(--pulse); }
+  .btn-ghost { background:transparent; color:var(--dim); border:1px solid var(--line); }
+  .btn-ghost:hover { background:var(--panel2); color:var(--ink); }
+  .btn-sm { padding:6px 11px; font-size:12px; border-radius:4px; }
+  #gate .btn { width:100%; text-align:center; }
+  #gateError { color:var(--down); min-height:16px; font-size:13px; }
 
   /* ---- shell ---- */
-  #app { display:none; max-width:1180px; margin:0 auto; padding:0 16px 60px; }
-  header.top { position:sticky; top:0; z-index:20; backdrop-filter:blur(14px); background:rgba(5,7,10,.78); padding:18px 16px 12px; margin:0 -16px 18px; border-bottom:1px solid var(--border); }
-  header.top .row { display:flex; align-items:baseline; justify-content:space-between; max-width:1180px; margin:0 auto; }
-  header.top h1 { font-size:22px; margin:0; font-weight:700; letter-spacing:-.02em; }
-  .tabs { display:flex; gap:6px; overflow-x:auto; margin-top:14px; padding-bottom:2px; max-width:1180px; margin-left:auto; margin-right:auto; scrollbar-width:none; }
+  #app { display:none; max-width:900px; margin:0 auto; padding:0 20px 60px; }
+  header.top { position:sticky; top:0; z-index:20; background:rgba(7,9,11,.92); backdrop-filter:blur(10px); padding:18px 20px 10px; margin:0 -20px 20px; border-bottom:1px solid var(--line); }
+  header.top .row { display:flex; align-items:baseline; justify-content:space-between; max-width:900px; margin:0 auto; }
+  header.top h1 { font-size:17px; margin:0; font-weight:600; letter-spacing:.01em; }
+  header.top .sub { font-family:var(--mono); font-size:12px; }
+  .tabs { display:flex; gap:2px; overflow-x:auto; margin-top:14px; padding-bottom:1px; max-width:900px; margin-left:auto; margin-right:auto; scrollbar-width:none; }
   .tabs::-webkit-scrollbar { display:none; }
-  .tab { white-space:nowrap; padding:8px 14px; border-radius:999px; background:transparent; border:1px solid var(--border); color:var(--muted); cursor:pointer; font-size:13.5px; font-weight:560; }
-  .tab.active { background:var(--text); color:#05070a; border-color:var(--text); }
+  .tab { white-space:nowrap; padding:8px 12px; border-radius:0; background:transparent; border:none; border-bottom:2px solid transparent; color:var(--dim); cursor:pointer; font-size:13px; font-weight:500; }
+  .tab.active { color:var(--ink); border-bottom-color:var(--pulse); }
 
   .section { display:none; }
-  .section.active { display:block; animation:fadein .25s ease; }
-  @keyframes fadein { from { opacity:0; transform:translateY(4px);} to { opacity:1; transform:none; } }
+  .section.active { display:block; }
 
-  /* ---- hero ---- */
-  .hero { display:grid; grid-template-columns:auto 1fr; gap:22px; background:linear-gradient(155deg,#161a22,#0e1116); border:1px solid var(--border); border-radius:22px; padding:22px; margin-bottom:16px; align-items:center; }
-  .ring-wrap { position:relative; width:148px; height:148px; flex-shrink:0; }
+  /* ---- hero: the one place the accent appears ---- */
+  .hero { display:grid; grid-template-columns:auto 1fr; gap:28px; padding:0 0 22px; margin-bottom:22px; border-bottom:1px solid var(--line); align-items:center; }
+  .ring-wrap { position:relative; width:132px; height:132px; flex-shrink:0; }
   .ring-wrap svg { transform:rotate(-90deg); }
   .ring-label { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
-  .ring-label .n { font-size:34px; font-weight:750; letter-spacing:-.02em; line-height:1; }
-  .ring-label .u { font-size:11px; color:var(--muted); margin-top:4px; text-transform:uppercase; letter-spacing:.06em; }
-  .hero-meta .delta { display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; font-size:13px; font-weight:650; margin-bottom:8px; }
-  .delta.good { background:rgba(48,209,88,.15); color:var(--good); }
-  .delta.bad { background:rgba(255,69,58,.15); color:var(--bad); }
-  .hero-meta h2 { margin:0 0 4px; font-size:16px; }
-  .readiness-chip { display:inline-flex; align-items:center; gap:8px; margin-top:10px; padding:6px 12px; border-radius:12px; background:var(--card2); border:1px solid var(--border); font-size:12.5px; }
-  .dot { width:8px; height:8px; border-radius:50%; }
+  .ring-label .n { font-family:var(--mono); font-size:32px; font-weight:500; letter-spacing:-.01em; line-height:1; color:var(--pulse); }
+  .ring-label .u { font-size:10.5px; color:var(--dim); margin-top:4px; }
+  .hero-meta .delta { display:inline-flex; align-items:center; gap:5px; padding:3px 0; font-family:var(--mono); font-size:13px; font-weight:500; margin-bottom:8px; }
+  .delta.good { color:var(--up); }
+  .delta.bad { color:var(--down); }
+  .hero-meta h2 { margin:0 0 4px; font-size:15px; font-weight:500; color:var(--ink); }
+  .readiness-chip { display:inline-flex; align-items:center; gap:7px; margin-top:10px; margin-right:14px; font-size:12.5px; color:var(--dim); }
+  .readiness-chip .num { color:var(--ink); }
+  .dot { width:6px; height:6px; border-radius:50%; }
 
-  /* ---- grid / cards ---- */
-  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:10px; margin-bottom:16px; }
-  .stat { background:var(--card); border:1px solid var(--border); border-radius:16px; padding:14px 16px; }
-  .stat .label { color:var(--muted); font-size:11.5px; text-transform:uppercase; letter-spacing:.05em; display:flex; align-items:center; gap:6px; }
-  .stat .value { font-size:21px; font-weight:700; margin-top:6px; letter-spacing:-.01em; }
-  .stat .value .unit { font-size:12px; color:var(--muted); font-weight:500; margin-left:3px; }
-  .stat .trend { font-size:11.5px; margin-top:4px; font-weight:600; }
-  .trend.up { color:var(--good); } .trend.down { color:var(--bad); } .trend.flat { color:var(--faint); }
+  /* ---- grid / readouts (no boxes — hairline rule under each) ---- */
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:0; margin-bottom:22px; border-top:1px solid var(--line); }
+  .stat { padding:12px 14px 12px 0; border-bottom:1px solid var(--line); }
+  .stat .label { color:var(--dim); font-size:12px; display:flex; align-items:center; gap:6px; }
+  .stat .value { font-family:var(--mono); font-size:19px; font-weight:500; margin-top:5px; letter-spacing:-.01em; }
+  .stat .value .unit { font-size:11.5px; color:var(--dim); font-weight:400; margin-left:3px; font-family:var(--sans); }
+  .stat .trend { font-family:var(--mono); font-size:11px; margin-top:3px; }
+  .trend.up { color:var(--up); } .trend.down { color:var(--down); } .trend.flat { color:var(--faint); }
 
-  .card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:18px; margin-bottom:14px; }
-  .card h3 { margin:0 0 4px; font-size:14.5px; font-weight:650; display:flex; align-items:center; gap:8px; }
-  .card .card-sub { color:var(--muted); font-size:12.5px; margin-bottom:12px; }
+  /* A panel still exists where content needs real grouping (forms, lists,
+     AI output) — but it's a flat fill with a hairline edge, not a
+     rounded, shadowed card, and every panel on a page shares no
+     decorative border-radius flourish. */
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:3px; padding:18px; margin-bottom:12px; }
+  .card h3 { margin:0 0 4px; font-size:13.5px; font-weight:600; display:flex; align-items:center; gap:8px; color:var(--ink); }
+  .card .card-sub { color:var(--dim); font-size:12.5px; margin-bottom:12px; }
   .chart-empty { height:240px; display:flex; align-items:center; justify-content:center; color:var(--faint); font-size:13px; text-align:center; padding:0 20px; }
   .simple-table { width:100%; font-size:13px; border-collapse:collapse; }
-  .simple-table td { padding:6px 10px 6px 0; border-bottom:1px solid #1a1e26; color:var(--text); }
-  .simple-table td:first-child { color:var(--muted); white-space:nowrap; }
+  .simple-table td { padding:7px 10px 7px 0; border-bottom:1px solid var(--line); color:var(--ink); font-family:var(--mono); }
+  .simple-table td:first-child { color:var(--dim); white-space:nowrap; font-family:var(--sans); }
   canvas { max-height:240px; }
 
-  /* ---- AI insights ---- */
-  .ai-card { background:linear-gradient(155deg,#1c1427,#12151b); border:1px solid #2a2340; }
+  /* ---- AI insights: same panel system, no purple-gradient treatment ---- */
+  .ai-card { background:var(--panel); border:1px solid var(--line); border-left:2px solid var(--pulse); border-radius:0 3px 3px 0; }
   .ai-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
-  .ai-headline { font-size:16px; font-weight:650; margin:2px 0 10px; }
-  .ai-list { margin:0 0 10px; padding-left:18px; font-size:13.5px; line-height:1.7; color:#dcdde2; }
-  .ai-list.concerns li { color:#ffb4a8; }
-  .ai-list.recs li { color:#c9b8ff; }
-  .ai-section-title { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); margin:12px 0 4px; }
-  .ai-meta { color:var(--faint); font-size:11.5px; margin-top:8px; }
-  .skeleton { height:12px; border-radius:6px; background:linear-gradient(90deg,#1f232c,#2a2f3a,#1f232c); background-size:200% 100%; animation:shimmer 1.4s infinite; margin:8px 0; }
+  .ai-headline { font-size:15px; font-weight:500; margin:2px 0 10px; color:var(--ink); }
+  .ai-list { margin:0 0 10px; padding-left:16px; font-size:13.5px; line-height:1.7; color:var(--ink); }
+  .ai-list.concerns li { color:#d9a08f; }
+  .ai-list.recs li { color:#9bb8c4; }
+  .ai-section-title { font-size:11px; color:var(--dim); margin:12px 0 4px; }
+  .ai-meta { color:var(--faint); font-size:11.5px; margin-top:8px; font-family:var(--mono); }
+  .skeleton { height:12px; border-radius:2px; background:linear-gradient(90deg,var(--panel2),#181c1f,var(--panel2)); background-size:200% 100%; animation:shimmer 1.4s infinite; margin:8px 0; }
   @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
 
   /* ---- bests / markers ---- */
-  .bests { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; }
-  .best { background:var(--card2); border-radius:14px; padding:12px 14px; }
-  .best .label { color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.04em; }
-  .best .value { font-size:17px; font-weight:700; margin-top:4px; }
-  .best .date { color:var(--faint); font-size:11px; margin-top:2px; }
+  .bests { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:0; border-top:1px solid var(--line); }
+  .best { padding:12px 14px 12px 0; border-bottom:1px solid var(--line); }
+  .best .label { color:var(--dim); font-size:11.5px; }
+  .best .value { font-family:var(--mono); font-size:16px; font-weight:500; margin-top:4px; color:var(--ink); }
+  .best .date { color:var(--faint); font-size:11px; margin-top:2px; font-family:var(--mono); }
 
-  .extra-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; }
-  .extra-tile { background:var(--card2); border-radius:12px; padding:10px 12px; }
-  .extra-tile .label { color:var(--muted); font-size:10.5px; }
-  .extra-tile .value { font-size:15px; font-weight:650; margin-top:2px; }
+  .extra-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:0; border-top:1px solid var(--line); }
+  .extra-tile { padding:10px 12px 10px 0; border-bottom:1px solid var(--line); }
+  .extra-tile .label { color:var(--dim); font-size:10.5px; }
+  .extra-tile .value { font-family:var(--mono); font-size:14px; font-weight:500; margin-top:2px; }
 
   .markers-list { display:flex; flex-direction:column; gap:10px; }
   .marker-row { display:flex; align-items:center; gap:10px; }
-  .marker-row .mname { flex:1; font-size:13px; color:var(--muted); }
-  .marker-row .mval { font-size:13px; font-weight:650; width:64px; text-align:right; }
-  .marker-bar { flex:2; height:6px; background:var(--card2); border-radius:4px; overflow:hidden; }
-  .marker-bar > div { height:100%; border-radius:4px; }
+  .marker-row .mname { flex:1; font-size:13px; color:var(--dim); }
+  .marker-row .mval { font-family:var(--mono); font-size:13px; font-weight:500; width:64px; text-align:right; color:var(--ink); }
+  .marker-bar { flex:2; height:3px; background:var(--panel2); overflow:hidden; }
+  .marker-bar > div { height:100%; }
 
   /* ---- profile / import ---- */
   .profile-form, .import-row { display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
-  .profile-form input, .profile-form select { padding:9px 12px; border-radius:10px; border:1px solid var(--border); background:var(--bg2); color:var(--text); font-size:13.5px; }
-  input[type="file"] { color:var(--muted); font-size:13px; }
-  progress { width:100%; height:8px; border-radius:6px; overflow:hidden; accent-color:var(--accent); margin-top:8px; }
+  .profile-form input, .profile-form select { padding:8px 10px; border-radius:4px; border:1px solid var(--line); background:var(--panel2); color:var(--ink); font-size:13.5px; }
+  input[type="file"] { color:var(--dim); font-size:13px; }
+  progress { width:100%; height:3px; border-radius:0; overflow:hidden; accent-color:var(--pulse); margin-top:8px; }
 
-  footer { color:var(--faint); font-size:11.5px; text-align:center; padding:28px 0 10px; }
+  footer { color:var(--faint); font-size:11.5px; text-align:left; padding:28px 0 10px; border-top:1px solid var(--line); margin-top:10px; }
 
   @media (max-width:560px) {
-    .hero { grid-template-columns:1fr; text-align:center; }
-    .ring-wrap { margin:0 auto; }
-    .hero-meta .delta { margin-left:auto; margin-right:auto; }
+    .hero { grid-template-columns:1fr; text-align:left; }
   }
 </style>
 </head>
@@ -181,7 +196,7 @@ export function renderDashboard(): string {
           <circle id="bioRing" cx="74" cy="74" r="64" fill="none" stroke="url(#ringGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="402" stroke-dashoffset="402" />
           <defs>
             <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#64d2ff" /><stop offset="100%" stop-color="#5e5ce6" />
+              <stop offset="0%" stop-color="#5ba8a0" /><stop offset="100%" stop-color="#7a8bb0" />
             </linearGradient>
           </defs>
         </svg>
@@ -197,7 +212,7 @@ export function renderDashboard(): string {
             <span id="readinessText">Readiness —</span>
           </div>
           <div class="readiness-chip" id="strainChip" style="display:none;">
-            <span class="dot" id="strainDot" style="background:#ff9f0a;"></span>
+            <span class="dot" id="strainDot" style="background:#c89a4a;"></span>
             <span id="strainText">Strain —</span>
           </div>
         </div>
@@ -348,8 +363,8 @@ export function renderDashboard(): string {
       <h3>Goals &amp; notes</h3>
       <div class="card-sub">Separate from sensor data. Never fed into any score.</div>
       <form onsubmit="saveKnowledge(event)" style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
-        <textarea id="knowledgeGoals" placeholder="Goals (e.g. run a 10k by June, improve sleep consistency)" rows="2" style="background:var(--card2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:8px; font-family:inherit;"></textarea>
-        <textarea id="knowledgePreferences" placeholder="Preferences (e.g. prefer morning workouts, strength 3x/week)" rows="2" style="background:var(--card2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:8px; font-family:inherit;"></textarea>
+        <textarea id="knowledgeGoals" placeholder="Goals (e.g. run a 10k by June, improve sleep consistency)" rows="2" style="background:var(--panel2); border:1px solid var(--line); border-radius:4px; color:var(--ink); padding:8px; font-family:inherit;"></textarea>
+        <textarea id="knowledgePreferences" placeholder="Preferences (e.g. prefer morning workouts, strength 3x/week)" rows="2" style="background:var(--panel2); border:1px solid var(--line); border-radius:4px; color:var(--ink); padding:8px; font-family:inherit;"></textarea>
         <div style="display:flex; gap:8px; align-items:center;">
           <input id="knowledgeSleepTarget" type="number" step="0.5" placeholder="Sleep target (hr)" style="width:160px;" />
           <button type="submit" class="btn btn-sm">Save</button>
@@ -538,9 +553,9 @@ function upsertChart(id, config) {
   el.style.display = '';
 
   config.options = Object.assign({ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
-    plugins:{ legend:{ labels:{ color:'#8b92a0', boxWidth:10, font:{size:11} } } },
-    scales:{ x:{ ticks:{ color:'#565d6b', maxTicksLimit:8, font:{size:10} }, grid:{ color:'#1a1e26' } },
-             y:{ ticks:{ color:'#565d6b', font:{size:10} }, grid:{ color:'#1a1e26' } } } }, config.options || {});
+    plugins:{ legend:{ labels:{ color:'#80878c', boxWidth:10, font:{size:11, family:"'IBM Plex Mono',monospace"} } } },
+    scales:{ x:{ ticks:{ color:'#50565b', maxTicksLimit:8, font:{size:10, family:"'IBM Plex Mono',monospace"} }, grid:{ color:'#1b2024' } },
+             y:{ ticks:{ color:'#50565b', font:{size:10, family:"'IBM Plex Mono',monospace"} }, grid:{ color:'#1b2024' } } } }, config.options || {});
   el.parentElement.style.height = '240px';
   charts[id] = new Chart(el, config);
 }
@@ -595,7 +610,7 @@ function renderReadiness(score) {
   var chip = document.getElementById('readinessChip');
   if (score === null || score === undefined) { chip.style.display = 'none'; return; }
   chip.style.display = 'inline-flex';
-  var color = score >= 70 ? '#30d158' : score >= 45 ? '#ffd60a' : '#ff453a';
+  var color = score >= 70 ? '#5fad7e' : score >= 45 ? '#c89a4a' : '#c4604a';
   document.getElementById('readinessDot').style.background = color;
   document.getElementById('readinessText').textContent = 'Readiness ' + score + '/100';
 }
@@ -604,7 +619,7 @@ function renderStrain(strain) {
   var chip = document.getElementById('strainChip');
   if (strain === null || strain === undefined) { chip.style.display = 'none'; return; }
   chip.style.display = 'inline-flex';
-  var color = strain >= 14 ? '#ff453a' : strain >= 8 ? '#ff9f0a' : '#30d158';
+  var color = strain >= 14 ? '#c4604a' : strain >= 8 ? '#c89a4a' : '#5fad7e';
   document.getElementById('strainDot').style.background = color;
   document.getElementById('strainText').textContent = 'Strain ' + fmt(strain, 1) + '/21';
 }
@@ -628,9 +643,9 @@ function renderActivityRings(today) {
     return; // leave the default "no data yet" message in place
   }
   var rings = [
-    { label: 'Move', actual: today.activeEnergy, goal: today.activeEnergyGoal, unit: 'kcal', color: '#ff375f' },
-    { label: 'Exercise', actual: today.exerciseMinutes, goal: today.exerciseMinutesGoal, unit: 'min', color: '#30d158' },
-    { label: 'Stand', actual: today.standHours, goal: today.standHoursGoal, unit: 'hr', color: '#64d2ff' },
+    { label: 'Move', actual: today.activeEnergy, goal: today.activeEnergyGoal, unit: 'kcal', color: '#c4604a' },
+    { label: 'Exercise', actual: today.exerciseMinutes, goal: today.exerciseMinutesGoal, unit: 'min', color: '#5fad7e' },
+    { label: 'Stand', actual: today.standHours, goal: today.standHoursGoal, unit: 'hr', color: '#5ba8a0' },
   ];
   el.innerHTML = '<div class="grid">' + rings.map(function (r) {
     if (r.goal === undefined) return '';
@@ -666,7 +681,7 @@ function renderBioHero(latest, days) {
 function renderMarkers(latest) {
   var el = document.getElementById('markersList');
   if (!latest || !latest.markers.length) { el.innerHTML = '<p class="sub">No markers yet.</p>'; return; }
-  var colors = ['#64d2ff', '#5e5ce6', '#ff375f', '#30d158', '#ffd60a'];
+  var colors = ['#5ba8a0', '#7a8bb0', '#c4604a', '#5fad7e', '#c89a4a'];
   el.innerHTML = latest.markers.map(function (m, i) {
     var pct = Math.max(4, Math.min(100, (m.markerAge / 90) * 100));
     return '<div class="marker-row"><div class="mname">' + m.marker + '</div>' +
@@ -721,7 +736,7 @@ async function askHealthQuestion(evt) {
   }
 }
 
-var AI_CHART_COLORS = ['#64d2ff', '#ff9f0a', '#30d158'];
+var AI_CHART_COLORS = ['#5ba8a0', '#c89a4a', '#5fad7e'];
 
 async function askForChart(evt) {
   evt.preventDefault();
@@ -755,40 +770,40 @@ function buildCharts(days, history) {
   var pick = function (f) { return days.map(function (d) { return d[f] !== undefined ? d[f] : null; }); };
 
   upsertChart('heartChart', { type: 'line', data: { labels: labels, datasets: [
-    { label: 'Resting HR', data: pick('restingHeartRate'), borderColor: '#ff375f', backgroundColor: 'transparent', tension: .3, pointRadius: 0, borderWidth: 1.5 },
-    { label: 'HRV', data: pick('hrv'), borderColor: '#64d2ff', backgroundColor: 'transparent', tension: .3, pointRadius: 0, borderWidth: 1.5 },
+    { label: 'Resting HR', data: pick('restingHeartRate'), borderColor: '#c4604a', backgroundColor: 'transparent', tension: .3, pointRadius: 0, borderWidth: 1.5 },
+    { label: 'HRV', data: pick('hrv'), borderColor: '#5ba8a0', backgroundColor: 'transparent', tension: .3, pointRadius: 0, borderWidth: 1.5 },
   ]}});
 
   upsertChart('hrRangeChart', { type: 'line', data: { labels: labels, datasets: [
-    { label: 'Avg HR', data: pick('heartRateAvg'), borderColor: '#ff9f0a', tension: .3, pointRadius: 0, borderWidth: 1.5 },
-    { label: 'Max HR', data: pick('heartRateMax'), borderColor: '#ff453a', tension: .3, pointRadius: 0, borderWidth: 1 },
-    { label: 'Min HR', data: pick('heartRateMin'), borderColor: '#30d158', tension: .3, pointRadius: 0, borderWidth: 1 },
+    { label: 'Avg HR', data: pick('heartRateAvg'), borderColor: '#c89a4a', tension: .3, pointRadius: 0, borderWidth: 1.5 },
+    { label: 'Max HR', data: pick('heartRateMax'), borderColor: '#c4604a', tension: .3, pointRadius: 0, borderWidth: 1 },
+    { label: 'Min HR', data: pick('heartRateMin'), borderColor: '#5fad7e', tension: .3, pointRadius: 0, borderWidth: 1 },
   ]}});
 
   upsertChart('vo2Chart', { type: 'line', data: { labels: labels, datasets: [
-    { label: 'VO2max', data: pick('vo2max'), borderColor: '#bf5af2', tension: .3, pointRadius: 2, borderWidth: 1.5, spanGaps: true },
+    { label: 'VO2max', data: pick('vo2max'), borderColor: '#9b8bc4', tension: .3, pointRadius: 2, borderWidth: 1.5, spanGaps: true },
   ]}});
 
   upsertChart('stepsChart', { type: 'bar', data: { labels: labels, datasets: [
-    { label: 'Steps', data: pick('steps'), backgroundColor: '#30d15899' },
+    { label: 'Steps', data: pick('steps'), backgroundColor: '#5fad7e99' },
   ]}});
 
   upsertChart('energyChart', { type: 'bar', data: { labels: labels, datasets: [
-    { label: 'Active energy (kcal)', data: pick('activeEnergy'), backgroundColor: '#ff9f0a99' },
-    { label: 'Exercise (min)', data: pick('exerciseMinutes'), backgroundColor: '#64d2ff99' },
+    { label: 'Active energy (kcal)', data: pick('activeEnergy'), backgroundColor: '#c89a4a99' },
+    { label: 'Exercise (min)', data: pick('exerciseMinutes'), backgroundColor: '#5ba8a099' },
   ]}});
 
   upsertChart('standChart', { type: 'bar', data: { labels: labels, datasets: [
-    { label: 'Stand minutes', data: pick('standMinutes'), backgroundColor: '#30d15899' },
-    { label: 'Flights climbed', data: pick('flightsClimbed'), backgroundColor: '#ffd60a99' },
+    { label: 'Stand minutes', data: pick('standMinutes'), backgroundColor: '#5fad7e99' },
+    { label: 'Flights climbed', data: pick('flightsClimbed'), backgroundColor: '#c89a4a99' },
   ]}});
 
   upsertChart('gaitChart', { type: 'line', data: { labels: labels, datasets: [
-    { label: 'Walking speed (m/s)', data: pick('walkingSpeed'), borderColor: '#64d2ff', tension: .3, pointRadius: 0, borderWidth: 1.5, spanGaps: true },
+    { label: 'Walking speed (m/s)', data: pick('walkingSpeed'), borderColor: '#5ba8a0', tension: .3, pointRadius: 0, borderWidth: 1.5, spanGaps: true },
   ]}});
 
   upsertChart('workoutChart', { type: 'bar', data: { labels: labels, datasets: [
-    { label: 'Workout minutes', data: pick('workoutMinutes'), backgroundColor: '#ff9f0a99' },
+    { label: 'Workout minutes', data: pick('workoutMinutes'), backgroundColor: '#c89a4a99' },
   ]}});
 
   var workoutDays = days.filter(function (d) { return d.workoutCount; }).slice(-15).reverse();
@@ -805,26 +820,26 @@ function buildCharts(days, history) {
   }
 
   upsertChart('sleepChart', { type: 'bar', data: { labels: labels, datasets: [
-    { label: 'Sleep hours', data: pick('sleepHours'), backgroundColor: '#5e5ce699' },
+    { label: 'Sleep hours', data: pick('sleepHours'), backgroundColor: '#7a8bb099' },
   ]}});
 
   upsertChart('sleepStagesChart', { type: 'bar', data: { labels: labels, datasets: [
-    { label: 'Core', data: pick('sleepCoreHours'), backgroundColor: '#5e5ce6' },
-    { label: 'Deep', data: pick('sleepDeepHours'), backgroundColor: '#3634a3' },
-    { label: 'REM', data: pick('sleepRemHours'), backgroundColor: '#bf5af2' },
-    { label: 'Awake', data: pick('sleepAwakeHours'), backgroundColor: '#ff453a' },
+    { label: 'Core', data: pick('sleepCoreHours'), backgroundColor: '#7a8bb0' },
+    { label: 'Deep', data: pick('sleepDeepHours'), backgroundColor: '#4f5f8a' },
+    { label: 'REM', data: pick('sleepRemHours'), backgroundColor: '#9b8bc4' },
+    { label: 'Awake', data: pick('sleepAwakeHours'), backgroundColor: '#c4604a' },
   ]}, options: { scales: {
-    x: { stacked: true, ticks: { color: '#565d6b', maxTicksLimit: 8, font: { size: 10 } }, grid: { color: '#1a1e26' } },
-    y: { stacked: true, ticks: { color: '#565d6b', font: { size: 10 } }, grid: { color: '#1a1e26' } },
+    x: { stacked: true, ticks: { color: '#50565b', maxTicksLimit: 8, font: { size: 10 } }, grid: { color: '#1b2024' } },
+    y: { stacked: true, ticks: { color: '#50565b', font: { size: 10 } }, grid: { color: '#1b2024' } },
   } }});
 
   upsertChart('weightChart', { type: 'line', data: { labels: labels, datasets: [
-    { label: 'Weight (kg)', data: pick('weightKg'), borderColor: '#ff9f0a', tension: .3, pointRadius: 1, borderWidth: 1.5, spanGaps: true },
+    { label: 'Weight (kg)', data: pick('weightKg'), borderColor: '#c89a4a', tension: .3, pointRadius: 1, borderWidth: 1.5, spanGaps: true },
   ]}});
 
   upsertChart('ageChart', { type: 'line', data: { labels: history.map(function (h) { return h.date; }), datasets: [
-    { label: 'Biological age', data: history.map(function (h) { return h.biologicalAge; }), borderColor: '#64d2ff', tension: .3, pointRadius: 0, borderWidth: 1.5 },
-    { label: 'Chronological age', data: history.map(function (h) { return h.chronologicalAge; }), borderColor: '#565d6b', borderDash: [5, 5], pointRadius: 0, borderWidth: 1 },
+    { label: 'Biological age', data: history.map(function (h) { return h.biologicalAge; }), borderColor: '#5ba8a0', tension: .3, pointRadius: 0, borderWidth: 1.5 },
+    { label: 'Chronological age', data: history.map(function (h) { return h.chronologicalAge; }), borderColor: '#50565b', borderDash: [5, 5], pointRadius: 0, borderWidth: 1 },
   ]}});
 }
 
@@ -923,7 +938,7 @@ function renderExperiments(results) {
     var e = r.experiment;
     var change = r.changePct !== null ? (r.changePct > 0 ? '+' : '') + r.changePct + '%' : 'no data yet';
     var arrow = r.direction === 'up' ? '↑' : r.direction === 'down' ? '↓' : r.direction === 'flat' ? '→' : '';
-    return '<div class="card" style="background:var(--card2); margin-bottom:10px;">' +
+    return '<div class="card" style="background:var(--panel2); margin-bottom:10px;">' +
       '<div style="display:flex; justify-content:space-between; align-items:baseline;">' +
       '<strong>' + e.title + '</strong>' +
       '<button class="btn btn-ghost btn-sm" onclick="deleteExperiment(\\'' + e.id + '\\')">Delete</button>' +
@@ -1002,7 +1017,7 @@ function renderCoverage(cov) {
   summaryEl.textContent = cov.totalDays + ' days stored (' + cov.dateRange.start + ' to ' + cov.dateRange.end + ')' + gapNote;
   listEl.innerHTML = '<table class="simple-table"><tbody>' + cov.metrics.slice(0, 20).map(function (m) {
     var pct = Math.round(m.coveragePct * 100);
-    var staleNote = m.staleDays > 14 ? ' <span style="color:var(--bad)">stale ' + m.staleDays + 'd</span>' : '';
+    var staleNote = m.staleDays > 14 ? ' <span style="color:var(--down)">stale ' + m.staleDays + 'd</span>' : '';
     return '<tr><td>' + m.metric + '</td><td>' + pct + '%</td><td>' + m.daysPresent + '/' + m.totalDays + ' days' + staleNote + '</td></tr>';
   }).join('') + '</tbody></table>';
 }
