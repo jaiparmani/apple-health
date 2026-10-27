@@ -79,19 +79,22 @@ against the brief, not a list of bugs to fix.
 This is explicitly being worked as a multi-session project, per prior
 direction. Order of attack:
 
-1. **Workout session parsing** (this pass) — `<Workout>` elements into daily
+1. ✅ **Workout session parsing** — `<Workout>` elements into daily
    `workoutCount`/`workoutMinutes`/`workoutEnergy`/`workoutDistanceKm` plus
-   per-type breakdown, surfaced in the Activity tab.
-2. **Personal baseline layer** — rolling 7/30/90-day mean/median/percentile
-   per metric with explicit sample-sufficiency flags, replacing population
-   reference curves wherever a personal baseline is more honest than a
-   population one (readiness/strain already do this for HRV/RHR; extend to
-   more metrics).
-3. **Data coverage view** — per-metric history length, last-seen date, and
-   day-level completeness, surfaced in the Data tab.
-4. **"Ask my health data"** — a constrained NL query tool: the LLM only
-   picks a metric + date range + aggregation from a fixed menu; all math
-   happens in `trends.ts`/new query code, never in the model.
+   most-common-type, surfaced on the Activity tab (`src/dashboard.ts`,
+   `healthProcessWorkoutLine`).
+2. ✅ **Personal baseline layer** — `src/baselines.ts`: rolling 7/30/90-day
+   mean/median/stddev/percentile range per metric, least-squares trend
+   direction, and a z-score for today vs. baseline, with explicit
+   sample-sufficiency flags (≥5 samples and ≥40% window coverage). Exposed
+   via `GET /api/baselines`, surfaced on the Import & Settings tab.
+3. ✅ **Data coverage engine** — `src/coverage.ts`: per-metric coverage
+   discovered dynamically (not hardcoded) from whatever fields actually
+   appear in the data, with first/last-seen dates and staleness. Exposed
+   via `GET /api/coverage`, surfaced on the Import & Settings tab.
+4. **"Ask my health data"** (next) — a constrained NL query tool: the LLM
+   only picks a metric + date range + aggregation from a fixed menu; all
+   math happens in `trends.ts`/`baselines.ts`, never in the model.
 5. **Correlation discovery + anomaly explanations** — built on top of (2)
    and (3), gated by minimum sample size, explicitly labeled
    correlation-not-causation.
