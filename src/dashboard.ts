@@ -318,6 +318,40 @@ export function renderDashboard(): string {
     .wd .w-steps { font-size:12px; }
   }
 
+  /* ---- plan & goals ---- */
+  .plan-head { display:flex; justify-content:space-between; align-items:center; gap:10px; }
+  .plan-progress { font-weight:700; font-size:15px; }
+  .plan-progress .num { font-size:22px; color:var(--pulse); margin-right:4px; }
+  .plan-days { display:grid; gap:8px; margin-top:12px; }
+  .pday { display:grid; grid-template-columns:52px 1fr auto; gap:12px; align-items:center; padding:12px; border-radius:8px; background:var(--panel2); border:1px solid var(--line); }
+  .pday.today { border-color:var(--pulse); }
+  .pday.rest { opacity:.6; }
+  .pday .pd-day { font-weight:800; font-size:13px; color:var(--dim); }
+  .pday .pd-day b { display:block; color:var(--ink); font-size:15px; }
+  .pday .pd-title { font-weight:700; font-size:14.5px; }
+  .pday .pd-title .pd-min { color:var(--dim); font-weight:600; margin-left:6px; font-size:13px; }
+  .pday .pd-detail { color:var(--dim); font-size:13px; margin-top:2px; line-height:1.45; }
+  .pday .pd-adj { color:var(--caution); font-size:12.5px; margin-top:4px; }
+  .pday .pd-was { text-decoration:line-through; color:var(--faint); font-size:12.5px; }
+  .tick { width:34px; height:34px; border-radius:50%; border:2px solid var(--line); background:transparent; color:var(--dim); cursor:pointer; font-size:15px; font-weight:800; }
+  .tick.on { background:var(--up); border-color:var(--up); color:var(--void); }
+  .tick:disabled { cursor:default; opacity:.5; }
+  .session-card .s-big { font-size:20px; font-weight:800; margin:4px 0 2px; }
+  .session-card .s-big small { color:var(--dim); font-size:14px; font-weight:600; margin-left:6px; }
+  .goal { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; margin-bottom:10px; }
+  .goal .g-head { display:flex; justify-content:space-between; gap:10px; align-items:center; }
+  .goal .g-title { font-weight:700; font-size:15px; }
+  .goal .g-nums { font-family:var(--mono); font-weight:800; font-size:22px; margin:6px 0 2px; }
+  .goal .g-nums small { color:var(--dim); font-size:13px; font-weight:600; font-family:var(--sans); }
+  .goal .g-track { position:relative; height:8px; background:var(--panel2); border-radius:4px; margin:8px 0 6px; }
+  .goal .g-fill { position:absolute; left:0; top:0; bottom:0; border-radius:4px; }
+  .goal .g-mark { position:absolute; top:-4px; width:2px; height:16px; background:var(--ink); opacity:.6; }
+  .goal .g-sum { color:var(--dim); font-size:13px; }
+  .goal-form { display:flex; flex-wrap:wrap; gap:8px; }
+  .goal-form select { flex:1 1 180px; } .goal-form #goalTarget { width:110px; } .goal-form #goalTitle { flex:1 1 160px; }
+  .link-btn { background:none; border:none; color:var(--faint); cursor:pointer; font-size:12.5px; padding:0; }
+  .link-btn:hover { color:var(--down); }
+
   footer { color:var(--faint); font-size:11.5px; text-align:left; padding:28px 0 10px; border-top:1px solid var(--line); margin-top:10px; }
 
   @media (max-width:560px) {
@@ -344,6 +378,7 @@ export function renderDashboard(): string {
     </div>
     <nav class="tabs">
       <button class="tab active" data-tab="overview" onclick="showTab('overview')">Overview</button>
+      <button class="tab" data-tab="plan" onclick="showTab('plan')">Plan &amp; Goals</button>
       <button class="tab" data-tab="training" onclick="showTab('training')">Training</button>
       <button class="tab" data-tab="heart" onclick="showTab('heart')">Heart &amp; Recovery</button>
       <button class="tab" data-tab="activity" onclick="showTab('activity')">Activity &amp; Mobility</button>
@@ -385,6 +420,7 @@ export function renderDashboard(): string {
     <h2 class="sec">Today<span>How ready you are, and what to do</span></h2>
     <div class="trio" id="todayTrio"></div>
     ${reviewCard("today", "Today's call", "Push, go easy, or recover.")}
+    <div class="card session-card" id="todaySession"><h3>Today's session</h3><div class="sub">Loading your plan…</div></div>
     <div class="card">
       <h3>Your action items</h3>
       <div class="card-sub">Most important first.</div>
@@ -468,6 +504,33 @@ export function renderDashboard(): string {
         <button type="submit" class="btn btn-sm">Start</button>
       </form>
       <div id="experimentsList"></div>
+    </div>
+  </section>
+
+  <!-- PLAN & GOALS -->
+  <section class="section" id="tab-plan">
+    <h2 class="sec" style="margin-top:6px;">This week's plan<span id="planSub">Adapts to your recovery each day</span></h2>
+    <div class="card">
+      <div class="plan-head">
+        <div id="planProgress" class="plan-progress"></div>
+        <button class="btn btn-ghost btn-sm" id="planRegenBtn" onclick="regeneratePlan()">Rewrite plan</button>
+      </div>
+      <div id="planRationale" class="card-sub" style="margin-top:8px;"></div>
+      <div class="plan-days" id="planDays"><div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:60%"></div></div>
+    </div>
+
+    <h2 class="sec">Goals<span>Targets with deadlines, tracked against your trend</span></h2>
+    <div id="goalsList"></div>
+    <div class="card">
+      <h3>Add a goal</h3>
+      <form class="goal-form" onsubmit="addGoal(event)">
+        <select id="goalMetric" onchange="updateGoalHint()"></select>
+        <input id="goalTarget" type="number" step="any" placeholder="Target" required />
+        <input id="goalDeadline" type="date" required />
+        <input id="goalTitle" type="text" placeholder="Name (optional)" />
+        <button type="submit" class="btn btn-sm">Add goal</button>
+      </form>
+      <div class="card-sub" id="goalHint" style="margin-top:8px;"></div>
     </div>
   </section>
 
@@ -1087,6 +1150,137 @@ function renderQuickStats(today, trends) {
     : '';
 }
 
+// ---------------- plan & goals ----------------
+var PLAN = null;
+function fmtGoalVal(v, unit) { if (v === null || v === undefined) return '—'; return Math.abs(v) >= 100 ? Math.round(v).toLocaleString() : String(Math.round(v * 100) / 100); }
+var GOAL_METRIC_OPTIONS = [];
+var SESSION_ICON = { rest: '–', walk: 'W', easy: 'E', zone2: 'Z2', intervals: 'HI', strength: 'S', long: 'L', mobility: 'M' };
+var STATUS_TEXT = { done: ['good', 'Done'], missed: ['bad', 'Missed'], rest: ['unknown', 'Rest'], today: ['ok', 'Today'], upcoming: ['unknown', 'Upcoming'] };
+
+function sessionLine(d) {
+  var s = d.adjusted || d;
+  return s.type === 'rest' ? 'Rest day' : s.title + '<small>' + s.minutes + ' min</small>';
+}
+
+function renderTodaySession(view) {
+  var el = document.getElementById('todaySession');
+  var t = view && view.today;
+  if (!t) { el.innerHTML = '<h3>Today\\'s session</h3><div class="sub">No plan for today yet.</div>'; return; }
+  var s = t.adjusted || t;
+  var st = STATUS_TEXT[t.status];
+  el.innerHTML = '<div class="ai-head"><h3>Today\\'s session</h3>' + pill(st[0], st[1]) + '</div>' +
+    '<div class="s-big">' + sessionLine(t) + '</div>' +
+    (s.type !== 'rest' ? '<div class="sub">' + s.detail + '</div>' : '') +
+    (t.adjusted ? '<div class="pd-adj" style="color:var(--caution);font-size:13px;margin-top:6px;">' + t.adjusted.reason + ' Planned: ' + t.title + ', ' + t.minutes + ' min.</div>' : '') +
+    '<div class="sub" style="margin-top:8px;">' + view.completed + ' of ' + view.planned + ' sessions done so far this week. <a href="#" onclick="showTab(\\'plan\\');return false;">See the full week →</a></div>';
+}
+
+function renderPlan(view) {
+  PLAN = view;
+  renderTodaySession(view);
+  var pct = view.planned ? Math.round(view.completed / view.planned * 100) : 0;
+  document.getElementById('planProgress').innerHTML = '<span class="num">' + view.completed + '/' + view.planned + '</span> sessions done so far (' + pct + '%)';
+  document.getElementById('planSub').textContent = 'Week of ' + niceDate(view.weekStart) + '. Adapts to your recovery each day.';
+  document.getElementById('planRationale').textContent = (view.rationale || '') + (view.source === 'template' ? ' (Standard plan: the AI was unavailable.)' : '');
+  document.getElementById('planDays').innerHTML = view.days.map(function (d) {
+    var st = STATUS_TEXT[d.status];
+    var s = d.adjusted || d;
+    var canTick = d.type !== 'rest' && d.status !== 'upcoming';
+    var tickTitle = d.status === 'done' ? (d.autoDetected ? 'Detected from your data (' + d.actualMinutes + ' min)' : 'Marked done. Tap to undo.') : 'Mark as done';
+    return '<div class="pday ' + d.status + '">' +
+      '<div class="pd-day">' + d.weekday + '<b>' + Number(d.date.slice(8)) + '</b></div>' +
+      '<div><div class="pd-title">' + (s.type === 'rest' ? 'Rest' : s.title) + (s.minutes ? '<span class="pd-min">' + s.minutes + ' min</span>' : '') + ' ' + pill(st[0], st[1]) + '</div>' +
+      (d.adjusted ? '<div class="pd-was">' + d.title + ', ' + d.minutes + ' min</div>' : '') +
+      '<div class="pd-detail">' + s.detail + (d.actualMinutes && d.type !== 'rest' ? ' · You did ' + d.actualMinutes + ' min.' : '') + '</div>' +
+      (d.adjusted ? '<div class="pd-adj">' + d.adjusted.reason + '</div>' : '') + '</div>' +
+      (canTick ? '<button class="tick' + (d.status === 'done' ? ' on' : '') + '" title="' + tickTitle + '" ' + (d.autoDetected ? 'disabled' : '') + ' onclick="togglePlanDay(\\'' + d.date + '\\')">✓</button>' : '<span></span>') +
+      '</div>';
+  }).join('');
+}
+
+async function loadPlanView() {
+  try {
+    renderPlan(await authedFetch('/api/plan'));
+  } catch (err) {
+    document.getElementById('planDays').innerHTML = '<p class="sub">Couldn\\'t load the plan (' + err.message + ').</p>';
+    document.getElementById('todaySession').innerHTML = '<h3>Today\\'s session</h3><div class="sub">Couldn\\'t load the plan.</div>';
+  }
+}
+
+async function regeneratePlan() {
+  var btn = document.getElementById('planRegenBtn');
+  btn.disabled = true;
+  btn.textContent = 'Writing…';
+  try { renderPlan(await authedFetch('/api/plan', { method: 'POST' })); }
+  catch (err) { alert('Could not rewrite the plan: ' + err.message); }
+  finally { btn.disabled = false; btn.textContent = 'Rewrite plan'; }
+}
+
+async function togglePlanDay(date) {
+  try { var res = await authedFetch('/api/plan/done?date=' + date, { method: 'POST' }); renderPlan(res.view); }
+  catch (err) { alert('Could not update: ' + err.message); }
+}
+
+var GOAL_STATUS = { achieved: ['good', 'Reached'], ahead: ['good', 'Ahead'], on_track: ['ok', 'On track'], behind: ['watch', 'Behind'], no_data: ['unknown', 'No data'] };
+
+function renderGoals(res) {
+  GOAL_METRIC_OPTIONS = res.metrics || [];
+  var sel = document.getElementById('goalMetric');
+  if (!sel.options.length) {
+    sel.innerHTML = GOAL_METRIC_OPTIONS.map(function (m) { return '<option value="' + m.key + '">' + m.label + '</option>'; }).join('');
+    var d = new Date(); d.setDate(d.getDate() + 84);
+    document.getElementById('goalDeadline').value = d.toISOString().slice(0, 10);
+    updateGoalHint();
+  }
+  var el = document.getElementById('goalsList');
+  var list = res.progress || [];
+  if (!list.length) { el.innerHTML = '<div class="card"><div class="sub">No goals yet. Add one below — the plan and your AI reviews will work towards it.</div></div>'; return; }
+  el.innerHTML = list.map(function (g) {
+    var st = GOAL_STATUS[g.status];
+    var color = { good: '#34d399', ok: '#b4ff39', watch: '#fbbf24', unknown: '#555' }[st[0]];
+    return '<div class="goal"><div class="g-head"><span class="g-title">' + g.goal.title + '</span><span>' + pill(st[0], st[1]) +
+      ' <button class="link-btn" onclick="deleteGoal(\\'' + g.goal.id + '\\')">Remove</button></span></div>' +
+      '<div class="g-nums">' + fmtGoalVal(g.current) + ' <small>now · target ' + fmtGoalVal(g.goal.target) + (g.unit ? ' ' + g.unit : '') + ' by ' + niceDate(g.goal.deadline) + '</small></div>' +
+      '<div class="g-track"><div class="g-fill" style="width:' + (g.progressPct || 0) + '%;background:' + color + '"></div><div class="g-mark" style="left:' + g.expectedPct + '%" title="Where you should be by now"></div></div>' +
+      '<div class="g-sum">' + g.summary + (g.goal.startValue !== null ? ' Started at ' + fmtGoalVal(g.goal.startValue) + '.' : '') + '</div></div>';
+  }).join('');
+}
+
+function updateGoalHint() {
+  var key = document.getElementById('goalMetric').value;
+  var m = GOAL_METRIC_OPTIONS.filter(function (x) { return x.key === key; })[0];
+  if (!m) return;
+  var cur = m.current === null ? 'no recent data' : fmtGoalVal(m.current) + (m.unit ? ' ' + m.unit : '');
+  document.getElementById('goalHint').textContent = 'Your current ' + m.label.toLowerCase() + ': ' + cur + '.' + (key === 'exerciseMinutes' ? ' Measured as a 7-day total.' : '');
+}
+
+async function loadGoals() {
+  try { renderGoals(await authedFetch('/api/goals')); }
+  catch (err) { document.getElementById('goalsList').innerHTML = '<p class="sub">Couldn\\'t load goals (' + err.message + ').</p>'; }
+}
+
+async function addGoal(evt) {
+  evt.preventDefault();
+  var body = {
+    metric: document.getElementById('goalMetric').value,
+    target: Number(document.getElementById('goalTarget').value),
+    deadline: document.getElementById('goalDeadline').value,
+    title: document.getElementById('goalTitle').value || undefined,
+  };
+  try {
+    await authedFetch('/api/goals', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    document.getElementById('goalTarget').value = '';
+    document.getElementById('goalTitle').value = '';
+    loadGoals();
+  } catch (err) { alert('Could not add goal: ' + err.message); }
+}
+
+async function deleteGoal(id) {
+  if (!confirm('Remove this goal?')) return;
+  await authedFetch('/api/goals?id=' + encodeURIComponent(id), { method: 'DELETE' });
+  loadGoals();
+}
+
 // ---------------- metric guide: meaning + what to do ----------------
 // Data from src/metricGuide.ts, serialised at render time so the copy lives
 // in one (tested) place.
@@ -1403,6 +1597,8 @@ async function boot() {
 
   loadFitness();
   loadOverview();
+  loadPlanView();
+  loadGoals();
   loadDataQuality();
   loadDiscoveries();
   loadReport('week');

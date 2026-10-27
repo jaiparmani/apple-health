@@ -7,6 +7,8 @@ GITHUB_OWNER = "jaiparmani"
 GITHUB_REPO = "apple-health"
 GITHUB_DATA_BRANCH = "main"
 LLM_GATEWAY_URL = "https://llm-gateway.brain-store.workers.dev"
+TIMEZONE = "Asia/Kolkata"
+PUBLIC_URL = "https://apple-health.brain-store.workers.dev"
 
 [[kv_namespaces]]
 binding = "INSIGHTS_CACHE"
@@ -23,3 +25,5 @@ service = "llm-gateway"
 #   INGEST_TOKEN      - bearer token the Apple Shortcut must send
 #   GITHUB_TOKEN      - PAT with repo contents read/write on jaiparmani/apple-health
 #   LLM_GATEWAY_TOKEN - client token issued by llm-gateway for the AI insights feature
+#   BRIEF_TOKEN       - bearer token brain-chat and telegram-router send to POST /telegram/brief
+#                       (stored there as APPLE_HEALTH_TOKEN)

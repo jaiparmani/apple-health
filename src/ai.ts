@@ -315,3 +315,32 @@ export async function generateChartFromQuestion(env: Env, question: string, days
   const chart = buildChartData(days, spec);
   return { question, chart };
 }
+
+/**
+ * Writes next week's training plan as structured JSON. The model chooses
+ * session types/durations from a fixed menu; parseAiPlan() (src/plan.ts)
+ * validates the shape and the caller falls back to a code-built template
+ * if it doesn't fit. Adaptation to daily recovery happens in code later,
+ * not here.
+ */
+export async function generatePlanJson(env: Env, context: Record<string, unknown>): Promise<Record<string, unknown>> {
+  const system =
+    "You are a coach writing one person's training plan for the 7 days Monday to Sunday, from a JSON snapshot of " +
+    "their own data (fitness metrics with status and suggested actions, goals with progress, recent weekly volume, " +
+    "their weakest weekday, and their stated goals/preferences). Rules: build from their CURRENT habit — at most one " +
+    "more session than their recent active days per week suggest; include at least one rest day; never two hard " +
+    "sessions (intervals, long, strength) on consecutive days; target the goals that are behind first; respect stated " +
+    "preferences. Session type must be one of: rest, walk, easy, zone2, intervals, strength, long, mobility. " +
+    'Reply with ONLY JSON: {"rationale": string (max 25 words, plain English), "days": [7 objects in Monday-Sunday ' +
+    'order, each {"type": string, "title": string (max 4 words), "minutes": number (0 for rest), "detail": string ' +
+    '(max 14 words: exactly what to do)}]}. No jargon, no abbreviations.';
+  return callGateway(
+    env,
+    [
+      { role: "system", content: system },
+      { role: "user", content: `Snapshot:\n${JSON.stringify(context)}` },
+    ],
+    "days",
+    1100
+  );
+}

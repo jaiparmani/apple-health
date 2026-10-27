@@ -1,4 +1,5 @@
 import type { BiologicalAgeResult, DailyMetrics, UserKnowledge, UserProfile } from "./types";
+import type { GoalProgress } from "./goals";
 import type { ReviewDomain } from "./ai";
 import { chronologicalAge } from "./analytics";
 import { computeFitnessReport, dailyLoad, type FitnessReport } from "./fitness";
@@ -44,6 +45,7 @@ export interface ReviewInputs {
   profile: UserProfile | null;
   knowledge: UserKnowledge | null;
   bioHistory: BiologicalAgeResult[];
+  goals?: GoalProgress[];
 }
 
 export function buildReviewContext(domain: ReviewDomain, input: ReviewInputs): Record<string, unknown> {
@@ -59,6 +61,7 @@ export function buildReviewContext(domain: ReviewDomain, input: ReviewInputs): R
     preferences: knowledge?.preferences || undefined,
     sleepTargetHours: sleepTarget,
     recentCheckIns: (knowledge?.notes ?? []).slice(-7),
+    goalProgress: (input.goals ?? []).map((g) => ({ goal: g.goal.title, current: g.current, target: g.goal.target, deadline: g.goal.deadline, status: g.status, summary: g.summary })),
   };
 
   switch (domain) {

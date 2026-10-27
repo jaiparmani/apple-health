@@ -10,7 +10,11 @@ import { detectAnomalies } from "./anomalies";
 import { computePeriodReport, type ReportPeriod } from "./report";
 import { toCsv } from "./export";
 import { computeExperimentResult, type Experiment } from "./experiments";
-import { generateReview, answerHealthQuestion, generateChartFromQuestion, REVIEW_DOMAINS, type AiInsights, type ReviewDomain } from "./ai";
+import { generateReview, generatePlanJson, answerHealthQuestion, generateChartFromQuestion, REVIEW_DOMAINS, type AiInsights, type ReviewDomain } from "./ai";
+import { computeGoalProgress, currentValue, isGoalMetric, GOAL_METRICS, type Goal, type GoalProgress } from "./goals";
+import { buildTemplatePlan, mondayOf, parseAiPlan, viewPlan, type PlanView, type StoredPlan } from "./plan";
+import { computeWeekdayPattern } from "./overview";
+import { healthBriefMessage } from "./brief";
 import { buildReviewContext } from "./reviewContext";
 import { computeFitnessReport } from "./fitness";
 import { computeOverview } from "./overview";
@@ -23,6 +27,9 @@ const LATEST_PATH = "data/analytics/latest.json";
 const KNOWLEDGE_PATH = "data/knowledge.json";
 const MAX_KNOWLEDGE_NOTES = 2000;
 const EXPERIMENTS_PATH = "data/experiments.json";
+const GOALS_PATH = "data/goals.json";
+const PLAN_PATH = "data/plan.json";
+const MAX_GOALS = 10;
 const MAX_SERIES_DAYS = 4000; // ~11 years, enough headroom for a full Apple Health export backfill
 const MAX_HISTORY_ENTRIES = 4000;
 const ANALYTICS_WINDOW_DAYS = 7;
@@ -210,26 +217,32 @@ interface InsightsCacheEntry {
   insights: AiInsights;
 }
 
-/**
- * AI-generated narrative review for one domain (overview/today/training/
- * recovery/activity/sleep/body/discoveries),
- * cached in KV for an hour per domain so the dashboard doesn't pay for (or
- * wait on) an LLM call on every reload. `?force=1` (the dashboard's Retry
- * button) bypasses the cache and regenerates immediately. Same caching
- * architecture for every domain — only the cache key and the model's
- * system-prompt focus differ.
- */
-async function handleGetInsights(req: Request, env: Env): Promise<Response> {
-  if (!isAuthed(req, env)) return unauthorized();
-  const url = new URL(req.url);
-  const force = url.searchParams.get("force") === "1";
-  const domainParam = url.searchParams.get("domain");
-  const domain: ReviewDomain = REVIEW_DOMAINS.includes(domainParam as ReviewDomain) ? (domainParam as ReviewDomain) : "overview";
-  const cacheKey = insightsCacheKey(domain);
+/** Today's date where the user lives — plans and briefs are about *their* day, not UTC's. */
+function localToday(env: Env): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: env.TIMEZONE || "Asia/Kolkata" }).format(new Date());
+}
 
+async function loadGoalProgress(env: Env, days: DailyMetrics[]): Promise<GoalProgress[]> {
+  const { data } = await getJson<{ goals: Goal[] }>(env, GOALS_PATH);
+  const today = localToday(env);
+  return (data?.goals ?? []).map((g) => computeGoalProgress(days, g, today));
+}
+
+type ReviewResult = InsightsCacheEntry & { cached: boolean; stale?: boolean };
+
+/**
+ * AI-generated narrative review for one domain (overview/today/weekly/
+ * longterm/training/recovery/activity/sleep/body/discoveries). Same caching
+ * for every domain: an entry is served as-is while fresh (1 hour by
+ * default), regenerated after that or on force, and kept for a week so a
+ * failed regeneration can fall back to the last good review (stale: true)
+ * instead of an error. Shared by the dashboard and the morning brief.
+ */
+async function getReview(env: Env, domain: ReviewDomain, opts: { force?: boolean; freshSeconds?: number } = {}): Promise<ReviewResult | { error: string; status: number }> {
+  const cacheKey = insightsCacheKey(domain);
   const cached = await env.INSIGHTS_CACHE.get<InsightsCacheEntry>(cacheKey, "json");
   const ageSeconds = cached ? (Date.now() - Date.parse(cached.generatedAt)) / 1000 : Infinity;
-  if (cached && !force && ageSeconds < INSIGHTS_FRESH_SECONDS) return json({ ...cached, cached: true });
+  if (cached && !opts.force && ageSeconds < (opts.freshSeconds ?? INSIGHTS_FRESH_SECONDS)) return { ...cached, cached: true };
 
   const [{ data: seriesData }, { data: profile }, { data: latest }, { data: knowledge }, history] = await Promise.all([
     getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
@@ -239,22 +252,196 @@ async function handleGetInsights(req: Request, env: Env): Promise<Response> {
     domain === "body" || domain === "longterm" ? getJson<{ entries: BiologicalAgeResult[] }>(env, HISTORY_PATH) : Promise.resolve({ data: null }),
   ]);
   const days = seriesData?.days ?? [];
-  if (days.length === 0) return json({ error: "no data yet" }, 400);
-  if (!env.LLM_GATEWAY_URL || !env.LLM_GATEWAY_TOKEN) return json({ error: "AI insights not configured" }, 503);
+  if (days.length === 0) return { error: "no data yet", status: 400 };
+  if (!env.LLM_GATEWAY_URL || !env.LLM_GATEWAY_TOKEN) return { error: "AI insights not configured", status: 503 };
 
   const trends = computeTrends(days);
-  const context = buildReviewContext(domain, { days, profile, knowledge, bioHistory: history.data?.entries ?? [] });
+  const goals = ["today", "training", "weekly", "overview", "longterm"].includes(domain) ? await loadGoalProgress(env, days) : [];
+  const context = buildReviewContext(domain, { days, profile, knowledge, bioHistory: history.data?.entries ?? [], goals });
   let insights: AiInsights;
   try {
     insights = await generateReview(env, domain, days, trends, profile ? latest : null, context);
   } catch (err) {
-    if (cached) return json({ ...cached, cached: true, stale: true });
+    if (cached) return { ...cached, cached: true, stale: true };
     throw err;
   }
   const entry: InsightsCacheEntry = { generatedAt: new Date().toISOString(), insights };
   await env.INSIGHTS_CACHE.put(cacheKey, JSON.stringify(entry), { expirationTtl: INSIGHTS_KEEP_SECONDS });
+  return { ...entry, cached: false };
+}
 
-  return json({ ...entry, cached: false });
+async function handleGetInsights(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const url = new URL(req.url);
+  const force = url.searchParams.get("force") === "1";
+  const domainParam = url.searchParams.get("domain");
+  const domain: ReviewDomain = REVIEW_DOMAINS.includes(domainParam as ReviewDomain) ? (domainParam as ReviewDomain) : "overview";
+  const result = await getReview(env, domain, { force });
+  if ("error" in result) return json({ error: result.error }, result.status);
+  return json(result);
+}
+
+// ---------------- goals ----------------
+
+async function handleGetGoals(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const days = seriesData?.days ?? [];
+  return json({
+    progress: await loadGoalProgress(env, days),
+    metrics: Object.entries(GOAL_METRICS).map(([key, d]) => ({ key, label: d.label, unit: d.unit, current: currentValue(days, key as Goal["metric"]) })),
+  });
+}
+
+async function handlePostGoal(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  let body: Partial<Goal>;
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "invalid json body" }, 400);
+  }
+  if (!isGoalMetric(body.metric)) return json({ error: `metric must be one of: ${Object.keys(GOAL_METRICS).join(", ")}` }, 400);
+  if (typeof body.target !== "number" || !Number.isFinite(body.target)) return json({ error: "target (number) is required" }, 400);
+  if (typeof body.deadline !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(body.deadline)) return json({ error: "deadline (YYYY-MM-DD) is required" }, 400);
+  const today = localToday(env);
+  if (body.deadline <= today) return json({ error: "deadline must be in the future" }, 400);
+
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const def = GOAL_METRICS[body.metric];
+  const goal: Goal = {
+    id: crypto.randomUUID(),
+    title: typeof body.title === "string" && body.title.trim() ? body.title.trim().slice(0, 80) : `${def.label} ${body.target}${def.unit ? " " + def.unit : ""}`,
+    metric: body.metric,
+    target: body.target,
+    deadline: body.deadline,
+    startDate: today,
+    startValue: currentValue(seriesData?.days ?? [], body.metric),
+  };
+  const { data: existing, sha } = await getJson<{ goals: Goal[] }>(env, GOALS_PATH);
+  const goals = [...(existing?.goals ?? []), goal].slice(-MAX_GOALS);
+  await putJson(env, GOALS_PATH, { goals }, `goals: add "${goal.title}"`, sha);
+  return json({ ok: true, goal });
+}
+
+async function handleDeleteGoal(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) return json({ error: "?id= is required" }, 400);
+  const { data: existing, sha } = await getJson<{ goals: Goal[] }>(env, GOALS_PATH);
+  const goals = (existing?.goals ?? []).filter((g) => g.id !== id);
+  await putJson(env, GOALS_PATH, { goals }, `goals: delete ${id}`, sha);
+  return json({ ok: true });
+}
+
+// ---------------- adaptive weekly plan ----------------
+
+/**
+ * Returns this week's plan as a view (statuses + today's adjustment),
+ * writing a new plan first when there is none for the current week or
+ * `regenerate` is set. The AI writes it when it can; buildTemplatePlan()
+ * covers a gateway failure or an answer that doesn't fit the contract.
+ */
+async function loadPlan(env: Env, regenerate = false): Promise<PlanView | null> {
+  const [{ data: seriesData }, { data: profile }, { data: knowledge }, { data: stored, sha }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<UserProfile>(env, PROFILE_PATH),
+    getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
+    getJson<StoredPlan>(env, PLAN_PATH),
+  ]);
+  const days = seriesData?.days ?? [];
+  if (days.length === 0) return null;
+  const today = localToday(env);
+  const weekStart = mondayOf(today);
+  const fitness = computeFitnessReport(days, profile, knowledge?.sleepTargetHours ?? 7.5);
+  const goals = await loadGoalProgress(env, days);
+
+  let plan = stored;
+  if (!plan || plan.weekStart !== weekStart || regenerate) {
+    const pattern = computeWeekdayPattern(days).filter((p) => p.avgSteps !== null);
+    const lowest = pattern.length ? [...pattern].sort((a, b) => (a.avgSteps as number) - (b.avgSteps as number))[0].weekday : null;
+    let next: StoredPlan | null = null;
+    if (env.LLM_GATEWAY_URL && env.LLM_GATEWAY_TOKEN) {
+      try {
+        const raw = await generatePlanJson(env, {
+          weekStarting: weekStart,
+          user: { goals: knowledge?.goals || undefined, preferences: knowledge?.preferences || undefined },
+          goalProgress: goals.map((g) => ({ goal: g.goal.title, current: g.current, target: g.goal.target, deadline: g.goal.deadline, status: g.status })),
+          fitnessMetrics: fitness.metrics.map((m) => ({ metric: m.label, value: m.display, status: m.status, whatToDo: m.action })),
+          actionItems: fitness.actionItems,
+          lastWeeks: fitness.weekly.slice(-4),
+          leastActiveWeekday: lowest,
+        });
+        next = parseAiPlan(raw, weekStart);
+      } catch {
+        next = null;
+      }
+    }
+    plan = next ?? buildTemplatePlan(weekStart, fitness, goals, lowest);
+    await putJson(env, PLAN_PATH, plan, `plan: week of ${weekStart} (${plan.source})`, sha);
+  }
+
+  const trends = computeTrends(days);
+  const recoveryFlag = fitness.actionItems.find((a) => a.priority === "high" && a.area === "recovery");
+  return viewPlan(plan, days, today, { readiness: trends.readinessScore, highRecoveryFlag: recoveryFlag ? recoveryFlag.why : null });
+}
+
+async function handleGetPlan(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const view = await loadPlan(env, req.method === "POST");
+  return view ? json(view) : json({ error: "no data yet" }, 400);
+}
+
+async function handleTogglePlanDone(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const date = new URL(req.url).searchParams.get("date");
+  if (!date) return json({ error: "?date= is required" }, 400);
+  const { data: plan, sha } = await getJson<StoredPlan>(env, PLAN_PATH);
+  if (!plan || !plan.days.some((d) => d.date === date)) return json({ error: "no plan for that date" }, 404);
+  plan.done = plan.done.includes(date) ? plan.done.filter((d) => d !== date) : [...plan.done, date].sort();
+  await putJson(env, PLAN_PATH, plan, `plan: ${plan.done.includes(date) ? "done" : "undo"} ${date}`, sha);
+  return json({ ok: true, view: await loadPlan(env) });
+}
+
+// ---------------- morning brief ----------------
+
+/**
+ * POST /telegram/brief — the health section of the 7am Telegram message.
+ * Called by brain-chat (or telegram-router, its fallback) over a service
+ * binding, exactly like life-rpg's endpoint of the same name: bearer token
+ * in, { text } (MarkdownV2) out, null text when there's nothing to say.
+ * Accepts BRIEF_TOKEN (the token those workers hold) or INGEST_TOKEN.
+ */
+async function handleTelegramBrief(req: Request, env: Env): Promise<Response> {
+  const auth = req.headers.get("Authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  const ok = !!token && (token === env.BRIEF_TOKEN || token === env.INGEST_TOKEN);
+  if (!ok) return unauthorized();
+
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const days = seriesData?.days ?? [];
+  if (days.length === 0) return json({ text: null });
+  const { data: profile } = await getJson<UserProfile>(env, PROFILE_PATH);
+
+  const [plan, goals, review] = await Promise.all([
+    loadPlan(env).catch(() => null),
+    loadGoalProgress(env, days),
+    // A review written in the last 3 hours is current enough for 7am; else
+    // write a fresh one (falls back to the last good one on failure).
+    getReview(env, "today", { freshSeconds: 3 * 60 * 60 }).catch(() => null),
+  ]);
+  const fitness = computeFitnessReport(days, profile, 7.5);
+  const text = healthBriefMessage({
+    today: localToday(env),
+    lastDataDate: days[days.length - 1].date,
+    readiness: computeTrends(days).readinessScore,
+    review: review && !("error" in review) ? review.insights : null,
+    session: plan?.today ?? null,
+    actionItems: fitness.actionItems,
+    goals,
+    dashboardUrl: env.PUBLIC_URL || "",
+  });
+  return json({ text });
 }
 
 /**
@@ -566,6 +753,12 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/analytics") return await handleGetAnalytics(req, env);
       if (req.method === "GET" && url.pathname === "/api/trends") return await handleGetTrends(req, env);
       if (req.method === "GET" && url.pathname === "/api/insights") return await handleGetInsights(req, env);
+      if (req.method === "POST" && url.pathname === "/telegram/brief") return await handleTelegramBrief(req, env);
+      if (req.method === "GET" && url.pathname === "/api/goals") return await handleGetGoals(req, env);
+      if (req.method === "POST" && url.pathname === "/api/goals") return await handlePostGoal(req, env);
+      if (req.method === "DELETE" && url.pathname === "/api/goals") return await handleDeleteGoal(req, env);
+      if ((req.method === "GET" || req.method === "POST") && url.pathname === "/api/plan") return await handleGetPlan(req, env);
+      if (req.method === "POST" && url.pathname === "/api/plan/done") return await handleTogglePlanDone(req, env);
       if (req.method === "GET" && url.pathname === "/api/overview") return await handleGetOverview(req, env);
       if (req.method === "GET" && url.pathname === "/api/fitness") return await handleGetFitness(req, env);
       if (req.method === "GET" && url.pathname === "/api/baselines") return await handleGetBaselines(req, env);

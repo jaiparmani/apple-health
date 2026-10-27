@@ -1,5 +1,6 @@
 import type { DailyMetrics, UserProfile } from "./types";
 import { chronologicalAge, computeStrain } from "./analytics";
+import { computeTrends } from "./trends";
 
 /**
  * Training & fitness metrics, all computed deterministically in code from the
@@ -643,7 +644,8 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
   // ---- Readiness-style "train today?" summary item (always first) ----
   const todayRec = days[days.length - 1];
   const highFlags = actionItems.filter((a) => a.priority === "high" && a.area === "recovery").length;
-  if (highFlags === 0 && form !== null && form >= -2 && (acwr === null || acwr <= 1.3)) {
+  const readiness = computeTrends(days).readinessScore;
+  if (highFlags === 0 && form !== null && form >= -2 && (acwr === null || acwr <= 1.3) && (readiness === null || readiness >= 45)) {
     actionItems.unshift({
       priority: "medium",
       area: "training",
