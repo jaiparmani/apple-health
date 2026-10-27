@@ -16,6 +16,16 @@ export function renderDashboard(): string {
   }
   * { box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
   html,body { margin:0; padding:0; }
+  /* Baseline for every native form control, so a new input/select/textarea
+     added anywhere never falls back to the browser's light-mode default
+     (which stands out badly against this dark theme) unless it opts out. */
+  input, select, textarea {
+    background:var(--bg2); color:var(--text); border:1px solid var(--border);
+    border-radius:10px; padding:9px 12px; font-size:13.5px; font-family:inherit;
+    color-scheme: dark;
+  }
+  input:focus, select:focus, textarea:focus { outline:none; border-color:var(--accent); }
+  input::placeholder, textarea::placeholder { color:var(--faint); }
   body {
     background:radial-gradient(ellipse 1200px 600px at 50% -10%, #141a24 0%, var(--bg) 55%);
     color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,sans-serif;
@@ -256,7 +266,7 @@ export function renderDashboard(): string {
     <div class="card">
       <h3>Experiments</h3>
       <div class="card-sub">Track a behavior change against one metric — before/after comparison only, never proof of causation.</div>
-      <form onsubmit="createExperiment(event)" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px;">
+      <form class="profile-form" onsubmit="createExperiment(event)" style="margin-bottom:12px;">
         <input id="expTitle" type="text" placeholder="e.g. Consistent 10:30pm bedtime" style="flex:1; min-width:160px;" />
         <select id="expMetric"></select>
         <input id="expStartDate" type="date" />
@@ -345,7 +355,7 @@ export function renderDashboard(): string {
         </div>
       </form>
       <div class="card-sub">Daily check-in</div>
-      <form onsubmit="addKnowledgeNote(event)" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;">
+      <form class="profile-form" onsubmit="addKnowledgeNote(event)" style="margin-bottom:10px;">
         <input id="noteDate" type="date" />
         <input id="noteEnergy" type="number" min="1" max="10" placeholder="Energy 1-10" style="width:110px;" />
         <input id="noteSoreness" type="number" min="1" max="10" placeholder="Soreness 1-10" style="width:120px;" />
