@@ -9,6 +9,7 @@ import { computeCorrelations } from "./correlations";
 import { detectAnomalies } from "./anomalies";
 import { computePeriodReport, type ReportPeriod } from "./report";
 import { toCsv } from "./export";
+import { computeExperimentResult, type Experiment } from "./experiments";
 import { generateInsights, answerHealthQuestion, type AiInsights } from "./ai";
 import { renderDashboard } from "./dashboard";
 
@@ -18,6 +19,7 @@ const HISTORY_PATH = "data/analytics/history.json";
 const LATEST_PATH = "data/analytics/latest.json";
 const KNOWLEDGE_PATH = "data/knowledge.json";
 const MAX_KNOWLEDGE_NOTES = 2000;
+const EXPERIMENTS_PATH = "data/experiments.json";
 const MAX_SERIES_DAYS = 4000; // ~11 years, enough headroom for a full Apple Health export backfill
 const MAX_HISTORY_ENTRIES = 4000;
 const ANALYTICS_WINDOW_DAYS = 7;
@@ -369,6 +371,79 @@ async function handleDeleteKnowledgeNote(req: Request, env: Env): Promise<Respon
   return json({ ok: true });
 }
 
+async function handleGetExperiments(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const [{ data: expData }, { data: seriesData }] = await Promise.all([
+    getJson<{ experiments: Experiment[] }>(env, EXPERIMENTS_PATH),
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+  ]);
+  const experiments = expData?.experiments ?? [];
+  const days = seriesData?.days ?? [];
+  return json({ results: experiments.map((e) => computeExperimentResult(days, e)) });
+}
+
+async function handlePostExperiment(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  let body: Partial<Experiment>;
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "invalid json body" }, 400);
+  }
+  if (typeof body.title !== "string" || !body.title.trim()) return json({ error: "body.title is required" }, 400);
+  if (typeof body.metric !== "string") return json({ error: "body.metric is required" }, 400);
+  if (typeof body.startDate !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(body.startDate)) {
+    return json({ error: "body.startDate (YYYY-MM-DD) is required" }, 400);
+  }
+
+  const experiment: Experiment = {
+    id: crypto.randomUUID(),
+    title: body.title.trim().slice(0, 200),
+    metric: body.metric,
+    startDate: body.startDate,
+    adherenceDates: [],
+    notes: typeof body.notes === "string" ? body.notes.slice(0, 1000) : undefined,
+  };
+
+  const { data: existing, sha } = await getJson<{ experiments: Experiment[] }>(env, EXPERIMENTS_PATH);
+  const experiments = [...(existing?.experiments ?? []), experiment];
+  await putJson(env, EXPERIMENTS_PATH, { experiments }, `experiments: add "${experiment.title}"`, sha);
+  return json({ ok: true, experiment });
+}
+
+async function handlePostExperimentAdherence(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const url = new URL(req.url);
+  const id = url.searchParams.get("id");
+  const date = url.searchParams.get("date");
+  if (!id || !date) return json({ error: "?id= and ?date= are required" }, 400);
+
+  const { data: existing, sha } = await getJson<{ experiments: Experiment[] }>(env, EXPERIMENTS_PATH);
+  const experiments = existing?.experiments ?? [];
+  const exp = experiments.find((e) => e.id === id);
+  if (!exp) return json({ error: "experiment not found" }, 404);
+
+  // Toggle: if already logged, remove; otherwise add.
+  const idx = exp.adherenceDates.indexOf(date);
+  if (idx >= 0) exp.adherenceDates.splice(idx, 1);
+  else exp.adherenceDates.push(date);
+  exp.adherenceDates.sort();
+
+  await putJson(env, EXPERIMENTS_PATH, { experiments }, `experiments: adherence for ${id} on ${date}`, sha);
+  return json({ ok: true, experiment: exp });
+}
+
+async function handleDeleteExperiment(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) return json({ error: "?id= is required" }, 400);
+
+  const { data: existing, sha } = await getJson<{ experiments: Experiment[] }>(env, EXPERIMENTS_PATH);
+  const experiments = (existing?.experiments ?? []).filter((e) => e.id !== id);
+  await putJson(env, EXPERIMENTS_PATH, { experiments }, `experiments: delete ${id}`, sha);
+  return json({ ok: true });
+}
+
 async function handlePutProfile(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   let body: Partial<UserProfile>;
@@ -410,6 +485,10 @@ export default {
       if (req.method === "PUT" && url.pathname === "/api/knowledge") return await handlePutKnowledge(req, env);
       if (req.method === "POST" && url.pathname === "/api/knowledge/notes") return await handlePostKnowledgeNote(req, env);
       if (req.method === "DELETE" && url.pathname === "/api/knowledge/notes") return await handleDeleteKnowledgeNote(req, env);
+      if (req.method === "GET" && url.pathname === "/api/experiments") return await handleGetExperiments(req, env);
+      if (req.method === "POST" && url.pathname === "/api/experiments") return await handlePostExperiment(req, env);
+      if (req.method === "POST" && url.pathname === "/api/experiments/adherence") return await handlePostExperimentAdherence(req, env);
+      if (req.method === "DELETE" && url.pathname === "/api/experiments") return await handleDeleteExperiment(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
       if (req.method === "GET" && url.pathname === "/") {
         return new Response(renderDashboard(), { headers: { "Content-Type": "text/html; charset=utf-8" } });

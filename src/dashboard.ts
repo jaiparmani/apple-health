@@ -241,6 +241,18 @@ export function renderDashboard(): string {
       <div class="card-sub">Correlation, not causation — a fixed set of physiologically plausible pairs, checked against your own history, with a minimum sample size before anything is reported.</div>
       <div id="discoveriesBody" class="sub">Loading…</div>
     </div>
+
+    <div class="card">
+      <h3>Experiments</h3>
+      <div class="card-sub">Track a behavior change against one metric — before/after comparison only, never proof of causation.</div>
+      <form onsubmit="createExperiment(event)" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:12px;">
+        <input id="expTitle" type="text" placeholder="e.g. Consistent 10:30pm bedtime" style="flex:1; min-width:160px;" />
+        <select id="expMetric"></select>
+        <input id="expStartDate" type="date" />
+        <button type="submit" class="btn btn-sm">Start</button>
+      </form>
+      <div id="experimentsList"></div>
+    </div>
   </section>
 
   <!-- HEART & RECOVERY -->
@@ -753,6 +765,7 @@ async function boot() {
   loadDiscoveries();
   loadReport('week');
   loadKnowledge();
+  loadExperiments();
 }
 
 async function loadReport(period) {
@@ -780,6 +793,67 @@ async function loadReport(period) {
   } catch (err) {
     el.textContent = 'Could not load (' + err.message + ').';
   }
+}
+
+var EXPERIMENT_METRICS = ['hrv', 'restingHeartRate', 'heartRateAvg', 'vo2max', 'steps', 'activeEnergy', 'exerciseMinutes', 'standMinutes', 'sleepHours', 'sleepEfficiency', 'weightKg', 'walkingSpeed', 'strain', 'workoutMinutes'];
+
+function populateExperimentMetricSelect() {
+  var sel = document.getElementById('expMetric');
+  if (!sel || sel.options.length > 0) return;
+  sel.innerHTML = EXPERIMENT_METRICS.map(function (m) { return '<option value="' + m + '">' + m + '</option>'; }).join('');
+}
+
+async function loadExperiments() {
+  populateExperimentMetricSelect();
+  var el = document.getElementById('experimentsList');
+  try {
+    var res = await authedFetch('/api/experiments');
+    renderExperiments(res.results || []);
+  } catch (err) {
+    el.textContent = 'Could not load (' + err.message + ').';
+  }
+}
+
+function renderExperiments(results) {
+  var el = document.getElementById('experimentsList');
+  if (results.length === 0) { el.innerHTML = '<div class="sub">No experiments yet — start one above.</div>'; return; }
+  el.innerHTML = results.map(function (r) {
+    var e = r.experiment;
+    var change = r.changePct !== null ? (r.changePct > 0 ? '+' : '') + r.changePct + '%' : 'no data yet';
+    var arrow = r.direction === 'up' ? '↑' : r.direction === 'down' ? '↓' : r.direction === 'flat' ? '→' : '';
+    return '<div class="card" style="background:var(--card2); margin-bottom:10px;">' +
+      '<div style="display:flex; justify-content:space-between; align-items:baseline;">' +
+      '<strong>' + e.title + '</strong>' +
+      '<button class="btn btn-ghost btn-sm" onclick="deleteExperiment(\\'' + e.id + '\\')">Delete</button>' +
+      '</div>' +
+      '<div class="sub">' + e.metric + ' since ' + e.startDate + ' — baseline ' + (r.baselineAvg !== null ? r.baselineAvg : '—') + ' → during ' + (r.duringAvg !== null ? r.duringAvg : '—') + ' ' + arrow + ' ' + change + '</div>' +
+      '<div class="sub">Adherence: ' + r.adherencePct + '%</div>' +
+      '<div class="sub" style="font-size:11px;">' + r.confounderNote + '</div>' +
+      '<button class="btn btn-ghost btn-sm" onclick="toggleAdherenceToday(\\'' + e.id + '\\')" style="margin-top:6px;">Mark today done</button>' +
+      '</div>';
+  }).join('');
+}
+
+async function createExperiment(evt) {
+  evt.preventDefault();
+  var title = document.getElementById('expTitle').value.trim();
+  var metric = document.getElementById('expMetric').value;
+  var startDate = document.getElementById('expStartDate').value || new Date().toISOString().slice(0, 10);
+  if (!title) return;
+  await authedFetch('/api/experiments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title: title, metric: metric, startDate: startDate }) });
+  document.getElementById('expTitle').value = '';
+  loadExperiments();
+}
+
+async function toggleAdherenceToday(id) {
+  var today = new Date().toISOString().slice(0, 10);
+  await authedFetch('/api/experiments/adherence?id=' + encodeURIComponent(id) + '&date=' + today, { method: 'POST' });
+  loadExperiments();
+}
+
+async function deleteExperiment(id) {
+  await authedFetch('/api/experiments?id=' + encodeURIComponent(id), { method: 'DELETE' });
+  loadExperiments();
 }
 
 async function loadDiscoveries() {
