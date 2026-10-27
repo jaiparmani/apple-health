@@ -90,6 +90,7 @@ export function renderDashboard(): string {
   .card { background:var(--card); border:1px solid var(--border); border-radius:18px; padding:18px; margin-bottom:14px; }
   .card h3 { margin:0 0 4px; font-size:14.5px; font-weight:650; display:flex; align-items:center; gap:8px; }
   .card .card-sub { color:var(--muted); font-size:12.5px; margin-bottom:12px; }
+  .chart-empty { height:240px; display:flex; align-items:center; justify-content:center; color:var(--faint); font-size:13px; text-align:center; padding:0 20px; }
   .simple-table { width:100%; font-size:13px; border-collapse:collapse; }
   .simple-table td { padding:6px 10px 6px 0; border-bottom:1px solid #1a1e26; color:var(--text); }
   .simple-table td:first-child { color:var(--muted); white-space:nowrap; }
@@ -227,7 +228,7 @@ export function renderDashboard(): string {
 
     <div class="card ai-card">
       <h3>✦ Ask my health data</h3>
-      <div class="card-sub">Picks a metric, date range, and aggregation from a fixed menu and computes the answer in code — the model never does the arithmetic itself.</div>
+      <div class="card-sub">Computed in code, not guessed by the model.</div>
       <form class="profile-form" onsubmit="askHealthQuestion(event)" style="margin-bottom:10px;">
         <input id="askInput" type="text" placeholder="e.g. How has my HRV changed over 90 days?" style="flex:1;" />
         <button type="submit" class="btn btn-sm" id="askBtn">Ask</button>
@@ -237,7 +238,7 @@ export function renderDashboard(): string {
 
     <div class="card ai-card">
       <h3>✦ Chart this for me</h3>
-      <div class="card-sub">Picks a chart type, 1-3 metrics, and a date range from the same fixed menu — the app queries and renders the real data, the model never supplies a data point.</div>
+      <div class="card-sub">Real data, rendered by the app — the model only picks what to show.</div>
       <form class="profile-form" onsubmit="askForChart(event)" style="margin-bottom:10px;">
         <input id="chartInput" type="text" placeholder="e.g. Chart my steps and sleep over the last 60 days" style="flex:1;" />
         <button type="submit" class="btn btn-sm" id="chartAskBtn">Chart</button>
@@ -259,13 +260,13 @@ export function renderDashboard(): string {
 
     <div class="card">
       <h3>Discoveries</h3>
-      <div class="card-sub">Correlation, not causation — a fixed set of physiologically plausible pairs, checked against your own history, with a minimum sample size before anything is reported.</div>
+      <div class="card-sub">Correlation, not causation.</div>
       <div id="discoveriesBody" class="sub">Loading…</div>
     </div>
 
     <div class="card">
       <h3>Experiments</h3>
-      <div class="card-sub">Track a behavior change against one metric — before/after comparison only, never proof of causation.</div>
+      <div class="card-sub">Before/after, not proof.</div>
       <form class="profile-form" onsubmit="createExperiment(event)" style="margin-bottom:12px;">
         <input id="expTitle" type="text" placeholder="e.g. Consistent 10:30pm bedtime" style="flex:1; min-width:160px;" />
         <select id="expMetric"></select>
@@ -283,7 +284,7 @@ export function renderDashboard(): string {
     <div class="card"><h3>VO2max trend</h3><canvas id="vo2Chart"></canvas></div>
     <div class="card">
       <h3>Readiness, explained</h3>
-      <div class="card-sub">The score in the chip at the top blends today's HRV and resting HR against your own trailing 30-day average, plus last night's sleep vs. a 7.5h target — all relative to <em>your</em> baseline, never compared across people.</div>
+      <div class="card-sub">HRV, resting HR, and sleep vs. <em>your</em> own 30-day baseline — never compared across people.</div>
     </div>
   </section>
 
@@ -317,7 +318,7 @@ export function renderDashboard(): string {
     <div class="card"><h3>Biological vs chronological age</h3><canvas id="ageChart"></canvas></div>
     <div class="card">
       <h3>What's driving it</h3>
-      <div class="card-sub">Each marker's "marker age" is the age at which that value is typical. Closer to the left (younger) is better.</div>
+      <div class="card-sub">Closer to the left (younger) is better.</div>
       <div class="markers-list" id="markersList"></div>
     </div>
   </section>
@@ -326,7 +327,7 @@ export function renderDashboard(): string {
   <section class="section" id="tab-more">
     <div class="card">
       <h3>Everything else your export contained</h3>
-      <div class="card-sub">Every HealthKit type that isn't one of the named metrics elsewhere in this dashboard — captured and stored, even without a dedicated chart yet.</div>
+      <div class="card-sub">Captured, but without a dedicated chart yet.</div>
       <div id="extraList"></div>
     </div>
   </section>
@@ -345,7 +346,7 @@ export function renderDashboard(): string {
     </div>
     <div class="card">
       <h3>Goals &amp; notes</h3>
-      <div class="card-sub">What YOU say about yourself — goals, preferences, how you felt. Kept separate from sensor data and never fed into any score; only shown as context.</div>
+      <div class="card-sub">Separate from sensor data. Never fed into any score.</div>
       <form onsubmit="saveKnowledge(event)" style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
         <textarea id="knowledgeGoals" placeholder="Goals (e.g. run a 10k by June, improve sleep consistency)" rows="2" style="background:var(--card2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:8px; font-family:inherit;"></textarea>
         <textarea id="knowledgePreferences" placeholder="Preferences (e.g. prefer morning workouts, strength 3x/week)" rows="2" style="background:var(--card2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:8px; font-family:inherit;"></textarea>
@@ -376,13 +377,13 @@ export function renderDashboard(): string {
     </div>
     <div class="card">
       <h3>Data coverage</h3>
-      <div class="card-sub">How complete your stored history is, per metric — missing days are shown honestly rather than filled in.</div>
+      <div class="card-sub">Missing days are shown honestly, never filled in.</div>
       <div id="coverageSummary" class="sub">Loading…</div>
       <div id="coverageList"></div>
     </div>
     <div class="card">
       <h3>Personal baselines (30-day)</h3>
-      <div class="card-sub">What's normal for <em>you</em>, not a population average — mean, trend, and how far today sits from your own recent baseline (in standard deviations). Needs enough recent samples to be trustworthy; metrics without enough history are skipped.</div>
+      <div class="card-sub">What's normal for <em>you</em>, not a population average.</div>
       <div id="baselineList"></div>
     </div>
     <div class="card">
@@ -504,10 +505,38 @@ async function deleteKnowledgeNote(date) {
 }
 
 var charts = {};
+function chartHasData(config) {
+  var datasets = (config.data && config.data.datasets) || [];
+  for (var i = 0; i < datasets.length; i++) {
+    var arr = datasets[i].data || [];
+    for (var j = 0; j < arr.length; j++) {
+      var v = arr[j];
+      if (v !== null && v !== undefined && !Number.isNaN(v)) return true;
+    }
+  }
+  return false;
+}
+
 function upsertChart(id, config) {
   var el = document.getElementById(id);
   if (!el) return;
-  if (charts[id]) charts[id].destroy();
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+
+  var emptyEl = document.getElementById(id + 'Empty');
+  if (!chartHasData(config)) {
+    el.style.display = 'none';
+    if (!emptyEl) {
+      emptyEl = document.createElement('div');
+      emptyEl.id = id + 'Empty';
+      emptyEl.className = 'chart-empty';
+      emptyEl.textContent = 'No data for this yet — import your Apple Health export to populate it.';
+      el.parentElement.insertBefore(emptyEl, el);
+    }
+    return;
+  }
+  if (emptyEl) emptyEl.remove();
+  el.style.display = '';
+
   config.options = Object.assign({ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
     plugins:{ legend:{ labels:{ color:'#8b92a0', boxWidth:10, font:{size:11} } } },
     scales:{ x:{ ticks:{ color:'#565d6b', maxTicksLimit:8, font:{size:10} }, grid:{ color:'#1a1e26' } },
