@@ -306,6 +306,27 @@ export function renderDashboard(): string {
       </form>
     </div>
     <div class="card">
+      <h3>Goals &amp; notes</h3>
+      <div class="card-sub">What YOU say about yourself — goals, preferences, how you felt. Kept separate from sensor data and never fed into any score; only shown as context.</div>
+      <form onsubmit="saveKnowledge(event)" style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
+        <textarea id="knowledgeGoals" placeholder="Goals (e.g. run a 10k by June, improve sleep consistency)" rows="2" style="background:var(--card2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:8px; font-family:inherit;"></textarea>
+        <textarea id="knowledgePreferences" placeholder="Preferences (e.g. prefer morning workouts, strength 3x/week)" rows="2" style="background:var(--card2); border:1px solid var(--border); border-radius:8px; color:var(--text); padding:8px; font-family:inherit;"></textarea>
+        <div style="display:flex; gap:8px; align-items:center;">
+          <input id="knowledgeSleepTarget" type="number" step="0.5" placeholder="Sleep target (hr)" style="width:160px;" />
+          <button type="submit" class="btn btn-sm">Save</button>
+        </div>
+      </form>
+      <div class="card-sub">Daily check-in</div>
+      <form onsubmit="addKnowledgeNote(event)" style="display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-bottom:10px;">
+        <input id="noteDate" type="date" />
+        <input id="noteEnergy" type="number" min="1" max="10" placeholder="Energy 1-10" style="width:110px;" />
+        <input id="noteSoreness" type="number" min="1" max="10" placeholder="Soreness 1-10" style="width:120px;" />
+        <input id="noteText" type="text" placeholder="Note" style="flex:1; min-width:120px;" />
+        <button type="submit" class="btn btn-sm">Log</button>
+      </form>
+      <div id="knowledgeNotesList"></div>
+    </div>
+    <div class="card">
       <h3>Import Apple Health export</h3>
       <p class="card-sub">iPhone: Health app → profile picture → Export All Health Data → share the .zip here. Parsing happens entirely in this browser; only the small daily summaries are sent to your Worker.</p>
       <div class="import-row">
@@ -393,6 +414,55 @@ async function saveProfile(e) {
   var heightCm = Number(document.getElementById('heightCm').value) || undefined;
   await authedFetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ birthDate: birthDate, sex: sex, heightCm: heightCm }) });
   boot();
+}
+
+async function loadKnowledge() {
+  try {
+    var k = await authedFetch('/api/knowledge');
+    document.getElementById('knowledgeGoals').value = k.goals || '';
+    document.getElementById('knowledgePreferences').value = k.preferences || '';
+    document.getElementById('knowledgeSleepTarget').value = k.sleepTargetHours || '';
+    renderKnowledgeNotes(k.notes || []);
+  } catch (err) {
+    document.getElementById('knowledgeNotesList').textContent = 'Could not load (' + err.message + ').';
+  }
+}
+
+function renderKnowledgeNotes(notes) {
+  var el = document.getElementById('knowledgeNotesList');
+  var recent = notes.slice(-10).reverse();
+  if (recent.length === 0) { el.innerHTML = '<div class="sub">No check-ins logged yet.</div>'; return; }
+  el.innerHTML = '<table class="simple-table"><tbody>' + recent.map(function (n) {
+    var parts = [n.date];
+    if (n.energy) parts.push('energy ' + n.energy + '/10');
+    if (n.soreness) parts.push('soreness ' + n.soreness + '/10');
+    if (n.note) parts.push(n.note);
+    return '<tr><td>' + parts.join('</td><td>') + '</td><td><button class="btn btn-ghost btn-sm" onclick="deleteKnowledgeNote(\\'' + n.date + '\\')">Delete</button></td></tr>';
+  }).join('') + '</tbody></table>';
+}
+
+async function saveKnowledge(evt) {
+  evt.preventDefault();
+  var goals = document.getElementById('knowledgeGoals').value;
+  var preferences = document.getElementById('knowledgePreferences').value;
+  var sleepTargetHours = Number(document.getElementById('knowledgeSleepTarget').value) || undefined;
+  await authedFetch('/api/knowledge', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ goals: goals, preferences: preferences, sleepTargetHours: sleepTargetHours }) });
+}
+
+async function addKnowledgeNote(evt) {
+  evt.preventDefault();
+  var date = document.getElementById('noteDate').value || new Date().toISOString().slice(0, 10);
+  var energy = Number(document.getElementById('noteEnergy').value) || undefined;
+  var soreness = Number(document.getElementById('noteSoreness').value) || undefined;
+  var note = document.getElementById('noteText').value || undefined;
+  var res = await authedFetch('/api/knowledge/notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date: date, energy: energy, soreness: soreness, note: note }) });
+  document.getElementById('noteText').value = '';
+  loadKnowledge();
+}
+
+async function deleteKnowledgeNote(date) {
+  await authedFetch('/api/knowledge/notes?date=' + encodeURIComponent(date), { method: 'DELETE' });
+  loadKnowledge();
 }
 
 var charts = {};
@@ -682,6 +752,7 @@ async function boot() {
   loadDataQuality();
   loadDiscoveries();
   loadReport('week');
+  loadKnowledge();
 }
 
 async function loadReport(period) {

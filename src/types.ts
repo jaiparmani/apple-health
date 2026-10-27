@@ -76,6 +76,25 @@ export interface UserProfile {
   heightCm?: number;
 }
 
+// User-entered context, kept explicitly separate from sensor data: this is
+// what the PERSON says about themself (goals, how they felt), never
+// something a device measured, and never fed into the biological-age or
+// baseline math — only surfaced as context (e.g. to the AI, or to the
+// person themselves).
+export interface KnowledgeNote {
+  date: string; // YYYY-MM-DD
+  energy?: number; // 1-10, self-reported
+  soreness?: number; // 1-10, self-reported
+  note?: string;
+}
+
+export interface UserKnowledge {
+  goals?: string;
+  preferences?: string;
+  sleepTargetHours?: number;
+  notes: KnowledgeNote[];
+}
+
 export interface MarkerAgeResult {
   marker: string;
   value: number;

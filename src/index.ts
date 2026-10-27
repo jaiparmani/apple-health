@@ -1,4 +1,4 @@
-import type { BiologicalAgeResult, DailyMetrics, Env, UserProfile } from "./types";
+import type { BiologicalAgeResult, DailyMetrics, Env, KnowledgeNote, UserKnowledge, UserProfile } from "./types";
 import { bulkCommit, getJson, putJson, type BulkFile } from "./github";
 import { mergeDaily, normalizePayload } from "./normalize";
 import { chronologicalAge, computeStrain, estimateBiologicalAge } from "./analytics";
@@ -16,6 +16,8 @@ const SERIES_PATH = "data/series.json";
 const PROFILE_PATH = "data/profile.json";
 const HISTORY_PATH = "data/analytics/history.json";
 const LATEST_PATH = "data/analytics/latest.json";
+const KNOWLEDGE_PATH = "data/knowledge.json";
+const MAX_KNOWLEDGE_NOTES = 2000;
 const MAX_SERIES_DAYS = 4000; // ~11 years, enough headroom for a full Apple Health export backfill
 const MAX_HISTORY_ENTRIES = 4000;
 const ANALYTICS_WINDOW_DAYS = 7;
@@ -299,6 +301,74 @@ async function handleGetCoverage(req: Request, env: Env): Promise<Response> {
   return json(computeCoverage(days));
 }
 
+async function handleGetKnowledge(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const { data } = await getJson<UserKnowledge>(env, KNOWLEDGE_PATH);
+  return json(data ?? { notes: [] });
+}
+
+async function handlePutKnowledge(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  let body: Partial<Pick<UserKnowledge, "goals" | "preferences" | "sleepTargetHours">>;
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "invalid json body" }, 400);
+  }
+  const { data: existing, sha } = await getJson<UserKnowledge>(env, KNOWLEDGE_PATH);
+  const updated: UserKnowledge = {
+    notes: existing?.notes ?? [],
+    goals: typeof body.goals === "string" ? body.goals : existing?.goals,
+    preferences: typeof body.preferences === "string" ? body.preferences : existing?.preferences,
+    sleepTargetHours: typeof body.sleepTargetHours === "number" ? body.sleepTargetHours : existing?.sleepTargetHours,
+  };
+  await putJson(env, KNOWLEDGE_PATH, updated, "knowledge: update goals/preferences", sha);
+  return json({ ok: true, knowledge: updated });
+}
+
+async function handlePostKnowledgeNote(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  let body: Partial<KnowledgeNote>;
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "invalid json body" }, 400);
+  }
+  if (typeof body.date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(body.date)) {
+    return json({ error: "body.date (YYYY-MM-DD) is required" }, 400);
+  }
+  const note: KnowledgeNote = {
+    date: body.date,
+    energy: typeof body.energy === "number" ? Math.max(1, Math.min(10, body.energy)) : undefined,
+    soreness: typeof body.soreness === "number" ? Math.max(1, Math.min(10, body.soreness)) : undefined,
+    note: typeof body.note === "string" ? body.note.slice(0, 2000) : undefined,
+  };
+
+  const { data: existing, sha } = await getJson<UserKnowledge>(env, KNOWLEDGE_PATH);
+  const notes = existing?.notes ?? [];
+  const idx = notes.findIndex((n) => n.date === note.date);
+  if (idx >= 0) notes[idx] = note;
+  else notes.push(note);
+  notes.sort((a, b) => a.date.localeCompare(b.date));
+  const trimmed = notes.slice(-MAX_KNOWLEDGE_NOTES);
+
+  const updated: UserKnowledge = { ...existing, notes: trimmed };
+  await putJson(env, KNOWLEDGE_PATH, updated, `knowledge: note for ${note.date}`, sha);
+  return json({ ok: true, note });
+}
+
+async function handleDeleteKnowledgeNote(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const date = new URL(req.url).searchParams.get("date");
+  if (!date) return json({ error: "?date=YYYY-MM-DD is required" }, 400);
+
+  const { data: existing, sha } = await getJson<UserKnowledge>(env, KNOWLEDGE_PATH);
+  const notes = (existing?.notes ?? []).filter((n) => n.date !== date);
+  const updated: UserKnowledge = { ...existing, notes };
+  await putJson(env, KNOWLEDGE_PATH, updated, `knowledge: delete note for ${date}`, sha);
+  return json({ ok: true });
+}
+
 async function handlePutProfile(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   let body: Partial<UserProfile>;
@@ -336,6 +406,10 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/discoveries") return await handleGetDiscoveries(req, env);
       if (req.method === "GET" && url.pathname === "/api/report") return await handleGetReport(req, env);
       if (req.method === "GET" && url.pathname === "/api/export") return await handleExport(req, env);
+      if (req.method === "GET" && url.pathname === "/api/knowledge") return await handleGetKnowledge(req, env);
+      if (req.method === "PUT" && url.pathname === "/api/knowledge") return await handlePutKnowledge(req, env);
+      if (req.method === "POST" && url.pathname === "/api/knowledge/notes") return await handlePostKnowledgeNote(req, env);
+      if (req.method === "DELETE" && url.pathname === "/api/knowledge/notes") return await handleDeleteKnowledgeNote(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
       if (req.method === "GET" && url.pathname === "/") {
         return new Response(renderDashboard(), { headers: { "Content-Type": "text/html; charset=utf-8" } });
