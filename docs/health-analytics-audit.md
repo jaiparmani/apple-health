@@ -123,9 +123,17 @@ direction. Order of attack:
    RHR curve divide-by-zero, the `\d`-escaping parser bug's class of
    issue via the biological-age clamp test).
 
+8. ✅ **Data export** — `src/export.ts`: CSV with dynamically discovered
+   columns (same approach as coverage.ts), `extra` bag flattened into its
+   own `extra.<key>` columns rather than dropped. `GET /api/export`,
+   "Download CSV" button on Import & Settings. Verified: all 2,111 real
+   days export correctly.
+9. ✅ **Navigation IA cleanup** — Overview had accumulated AI Insights,
+   Ask-my-data, the Report, and Discoveries on top of hero/stats/bests.
+   Split into dedicated "AI Analyst" and "Discoveries" tabs (pure markup
+   move, no logic change). Now 9 tabs total.
+
 Still ahead: personal experiments tracking (adherence + before/after
 comparison for user-defined behavior changes), AI-generated chart specs
-from natural language, a personal health knowledge-base (goals/preferences
-separate from sensor data), data exports, and a fuller navigation IA
-(Reports/Discoveries as real tabs rather than cards stacked on Overview —
-the Overview tab is getting crowded and should probably split soon).
+from natural language, and a personal health knowledge-base
+(goals/preferences kept separate from sensor data).
