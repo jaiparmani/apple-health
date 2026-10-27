@@ -23,7 +23,7 @@
       "type": "intervals",
       "title": "Intervals",
       "minutes": 30,
-      "detail": "Warm up 8 min, then 4ÃÂ4 min hard, 3 min easy."
+      "detail": "Warm up 8 min, then 4ÃÂÃÂ4 min hard, 3 min easy."
     },
     {
       "date": "2026-10-29",
@@ -54,5 +54,7 @@
       "detail": "Walk, ride or jog at an easy pace."
     }
   ],
-  "done": []
+  "done": [
+    "2026-10-27"
+  ]
 }
