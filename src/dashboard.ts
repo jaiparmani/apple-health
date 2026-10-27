@@ -221,6 +221,14 @@ export function renderDashboard(): string {
     </div>
 
     <div class="card">
+      <h3>Report
+        <button class="btn btn-ghost btn-sm" onclick="loadReport('week')" style="margin-left:8px;">Week</button>
+        <button class="btn btn-ghost btn-sm" onclick="loadReport('month')">Month</button>
+      </h3>
+      <div id="reportBody" class="sub">Loading…</div>
+    </div>
+
+    <div class="card">
       <h3>Discoveries</h3>
       <div class="card-sub">Correlation, not causation — a fixed set of physiologically plausible pairs, checked against your own history, with a minimum sample size before anything is reported.</div>
       <div id="discoveriesBody" class="sub">Loading…</div>
@@ -659,6 +667,34 @@ async function boot() {
   loadInsights(false);
   loadDataQuality();
   loadDiscoveries();
+  loadReport('week');
+}
+
+async function loadReport(period) {
+  var el = document.getElementById('reportBody');
+  el.textContent = 'Loading…';
+  try {
+    var res = await authedFetch('/api/report?period=' + period);
+    var changed = res.metricChanges.filter(function (m) { return m.direction === 'up' || m.direction === 'down'; });
+    var html = '<div class="card-sub">' + res.currentStart + ' to ' + res.currentEnd + ', vs. ' + res.previousStart + ' to ' + res.previousEnd + '</div>';
+    if (changed.length === 0) {
+      html += '<div class="sub">No meaningful change vs. the prior period.</div>';
+    } else {
+      html += '<ul class="ai-list">' + changed.map(function (m) {
+        var arrow = m.direction === 'up' ? '↑' : '↓';
+        var pct = m.changePct !== null ? (m.changePct > 0 ? '+' : '') + m.changePct + '%' : '';
+        return '<li>' + m.metric + ': ' + m.previousAvg + ' → ' + m.currentAvg + ' ' + arrow + ' ' + pct + '</li>';
+      }).join('') + '</ul>';
+    }
+    if (res.anomalies && res.anomalies.length > 0) {
+      html += '<div class="ai-section-title">Anomalies this period</div><ul class="ai-list concerns">' + res.anomalies.slice(0, 5).map(function (a) {
+        return '<li>' + a.date + ': ' + a.metric + ' ' + a.direction + ' baseline (' + Math.abs(a.zScore).toFixed(1) + 'σ)</li>';
+      }).join('') + '</ul>';
+    }
+    el.innerHTML = html;
+  } catch (err) {
+    el.textContent = 'Could not load (' + err.message + ').';
+  }
 }
 
 async function loadDiscoveries() {

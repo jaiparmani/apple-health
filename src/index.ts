@@ -7,6 +7,7 @@ import { computeBaselines } from "./baselines";
 import { computeCoverage } from "./coverage";
 import { computeCorrelations } from "./correlations";
 import { detectAnomalies } from "./anomalies";
+import { computePeriodReport, type ReportPeriod } from "./report";
 import { generateInsights, answerHealthQuestion, type AiInsights } from "./ai";
 import { renderDashboard } from "./dashboard";
 
@@ -227,6 +228,20 @@ async function handleGetDiscoveries(req: Request, env: Env): Promise<Response> {
   });
 }
 
+async function handleGetReport(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const url = new URL(req.url);
+  const periodParam = url.searchParams.get("period");
+  const period: ReportPeriod = periodParam === "month" ? "month" : "week";
+  const endDate = url.searchParams.get("end") || undefined;
+
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const days = seriesData?.days ?? [];
+  const report = computePeriodReport(days, period, endDate);
+  if (!report) return json({ error: "no data yet" }, 400);
+  return json(report);
+}
+
 async function handleAsk(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   if (!env.LLM_GATEWAY_URL || !env.LLM_GATEWAY_TOKEN) return json({ error: "AI is not configured" }, 503);
@@ -305,6 +320,7 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/coverage") return await handleGetCoverage(req, env);
       if (req.method === "POST" && url.pathname === "/api/ask") return await handleAsk(req, env);
       if (req.method === "GET" && url.pathname === "/api/discoveries") return await handleGetDiscoveries(req, env);
+      if (req.method === "GET" && url.pathname === "/api/report") return await handleGetReport(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
       if (req.method === "GET" && url.pathname === "/") {
         return new Response(renderDashboard(), { headers: { "Content-Type": "text/html; charset=utf-8" } });
