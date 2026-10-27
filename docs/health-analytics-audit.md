@@ -150,15 +150,20 @@ direction. Order of attack:
     earlier `\d`/`\n` bugs) — fixed before deploy, by actually rendering
     and `node --check`ing the compiled script rather than eyeballing it.
 
+12. ✅ **AI-generated chart specs from natural language** —
+    `src/chartspec.ts` (`sanitizeChartSpec`/`buildChartData`, validated
+    against the same metric whitelist as "ask my health data") +
+    `generateChartFromQuestion()` in `src/ai.ts`. `POST /api/chart`,
+    "Chart this for me" box on the AI Analyst tab, rendered through the
+    existing Chart.js infrastructure. This was the last AI capability
+    named in the original brief. Verified live against the real dataset
+    for both a 60-day two-metric request and a full-history single-metric
+    request.
+
 Every item from the original mission brief's analytics/AI/reporting scope
 now has a real, working foundation (full list above). What's genuinely
 still open:
 
-- **AI-generated chart specs from natural language** — the one AI
-  capability from the original brief not yet built. Would extend the
-  "ask my health data" pattern: model picks a chart type + metric(s) +
-  date range from a whitelist, the app renders it with the existing
-  Chart.js infrastructure, never executes generated code.
 - **Workout `<Route>`/GPS data, ECG, and `<ActivitySummary>` Activity
   Ring data** — `<Workout>` sessions are parsed, but not these related
   export elements.
