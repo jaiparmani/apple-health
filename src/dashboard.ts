@@ -370,7 +370,7 @@ export function renderDashboard(): string {
       <p class="card-sub">iPhone: Health app → profile picture → Export All Health Data → share the .zip here. Parsing happens entirely in this browser; only the small daily summaries are sent to your Worker.</p>
       <div class="import-row">
         <input id="importFile" type="file" accept=".zip" />
-        <button class="btn btn-sm" onclick="importExportZip()">Import</button>
+        <button class="btn btn-sm" id="importBtn" onclick="importExportZip()">Import</button>
       </div>
       <progress id="importProgress" value="0" max="100" style="display:none;"></progress>
       <p id="importStatus" class="sub"></p>
@@ -403,7 +403,7 @@ function saveToken() {
   var t = document.getElementById('tokenInput').value.trim();
   if (!t) return;
   try { localStorage.setItem('healthToken', t); } catch (e) {}
-  boot();
+  boot().catch(function () {});
 }
 
 async function authedFetch(path, opts) {
@@ -452,7 +452,7 @@ async function saveProfile(e) {
   var sex = document.getElementById('sex').value;
   var heightCm = Number(document.getElementById('heightCm').value) || undefined;
   await authedFetch('/api/profile', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ birthDate: birthDate, sex: sex, heightCm: heightCm }) });
-  boot();
+  boot().catch(function () {});
 }
 
 async function loadKnowledge() {
@@ -836,7 +836,7 @@ async function boot() {
     series = results[0]; analytics = results[1]; trends = results[2];
   } catch (err) {
     document.getElementById('gateError').textContent = 'Invalid token or server error.';
-    return;
+    throw err;
   }
   document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'block';
@@ -1345,7 +1345,11 @@ async function importExportZip() {
   var fileInput = document.getElementById('importFile');
   var zipFile = fileInput.files && fileInput.files[0];
   var progressEl = document.getElementById('importProgress');
+  var btn = document.getElementById('importBtn');
   if (!zipFile) { setImportStatus('Choose a file first.'); return; }
+
+  btn.disabled = true;
+  btn.textContent = 'Importing…';
 
   var days = new Map();
   var leftover = '';
@@ -1398,16 +1402,23 @@ async function importExportZip() {
     progressEl.value = 98;
     var result = await authedFetch('/import-bulk', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ days: dayRecords }) });
     progressEl.value = 100;
-    setImportStatus('Done — imported ' + result.daysImported + ' days (' + result.totalDays + ' total in series).');
-    boot();
+    setImportStatus('✓ Done — imported ' + result.daysImported + ' days (' + result.totalDays + ' total in series). Refreshing dashboard…');
+    try {
+      await boot();
+      setImportStatus('✓ Done — imported ' + result.daysImported + ' days (' + result.totalDays + ' total in series). Dashboard refreshed.');
+    } catch (bootErr) {
+      setImportStatus('✓ Import succeeded (' + result.daysImported + ' days), but refreshing the dashboard failed (' + bootErr.message + '). Reload the page.');
+    }
   } catch (err) {
-    setImportStatus('Import failed: ' + err.message);
+    setImportStatus('✗ Import failed: ' + err.message);
   } finally {
+    btn.disabled = false;
+    btn.textContent = 'Import';
     setTimeout(function () { progressEl.style.display = 'none'; }, 1500);
   }
 }
 
-if (getToken()) { boot(); }
+if (getToken()) { boot().catch(function () {}); }
 </script>
 </body>
 </html>`;
