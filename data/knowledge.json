@@ -1,5 +1,12 @@
 {
-  "notes": [],
+  "notes": [
+    {
+      "date": "2026-10-27",
+      "energy": 6,
+      "soreness": 3,
+      "note": "Felt tired after yesterday's run"
+    }
+  ],
   "goals": "Run a 10k by June",
   "preferences": "Morning workouts",
   "sleepTargetHours": 7.5
