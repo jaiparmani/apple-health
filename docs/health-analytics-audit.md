@@ -133,7 +133,16 @@ direction. Order of attack:
    Split into dedicated "AI Analyst" and "Discoveries" tabs (pure markup
    move, no logic change). Now 9 tabs total.
 
+10. ✅ **Personal health knowledge base** — `KnowledgeNote`/`UserKnowledge`
+    in `src/types.ts`, stored at `data/knowledge.json`. Goals, preferences,
+    sleep target, and dated self-reported check-ins (energy/soreness 1-10,
+    free text), explicitly never fed into any score. `GET`/`PUT
+    /api/knowledge`, `POST`/`DELETE /api/knowledge/notes`, "Goals & notes"
+    card on Import & Settings. Verified live end to end.
+
 Still ahead: personal experiments tracking (adherence + before/after
-comparison for user-defined behavior changes), AI-generated chart specs
-from natural language, and a personal health knowledge-base
-(goals/preferences kept separate from sensor data).
+comparison for user-defined behavior changes, building on the knowledge
+base's notes) and AI-generated chart specs from natural language (an
+extension of the "ask my health data" pattern — validate a chart spec
+against the same metric whitelist, render with the existing Chart.js
+infrastructure, never execute generated code).
