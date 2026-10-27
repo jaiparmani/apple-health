@@ -352,6 +352,50 @@ export function renderDashboard(): string {
   .link-btn { background:none; border:none; color:var(--faint); cursor:pointer; font-size:12.5px; padding:0; }
   .link-btn:hover { color:var(--down); }
 
+  /* ---- 5-tab navigation: top on desktop, bottom bar on phones ---- */
+  .tabs.primary .tab { display:inline-flex; align-items:center; gap:6px; }
+  .tabs.primary .tab svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .subnav { display:flex; gap:18px; overflow-x:auto; margin-top:10px; scrollbar-width:none; max-width:900px; margin-left:auto; margin-right:auto; }
+  .subnav::-webkit-scrollbar { display:none; }
+  .subnav:empty { display:none; }
+  .subtab { background:none; border:none; color:var(--dim); font-size:13.5px; font-weight:600; padding:4px 0 6px; cursor:pointer; white-space:nowrap; border-bottom:2px solid transparent; }
+  .subtab.active { color:var(--ink); border-bottom-color:var(--pulse); }
+
+  /* ---- Today: verdict + dials ---- */
+  .verdict { border-radius:14px; padding:20px 22px; margin-bottom:14px; border:1px solid var(--line); }
+  .verdict .v-label { font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; opacity:.85; }
+  .verdict .v-word { font-family:var(--mono); font-size:46px; font-weight:800; line-height:1.05; margin:4px 0 6px; letter-spacing:-.01em; }
+  .verdict .v-line { font-size:16px; font-weight:600; line-height:1.45; }
+  .verdict .v-why { font-size:13px; opacity:.8; margin-top:6px; }
+  .v-hard { background:rgba(52,211,153,.12); border-color:rgba(52,211,153,.4); color:#6ee7b7; }
+  .v-steady { background:rgba(251,191,36,.10); border-color:rgba(251,191,36,.4); color:#fcd34d; }
+  .v-recover { background:rgba(247,107,77,.12); border-color:rgba(247,107,77,.45); color:#fca594; }
+  .v-neutral { background:var(--panel); color:var(--ink); }
+  .v-hard .v-line, .v-steady .v-line, .v-recover .v-line { color:var(--ink); }
+  .dials { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
+  .dial { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 8px 12px; text-align:center; cursor:pointer; transition:border-color .15s; }
+  .dial:hover { border-color:var(--pulse); }
+  .dial svg { width:92px; height:92px; display:block; margin:0 auto; }
+  .dial .d-label { font-weight:700; font-size:13.5px; margin-top:6px; }
+  .dial .d-word { font-size:12px; color:var(--dim); }
+  .session-card .s-row { display:flex; align-items:center; gap:10px; padding:6px 0; font-size:14px; }
+  .session-card .s-ico { width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; background:var(--panel2); color:var(--dim); flex-shrink:0; }
+  .session-card .s-ico.done { background:var(--up); color:var(--void); }
+  .session-card .s-ico.now { background:var(--pulse); color:var(--void); }
+
+  @media (max-width:640px) {
+    body { padding-bottom:76px; }
+    /* backdrop-filter makes the header a containing block for position:fixed
+       children, which would pin the bottom bar to the header instead. */
+    header.top { backdrop-filter:none; background:#000; }
+    .tabs.primary { position:fixed; left:0; right:0; bottom:0; z-index:30; margin:0; padding:6px 4px calc(6px + env(safe-area-inset-bottom)); background:rgba(0,0,0,.94); backdrop-filter:blur(12px); border-top:1px solid var(--line); justify-content:space-around; gap:0; }
+    .tabs.primary .tab { flex-direction:column; gap:3px; border:none; background:none; padding:4px 6px; font-size:10.5px; border-radius:8px; color:var(--faint); }
+    .tabs.primary .tab svg { width:22px; height:22px; }
+    .tabs.primary .tab.active { background:none; color:var(--pulse); }
+    .verdict .v-word { font-size:38px; }
+    .dial svg { width:74px; height:74px; }
+  }
+
   footer { color:var(--faint); font-size:11.5px; text-align:left; padding:28px 0 10px; border-top:1px solid var(--line); margin-top:10px; }
 
   @media (max-width:560px) {
@@ -376,28 +420,54 @@ export function renderDashboard(): string {
       <h1>Health</h1>
       <div class="sub" id="lastUpdated">—</div>
     </div>
-    <nav class="tabs">
-      <button class="tab active" data-tab="overview" onclick="showTab('overview')">Overview</button>
-      <button class="tab" data-tab="plan" onclick="showTab('plan')">Plan &amp; Goals</button>
-      <button class="tab" data-tab="training" onclick="showTab('training')">Training</button>
-      <button class="tab" data-tab="heart" onclick="showTab('heart')">Heart &amp; Recovery</button>
-      <button class="tab" data-tab="activity" onclick="showTab('activity')">Activity &amp; Mobility</button>
-      <button class="tab" data-tab="sleep" onclick="showTab('sleep')">Sleep</button>
-      <button class="tab" data-tab="age" onclick="showTab('age')">Biological Age</button>
-      <button class="tab" data-tab="ai" onclick="showTab('ai')">Ask AI</button>
-      <button class="tab" data-tab="discoveries" onclick="showTab('discoveries')">Discoveries</button>
-      <button class="tab" data-tab="more" onclick="showTab('more')">More data</button>
-      <button class="tab" data-tab="settings" onclick="showTab('settings')">Import &amp; Settings</button>
+    <nav class="tabs primary" id="primaryNav">
+      <button class="tab" data-view="today" onclick="showView('today')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Today</span></button>
+      <button class="tab" data-view="plan" onclick="showView('plan')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span>Plan</span></button>
+      <button class="tab" data-view="trends" onclick="showView('trends')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"/></svg><span>Trends</span></button>
+      <button class="tab" data-view="coach" onclick="showView('coach')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg><span>Coach</span></button>
+      <button class="tab" data-view="you" onclick="showView('you')"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg><span>You</span></button>
     </nav>
+    <nav class="subnav" id="subNav"></nav>
   </header>
 
-  <!-- OVERVIEW -->
+  <!-- TODAY -->
   <section class="section active" id="tab-overview">
     <div class="greet">
       <div class="greet-hi" id="greeting">Hello</div>
       <div class="greet-sub" id="greetingSub">Loading your data…</div>
     </div>
 
+    <div class="verdict v-neutral" id="verdict">
+      <div class="v-label">Today’s call</div>
+      <div class="v-word" id="verdictWord">…</div>
+      <div class="v-line" id="verdictLine">Reading your recovery.</div>
+      <div class="v-why" id="verdictWhy"></div>
+    </div>
+
+    <div class="dials" id="dials"></div>
+
+    <div class="card session-card" id="todaySession"><h3>Up next</h3><div class="sub">Loading your plan…</div></div>
+
+    ${reviewCard("today", "Coach’s note", "The reasoning behind today’s call.")}
+
+    <div class="card">
+      <h3>Your action items</h3>
+      <ul class="actions" id="overviewActions"><li class="sub">Loading…</li></ul>
+    </div>
+
+    <h2 class="sec">This week<span>Last 7 days</span></h2>
+    <div class="card"><div class="week" id="weekStrip"></div>
+      <div class="legend"><span><i class="lg-bar"></i>steps</span><span><i class="lg-dot on"></i>ring closed</span><span><i class="lg-dot"></i>ring missed</span></div>
+    </div>
+    <div class="highlights" id="highlights"></div>
+    <button class="btn btn-ghost btn-sm" id="moreHighlights" style="display:none;margin:-4px 0 14px;" onclick="toggleHighlights()">Show all highlights</button>
+    ${reviewCard("weekly", "Your week in review", "What worked, what slipped, what to change.")}
+
+    <h2 class="sec">Key numbers<span>Latest values with 30-day trend</span></h2>
+    <div class="grid" id="quickStats"></div>
+    <div class="untracked" id="untracked"></div>
+
+    <h2 class="sec" id="scoreSection">Health score<span>Four areas, scored against your own data</span></h2>
     <div class="scoreboard card">
       <div class="score-main">
         <div class="ring-wrap">
@@ -414,40 +484,25 @@ export function renderDashboard(): string {
         </div>
       </div>
       <div class="score-parts" id="scoreParts"></div>
-      <details class="more"><summary>How is this calculated?</summary><div>The average of four 0-100 scores. <b>Recovery</b>: today's heart data vs your normal. <b>Activity</b>: exercise minutes vs 150 a week, steps vs 8,000. <b>Fitness</b>: VO2max for your age, plus active days. <b>Sleep</b>: hours vs your goal. Areas without data are skipped, not guessed.</div></details>
+      <details class="more"><summary>How is this calculated?</summary><div>The average of four 0-100 scores. <b>Recovery</b>: today’s heart data vs your normal. <b>Activity</b>: exercise minutes vs 150 a week, steps vs 8,000. <b>Fitness</b>: VO2max for your age, plus active days. <b>Sleep</b>: hours vs your goal. Areas without data are skipped, not guessed.</div></details>
     </div>
+  </section>
 
-    <h2 class="sec">Today<span>How ready you are, and what to do</span></h2>
-    <div class="trio" id="todayTrio"></div>
-    ${reviewCard("today", "Today's call", "Push, go easy, or recover.")}
-    <div class="card session-card" id="todaySession"><h3>Today's session</h3><div class="sub">Loading your plan…</div></div>
-    <div class="card">
-      <h3>Your action items</h3>
-      <div class="card-sub">Most important first.</div>
-      <ul class="actions" id="overviewActions"><li class="sub">Loading…</li></ul>
-    </div>
-
-    <h2 class="sec">This week<span>Last 7 days</span></h2>
-    <div class="card"><div class="week" id="weekStrip"></div>
-      <div class="legend"><span><i class="lg-bar"></i>steps</span><span><i class="lg-dot on"></i>ring closed</span><span><i class="lg-dot"></i>ring missed</span></div>
-    </div>
-    <div class="highlights" id="highlights"></div>
-    ${reviewCard("weekly", "Your week in review", "What worked, what slipped, what to change.")}
-
-    <h2 class="sec">Key numbers<span>Latest values with 30-day trend</span></h2>
-    <div class="grid" id="quickStats"></div>
-    <div class="untracked" id="untracked"></div>
-
-    <h2 class="sec">The long view<span>12 months of monthly averages</span></h2>
+  <!-- TRENDS: LONG VIEW -->
+  <section class="section" id="tab-longview">
+    <h2 class="sec" style="margin-top:6px;">The long view<span>12 months of monthly averages</span></h2>
     <div class="longview" id="longView"></div>
     <div class="card">
       <h3>Your weekly rhythm</h3>
       <div class="card-sub">Average steps by weekday, last 12 weeks.</div>
       <div id="weekdayBars"></div>
     </div>
-    ${reviewCard("longterm", "Where you're heading", "Where your trends point, and habits for the next 3 months.")}
+    ${reviewCard("longterm", "Where you’re heading", "Where your trends point, and habits for the next 3 months.")}
+  </section>
 
-    <h2 class="sec">Personal bests<span>Your all-time records</span></h2>
+  <!-- YOU: RECORDS -->
+  <section class="section" id="tab-records">
+    <h2 class="sec" style="margin-top:6px;">Personal bests<span>Your all-time records</span></h2>
     <div class="card"><div class="bests" id="bestsGrid"></div></div>
   </section>
 
@@ -724,13 +779,38 @@ function timeAgo(iso) {
 
 var reviewLoadedOnce = {};
 var appBooted = false;
-var TAB_REVIEWS = { overview: ['today', 'weekly', 'longterm'], training: ['training'], heart: ['recovery'], activity: ['activity'], sleep: ['sleep'], age: ['body'], discoveries: ['discoveries'], ai: ['overview'] };
+var TAB_REVIEWS = { overview: ['today', 'weekly'], longview: ['longterm'], training: ['training'], heart: ['recovery'], activity: ['activity'], sleep: ['sleep'], age: ['body'], discoveries: ['discoveries'], ai: ['overview'] };
+// Five top-level views, each a group of sections shown one at a time via
+// a sub-tab row. Sections keep their old ids, so every loader still works.
+var VIEWS = {
+  today: [['overview', 'Today']],
+  plan: [['plan', 'Week and goals'], ['training', 'Training load']],
+  trends: [['heart', 'Heart'], ['activity', 'Activity'], ['sleep', 'Sleep and body'], ['longview', 'Long view']],
+  coach: [['ai', 'Ask and reviews'], ['discoveries', 'Discoveries']],
+  you: [['age', 'Biological age'], ['records', 'Records'], ['more', 'More data'], ['settings', 'Settings']],
+};
+function viewOf(sectionId) {
+  for (var v in VIEWS) if (VIEWS[v].some(function (x) { return x[0] === sectionId; })) return v;
+  return 'today';
+}
+function showView(view) {
+  var last = null;
+  try { last = localStorage.getItem('healthSub:' + view); } catch (e) {}
+  var ok = last && VIEWS[view].some(function (x) { return x[0] === last; });
+  showTab(ok ? last : VIEWS[view][0][0]);
+  window.scrollTo(0, 0);
+}
 function showTab(id) {
+  if (!document.getElementById('tab-' + id)) id = 'overview';
+  var view = viewOf(id);
   document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); });
-  document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
   document.getElementById('tab-' + id).classList.add('active');
-  document.querySelector('.tab[data-tab="' + id + '"]').classList.add('active');
-  try { localStorage.setItem('healthTab', id); } catch (e) {}
+  document.querySelectorAll('#primaryNav .tab').forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-view') === view); });
+  var subs = VIEWS[view];
+  document.getElementById('subNav').innerHTML = subs.length < 2 ? '' : subs.map(function (x) {
+    return '<button class="subtab' + (x[0] === id ? ' active' : '') + '" onclick="showTab(&quot;' + x[0] + '&quot;)">' + x[1] + '</button>';
+  }).join('');
+  try { localStorage.setItem('healthTab', id); localStorage.setItem('healthSub:' + view, id); } catch (e) {}
 
   // Reviews are pre-written server-side and all loaded at boot (see
   // loadAllReviews); this only covers a tab opened before that finished.
@@ -976,32 +1056,69 @@ function renderGreeting(days) {
     : 'No data yet. Import your Apple Health export in Settings.';
 }
 
-function renderTodayTrio(trends, bio) {
-  var tiles = [];
-  var r = trends.readinessScore;
-  if (r !== null && r !== undefined) {
-    var g = guideFor('readiness', r);
-    tiles.push({ label: 'Readiness', val: r + '<small>/100</small>', status: g.status, word: r >= 70 ? 'Recovered' : r >= 45 ? 'Partly recovered' : 'Still recovering', act: g.action, meaning: g.meaning });
+// ---------------- Today: verdict + dials ----------------
+// Filled in from three async sources (trends at boot, then fitness and the
+// plan); renderVerdict() re-runs as each arrives.
+var TODAY = { readiness: null, strain: null, score: null, fitness: null, plan: null };
+var HARD_TYPES = ['intervals', 'long', 'strength'];
+
+function renderVerdict() {
+  var r = TODAY.readiness;
+  var flag = TODAY.fitness ? (TODAY.fitness.actionItems || []).filter(function (a) { return a.priority === 'high' && a.area === 'recovery'; })[0] : null;
+  var t = TODAY.plan && TODAY.plan.today;
+  var s = t ? (t.adjusted || t) : null;
+  var cls = 'v-neutral', word = 'No call yet', line = 'Needs a few days of heart data.';
+  if (r !== null || flag || (t && t.adjusted)) {
+    if ((r !== null && r < 45) || flag || (t && t.adjusted)) { cls = 'v-recover'; word = 'Recover'; }
+    else if (r !== null && r >= 70 && !flag) { cls = 'v-hard'; word = 'Go hard'; }
+    else { cls = 'v-steady'; word = 'Go steady'; }
   }
-  var st = trends.todayStrain;
-  if (st !== null && st !== undefined) {
-    var gs = guideFor('strain', st);
-    tiles.push({ label: "Today's strain", val: fmt(st, 1) + '<small>/21</small>', status: gs.status, word: st >= 18 ? 'All-out' : st >= 14 ? 'Hard' : st >= 8 ? 'Moderate' : 'Light', act: gs.action, meaning: gs.meaning });
+  if (t && t.status === 'done') line = 'Today’s session is done: ' + t.title + '. Recover well tonight.';
+  else if (s && s.type === 'rest') line = 'Rest day. Light stretching only.';
+  else if (s) line = s.title + ', ' + s.minutes + ' min. ' + s.detail;
+  else if (word === 'Recover') line = 'Easy walk or stretching only. Sleep early.';
+  else if (word === 'Go hard') line = 'Good day for your hardest session.';
+  else if (word === 'Go steady') line = 'Train, but keep it moderate.';
+  var why = [];
+  if (t && t.adjusted) why.push(t.adjusted.reason); // already names readiness
+  else {
+    if (r !== null) why.push('Readiness ' + r + '/100');
+    if (flag) why.push(flag.why);
   }
-  if (bio) {
-    var gb = guideFor('biologicalAge', bio.deltaYears);
-    tiles.push({ label: 'Biological age', val: fmt(bio.biologicalAge, 0) + '<small> yrs</small>', status: gb.status,
-      word: (bio.deltaYears > 0 ? '+' : '') + fmt(bio.deltaYears, 1) + ' vs your age (' + fmt(bio.chronologicalAge, 0) + ')', act: gb.action, meaning: gb.meaning });
-  } else {
-    tiles.push({ label: 'Biological age', val: '—', status: 'unknown', word: 'Not set up', act: 'Add your birth date in Settings to see it.', meaning: METRIC_GUIDE.biologicalAge.meaning });
-  }
-  document.getElementById('todayTrio').innerHTML = tiles.map(function (t) {
-    return '<div class="t"><div class="t-label">' + t.label + '</div><div class="t-val">' + t.val + '</div>' + pill(t.status || 'ok', t.word) +
-      '<div class="t-act">' + t.act + '</div>' + more(t.meaning) + '</div>';
+  var el = document.getElementById('verdict');
+  el.className = 'verdict ' + cls;
+  document.getElementById('verdictWord').textContent = word;
+  document.getElementById('verdictLine').textContent = line;
+  document.getElementById('verdictWhy').textContent = why.join(' · ');
+}
+
+function dialSvg(frac, color, text) {
+  var c = 2 * Math.PI * 38;
+  var f = Math.max(0, Math.min(1, frac || 0));
+  return '<svg viewBox="0 0 92 92"><circle cx="46" cy="46" r="38" fill="none" stroke="#222" stroke-width="9"/>' +
+    '<circle cx="46" cy="46" r="38" fill="none" stroke="' + color + '" stroke-width="9" stroke-linecap="round" stroke-dasharray="' + (c * f).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 46 46)"/>' +
+    '<text x="46" y="53" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="800" font-size="24" fill="#fff">' + text + '</text></svg>';
+}
+
+function renderDials() {
+  var r = TODAY.readiness, st = TODAY.strain, sc = TODAY.score;
+  var rColor = r === null ? '#555' : r >= 70 ? '#34d399' : r >= 45 ? '#fbbf24' : '#f76b4d';
+  var dials = [
+    { label: 'Recovery', frac: r === null ? 0 : r / 100, color: rColor, text: r === null ? '—' : String(r), word: r === null ? 'No data' : r >= 70 ? 'Recovered' : r >= 45 ? 'Partly' : 'Low', go: "showTab('heart')" },
+    { label: 'Strain', frac: st === null ? 0 : st / 21, color: '#60a5fa', text: st === null ? '—' : fmt(st, 1), word: st === null ? 'No data' : st >= 14 ? 'Hard day' : st >= 8 ? 'Moderate' : 'Light', go: "showTab('training')" },
+    { label: 'Health', frac: sc === null ? 0 : sc / 100, color: scoreColor(sc), text: sc === null ? '—' : String(sc), word: sc === null ? 'No data' : (TODAY.scoreWord || ''), go: "document.getElementById('scoreSection').scrollIntoView({behavior:'smooth'})" },
+  ];
+  document.getElementById('dials').innerHTML = dials.map(function (d) {
+    return '<div class="dial" onclick="' + d.go + '">' + dialSvg(d.frac, d.color, d.text) + '<div class="d-label">' + d.label + '</div><div class="d-word">' + d.word + '</div></div>';
   }).join('');
 }
 
+var HIGHLIGHTS_ALL = [];
+var highlightsOpen = false;
+function toggleHighlights() { highlightsOpen = !highlightsOpen; renderHighlights(HIGHLIGHTS_ALL); }
+
 function renderScore(score) {
+  TODAY.score = score.overall; TODAY.scoreWord = score.word; renderDials();
   var ring = document.getElementById('scoreRing');
   var n = score.overall;
   document.getElementById('scoreNum').textContent = n === null ? '—' : n;
@@ -1033,12 +1150,17 @@ function renderWeekStrip(week) {
 }
 
 function renderHighlights(list) {
+  HIGHLIGHTS_ALL = list;
   var el = document.getElementById('highlights');
-  if (!list.length) { el.innerHTML = ''; return; }
+  var btn = document.getElementById('moreHighlights');
+  if (!list.length) { el.innerHTML = ''; btn.style.display = 'none'; return; }
   var icon = { win: '▲', watch: '!', info: 'i' };
-  el.innerHTML = list.map(function (h) {
+  var shown = highlightsOpen ? list : list.slice(0, 4);
+  el.innerHTML = shown.map(function (h) {
     return '<div class="hl ' + h.tone + '"><div class="hl-ic">' + icon[h.tone] + '</div><div><div class="hl-title">' + h.title + '</div><div class="hl-detail">' + h.detail + '</div></div></div>';
   }).join('');
+  btn.style.display = list.length > 4 ? 'inline-block' : 'none';
+  btn.textContent = highlightsOpen ? 'Show fewer' : 'Show all ' + list.length + ' highlights';
 }
 
 var LONG_VIEW = [
@@ -1162,21 +1284,27 @@ function sessionLine(d) {
   return s.type === 'rest' ? 'Rest day' : s.title + '<small>' + s.minutes + ' min</small>';
 }
 
+// "Up next": today plus the next two planned days, so the week ahead is
+// one glance away without leaving Today.
 function renderTodaySession(view) {
   var el = document.getElementById('todaySession');
-  var t = view && view.today;
-  if (!t) { el.innerHTML = '<h3>Today\\'s session</h3><div class="sub">No plan for today yet.</div>'; return; }
-  var s = t.adjusted || t;
-  var st = STATUS_TEXT[t.status];
-  el.innerHTML = '<div class="ai-head"><h3>Today\\'s session</h3>' + pill(st[0], st[1]) + '</div>' +
-    '<div class="s-big">' + sessionLine(t) + '</div>' +
-    (s.type !== 'rest' ? '<div class="sub">' + s.detail + '</div>' : '') +
-    (t.adjusted ? '<div class="pd-adj" style="color:var(--caution);font-size:13px;margin-top:6px;">' + t.adjusted.reason + ' Planned: ' + t.title + ', ' + t.minutes + ' min.</div>' : '') +
-    '<div class="sub" style="margin-top:8px;">' + view.completed + ' of ' + view.planned + ' sessions done so far this week. <a href="#" onclick="showTab(\\'plan\\');return false;">See the full week →</a></div>';
+  if (!view || !view.days || !view.today) { el.innerHTML = '<h3>Up next</h3><div class="sub">No plan for this week yet.</div>'; return; }
+  var idx = view.days.indexOf(view.days.filter(function (d) { return d.date === view.today.date; })[0]);
+  var rows = view.days.slice(idx, idx + 3).map(function (d, i) {
+    var s = d.adjusted || d;
+    var ico = d.status === 'done' ? '<span class="s-ico done">✓</span>' : i === 0 ? '<span class="s-ico now">•</span>' : '<span class="s-ico">' + d.weekday.charAt(0) + '</span>';
+    var when = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.weekday;
+    var what = s.type === 'rest' ? 'Rest' : s.title + ' · ' + s.minutes + ' min';
+    return '<div class="s-row">' + ico + '<div><b>' + when + '</b> <span style="color:var(--dim)">' + what + '</span>' +
+      (i === 0 && d.adjusted ? '<div class="pd-adj">Swapped from ' + d.title + '.</div>' : '') + '</div></div>';
+  }).join('');
+  el.innerHTML = '<div class="ai-head"><h3>Up next</h3><span class="sub">' + view.completed + ' of ' + view.planned + ' done this week</span></div>' + rows +
+    '<div style="margin-top:6px;"><a href="#" style="color:var(--pulse);font-size:13px;" onclick="showView(&quot;plan&quot;);return false;">See the full week</a></div>';
 }
 
 function renderPlan(view) {
   PLAN = view;
+  TODAY.plan = view; renderVerdict();
   renderTodaySession(view);
   var pct = view.planned ? Math.round(view.completed / view.planned * 100) : 0;
   document.getElementById('planProgress').innerHTML = '<span class="num">' + view.completed + '/' + view.planned + '</span> sessions done so far (' + pct + '%)';
@@ -1372,6 +1500,7 @@ function renderWeekly(weeks) {
 async function loadFitness() {
   try {
     var f = await authedFetch('/api/fitness');
+    TODAY.fitness = f; renderVerdict();
     renderActionItems('overviewActions', f.actionItems, 4);
     renderActionItems('trainingActions', f.actionItems);
     renderFitnessMetrics(f.metrics || []);
@@ -1592,7 +1721,10 @@ async function boot() {
   Object.keys(GUIDE_VALUES).forEach(function (k) { if (GUIDE_VALUES[k] === null || GUIDE_VALUES[k] === undefined) delete GUIDE_VALUES[k]; });
   fillGuides();
   renderGreeting(days);
-  renderTodayTrio(trends, latestAnalytics);
+  TODAY.readiness = trends.readinessScore === undefined ? null : trends.readinessScore;
+  TODAY.strain = trends.todayStrain === undefined ? null : trends.todayStrain;
+  renderVerdict();
+  renderDials();
   renderMarkers(latestAnalytics);
   renderQuickStats(today, trends);
   renderTrainingLoad(trends);
