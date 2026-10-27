@@ -56,7 +56,12 @@ const BASE_VOICE =
   "Lead every line with the number and the delta, not a mood. Banned, under any circumstance: \"crushed it\", " +
   "\"great job\", \"keep it up\", \"amazing\", \"way to go\", exclamation points, any sentence whose first " +
   "clause is praise rather than data, and any generic filler that would still be true if you deleted the " +
-  "specific numbers. If a sentence could appear in a form-letter wellness app, rewrite it or cut it.";
+  "specific numbers. If a sentence could appear in a form-letter wellness app, rewrite it or cut it. " +
+  "Write for a smart person who is NOT a sports scientist: plain words, short sentences (under ~25 words). Never use raw " +
+  "field names (write \"readiness\" not \"readinessScoreToday\") or unexplained abbreviations — write \"form\" not \"TSB\", " +
+  "\"fitness base\" not \"CTL\", \"resting heart rate\" not \"RHR\"; HRV and VO2max are fine. Round numbers the way a " +
+  "person would say them: whole numbers for steps, bpm, minutes, kcal and ms; one decimal for hours, kg and VO2max. " +
+  "Dates as \"Mon 26 Oct\", not ISO.";
 
 const OUTPUT_SHAPE =
   'Reply with ONLY a JSON object of this exact shape: {"headline": string, "insights": string[], ' +
@@ -69,9 +74,9 @@ const OUTPUT_SHAPE =
   '"recommendations" is 1-3 concrete, specific, achievable next actions grounded in the data (not generic ' +
   'advice like "eat healthy"). Never give medical diagnoses or claim this is medical advice.';
 
-export type ReviewDomain = "overview" | "today" | "training" | "recovery" | "activity" | "sleep" | "body" | "discoveries";
+export type ReviewDomain = "overview" | "today" | "weekly" | "longterm" | "training" | "recovery" | "activity" | "sleep" | "body" | "discoveries";
 
-export const REVIEW_DOMAINS: ReviewDomain[] = ["overview", "today", "training", "recovery", "activity", "sleep", "body", "discoveries"];
+export const REVIEW_DOMAINS: ReviewDomain[] = ["overview", "today", "weekly", "longterm", "training", "recovery", "activity", "sleep", "body", "discoveries"];
 
 const DOMAIN_FOCUS: Record<ReviewDomain, string> = {
   overview: "overall health trends across recovery, activity, and sleep — whatever in the snapshot matters most right now",
@@ -79,6 +84,14 @@ const DOMAIN_FOCUS: Record<ReviewDomain, string> = {
     "TODAY only: should this person train hard, train moderately, or recover today, and why — combine readiness, form (TSB), " +
     "HRV/resting-HR vs baseline, last night's sleep and recent load. The headline must be the call for today. Recommendations " +
     "are a concrete plan for today (session type, duration/intensity, bedtime) — draw on the fitness.actionItems list",
+  weekly:
+    "THE LAST 7 DAYS as a short weekly check-in from a coach: what went well, what slipped, and the 2-3 things to do " +
+    "differently next week. Use the highlights, the day-by-day week strip and this-week-vs-last-week numbers. The headline " +
+    "sums up the week in one sentence",
+  longterm:
+    "LONG-TERM direction over the last 12 months: which monthly trends (steps, exercise, resting HR, HRV, VO2max, weight) " +
+    "are genuinely improving or declining, seasonal or weekday patterns, and what that trajectory means if it continues. " +
+    "Recommendations are habits for the next 3 months",
   training:
     "training: load (acute:chronic ratio, fitness/fatigue/form), consistency (active days, weekly minutes vs 150), workout " +
     "frequency/types/volume per week, monotony, and whether load is outpacing recovery or there's room to push. Recommendations " +

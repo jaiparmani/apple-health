@@ -260,7 +260,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
     }
     metrics.push({
       key: "acwr",
-      label: "Acute:chronic load",
+      label: "This week vs your normal load",
       value: round(acwr, 2),
       unit: "",
       display: acwr === null ? "—" : acwr.toFixed(2),
@@ -276,7 +276,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
   const fitnessChange = fitness !== null && fitness28Ago !== null ? fitness - fitness28Ago : null;
   metrics.push({
     key: "fitness",
-    label: "Fitness (CTL)",
+    label: "Fitness base",
     value: round(fitness, 1),
     unit: "",
     display: fitness === null ? "—" : fitness.toFixed(1) + (fitnessChange !== null ? ` (${fitnessChange >= 0 ? "+" : ""}${fitnessChange.toFixed(1)} / 4wk)` : ""),
@@ -314,7 +314,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
     }
     metrics.push({
       key: "form",
-      label: "Form (TSB)",
+      label: "Freshness (form)",
       value: round(form, 1),
       unit: "",
       display: form === null ? "—" : (form > 0 ? "+" : "") + form.toFixed(1),
@@ -328,7 +328,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
   const mono = last7Loads.length >= 7 && sd(last7Loads) > 0 ? mean(last7Loads)! / sd(last7Loads) : null;
   metrics.push({
     key: "monotony",
-    label: "Training monotony",
+    label: "Training variety",
     value: round(mono, 2),
     unit: "",
     display: mono === null ? "—" : mono.toFixed(2),
@@ -349,7 +349,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
   const weekMinutes = nums(last7, (d) => d.exerciseMinutes).reduce((a, b) => a + b, 0);
   metrics.push({
     key: "weeklyMinutes",
-    label: "Exercise min (7d)",
+    label: "Exercise this week",
     value: Math.round(weekMinutes),
     unit: "min",
     display: `${Math.round(weekMinutes)} / ${WHO_WEEKLY_MINUTES}`,
@@ -375,7 +375,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
   const activeDays28 = last28.filter((d) => (d.exerciseMinutes ?? 0) >= ACTIVE_DAY_MINUTES || (d.workoutCount ?? 0) > 0).length;
   metrics.push({
     key: "consistency",
-    label: "Active days (28d)",
+    label: "Active days, last 4 weeks",
     value: activeDays28,
     unit: "days",
     display: `${activeDays28} / 28`,
@@ -397,7 +397,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
   for (let i = series.length - 1; i >= 0 && series[i].load >= 8; i--) daysSinceRest++;
   metrics.push({
     key: "daysSinceRest",
-    label: "Days since easy day",
+    label: "Days since an easy day",
     value: daysSinceRest,
     unit: "days",
     display: String(daysSinceRest),
@@ -469,7 +469,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
     const status: MetricStatus = pct < -bandPct * 2 ? "bad" : pct < -bandPct ? "watch" : "good";
     metrics.push({
       key: "hrvVsBaseline",
-      label: "HRV vs baseline",
+      label: "HRV vs your normal",
       value: round(pct, 1),
       unit: "%",
       display: `${hrv7.toFixed(0)} ms (${pct >= 0 ? "+" : ""}${pct.toFixed(0)}%)`,
@@ -495,7 +495,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
     const status: MetricStatus = diff >= 5 ? "bad" : diff >= 3 ? "watch" : diff <= -2 ? "good" : "ok";
     metrics.push({
       key: "rhrDrift",
-      label: "Resting HR drift",
+      label: "Resting heart rate vs normal",
       value: round(diff, 1),
       unit: "bpm",
       display: `${rhr7.toFixed(0)} bpm (${diff >= 0 ? "+" : ""}${diff.toFixed(1)})`,
@@ -522,7 +522,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
     const avgSleep = mean(sleepVals)!;
     metrics.push({
       key: "sleepDebt",
-      label: "Sleep debt (7d)",
+      label: "Sleep debt this week",
       value: round(debt, 1),
       unit: "hr",
       display: `${debt.toFixed(1)} hr`,
@@ -543,7 +543,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
   if (steps7 !== null) {
     metrics.push({
       key: "steps7",
-      label: "Avg steps (7d)",
+      label: "Steps per day (7-day avg)",
       value: Math.round(steps7),
       unit: "",
       display: Math.round(steps7).toLocaleString("en-US"),
@@ -564,7 +564,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
   if (stand7 !== null) {
     metrics.push({
       key: "standHours",
-      label: "Stand hours (7d avg)",
+      label: "Stand hours per day",
       value: round(stand7, 1),
       unit: "hr",
       display: `${stand7.toFixed(1)} / 12`,
@@ -579,7 +579,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
   if (gait !== null) {
     metrics.push({
       key: "gaitSpeed",
-      label: "Walking speed (30d)",
+      label: "Walking speed (30-day avg)",
       value: round(gait, 2),
       unit: "m/s",
       display: `${gait.toFixed(2)} m/s`,

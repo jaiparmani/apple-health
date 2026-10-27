@@ -183,7 +183,8 @@ export function renderDashboard(): string {
   .guide .g-name { color:var(--ink); font-weight:700; font-size:12px; }
   .guide .g-val { font-family:var(--mono); font-weight:700; color:var(--ink); margin-left:6px; }
   .guide .g-mean { color:var(--dim); }
-  .guide .g-act { color:var(--ink); margin-top:3px; }
+  .guide .g-act { color:var(--ink); margin-top:4px; font-size:13.5px; }
+  .guide .g-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
   .guide .g-act::before { content:"→ "; font-weight:700; }
   .s-good::before, .s-good .dot-s { color:var(--up); }
   .s-ok::before { color:var(--pulse); }
@@ -211,9 +212,111 @@ export function renderDashboard(): string {
   .fit.watch { border-left-color:var(--caution); } .fit.bad { border-left-color:var(--down); }
   .fit .label { color:var(--dim); font-size:12px; font-weight:600; }
   .fit .value { font-family:var(--mono); font-size:24px; font-weight:800; margin:2px 0 6px; }
-  .fit .meaning { color:var(--dim); font-size:12px; line-height:1.5; }
-  .fit .act { font-size:12.5px; line-height:1.5; margin-top:6px; }
+  .fit .fit-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .fit .act { font-size:13.5px; line-height:1.55; margin-top:4px; }
   .fit .act::before { content:"→ "; font-weight:700; color:var(--pulse); }
+
+  /* ---- readability pass: bigger type, more air, plain-language status ---- */
+  body { font-size:15px; line-height:1.6; }
+  .sub { font-size:14px; }
+  .card { padding:20px; margin-bottom:14px; }
+  .card h3 { font-size:16px; }
+  .card .card-sub { font-size:13.5px; line-height:1.55; }
+  .ai-list { font-size:14.5px; line-height:1.65; }
+  .ai-list li { margin-bottom:6px; }
+  .ai-headline { font-size:18px; line-height:1.4; }
+  .ai-section-title { font-size:12px; text-transform:uppercase; letter-spacing:.06em; margin-top:16px; }
+  .ai-loading { color:var(--dim); font-size:13px; margin-top:6px; }
+
+  h2.sec { font-size:22px; font-weight:800; margin:34px 0 12px; letter-spacing:-.01em; }
+  h2.sec span { display:block; font-size:13.5px; font-weight:500; color:var(--dim); letter-spacing:0; margin-top:2px; }
+  .greet { margin:6px 0 18px; }
+  .greet-hi { font-size:28px; font-weight:800; letter-spacing:-.02em; }
+  .greet-sub { color:var(--dim); font-size:14px; }
+
+  .pill { display:inline-block; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; letter-spacing:.02em; vertical-align:middle; white-space:nowrap; }
+  .p-good { background:rgba(52,211,153,.15); color:var(--up); }
+  .p-ok { background:rgba(180,255,57,.12); color:var(--pulse); }
+  .p-watch { background:rgba(251,191,36,.15); color:var(--caution); }
+  .p-bad { background:rgba(247,107,77,.15); color:var(--down); }
+  .p-unknown { background:var(--panel2); color:var(--dim); }
+  details.more { margin-top:8px; font-size:13px; color:var(--dim); }
+  details.more summary { cursor:pointer; color:var(--faint); font-size:12.5px; list-style:none; }
+  details.more summary::-webkit-details-marker { display:none; }
+  details.more summary::before { content:"＋ "; }
+  details.more[open] summary::before { content:"− "; }
+  details.more > div { margin-top:6px; line-height:1.6; }
+
+  .scoreboard { display:grid; grid-template-columns:minmax(260px, 1fr) 1.3fr; gap:24px; align-items:center; }
+  .scoreboard > details { grid-column:1 / -1; }
+  .score-main { display:flex; gap:18px; align-items:center; }
+  .score-word { font-size:24px; font-weight:800; }
+  .score-summary { color:var(--dim); font-size:14px; margin-top:2px; }
+  .score-part { padding:9px 0; border-bottom:1px solid var(--line); }
+  .score-part:last-child { border-bottom:none; }
+  .score-part .sp-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+  .score-part .sp-name { font-weight:700; font-size:14px; }
+  .score-part .sp-num { font-family:var(--mono); font-weight:800; font-size:18px; }
+  .score-part .sp-bar { height:5px; background:var(--panel2); border-radius:3px; margin:5px 0 4px; overflow:hidden; }
+  .score-part .sp-bar > div { height:100%; border-radius:3px; }
+  .score-part .sp-detail { color:var(--dim); font-size:12.5px; line-height:1.45; }
+
+  .trio { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:12px; margin-bottom:14px; }
+  .trio .t { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; }
+  .trio .t-label { color:var(--dim); font-size:12.5px; font-weight:600; }
+  .trio .t-val { font-family:var(--mono); font-size:38px; font-weight:800; line-height:1.1; margin:4px 0; }
+  .trio .t-val small { font-size:15px; color:var(--dim); font-weight:600; }
+  .trio .t-act { font-size:13.5px; line-height:1.5; margin-top:8px; }
+
+  .week { display:grid; grid-template-columns:repeat(7,1fr); gap:6px; text-align:center; }
+  .wd { padding:6px 2px; border-radius:6px; min-width:0; }
+  .wd.today { background:var(--panel2); outline:1px solid var(--line); }
+  .wd .w-name { font-size:12px; font-weight:700; color:var(--dim); }
+  .wd .w-barbox { height:70px; display:flex; align-items:flex-end; justify-content:center; margin:6px 0; }
+  .wd .w-bar { width:60%; max-width:26px; border-radius:3px 3px 0 0; background:#34d399; min-height:2px; }
+  .wd .w-steps { font-family:var(--mono); font-weight:700; font-size:14px; }
+  .wd .w-rings { font-size:10px; letter-spacing:2px; margin-top:2px; }
+  .wd .w-type { font-size:10.5px; color:var(--dim); margin-top:2px; min-height:14px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .ring-on { color:var(--pulse); } .ring-off { color:var(--faint); }
+  .legend { display:flex; gap:16px; margin-top:12px; font-size:12px; color:var(--dim); flex-wrap:wrap; }
+  .legend i { display:inline-block; vertical-align:middle; margin-right:5px; }
+  .lg-bar { width:8px; height:12px; background:#34d399; border-radius:2px; }
+  .lg-dot { width:8px; height:8px; border-radius:50%; background:var(--faint); }
+  .lg-dot.on { background:var(--pulse); }
+
+  .highlights { display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:10px; margin-bottom:14px; }
+  .hl { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px 16px; display:grid; grid-template-columns:auto 1fr; gap:12px; }
+  .hl .hl-ic { width:28px; height:28px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:14px; }
+  .hl.win .hl-ic { background:rgba(52,211,153,.15); color:var(--up); }
+  .hl.watch .hl-ic { background:rgba(251,191,36,.15); color:var(--caution); }
+  .hl.info .hl-ic { background:rgba(96,165,250,.15); color:#60a5fa; }
+  .hl .hl-title { font-weight:700; font-size:14.5px; line-height:1.4; }
+  .hl .hl-detail { color:var(--dim); font-size:13px; line-height:1.5; margin-top:3px; }
+
+  .longview { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin-bottom:14px; }
+  .lv { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; }
+  .lv .lv-label { color:var(--dim); font-size:12.5px; font-weight:600; display:flex; justify-content:space-between; gap:6px; align-items:center; }
+  .lv .lv-val { font-family:var(--mono); font-size:24px; font-weight:800; margin-top:2px; }
+  .lv .lv-val small { font-size:13px; color:var(--dim); font-weight:600; font-family:var(--sans); }
+  .lv .lv-note { font-size:12.5px; color:var(--dim); margin-top:4px; }
+  svg.spark { display:block; margin-top:8px; overflow:visible; }
+  .stat svg.spark { margin-top:6px; }
+  #trainingLoadStats { grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); }
+  #quickStats { grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
+  #quickStats .stat { padding:16px 16px 16px 14px; }
+  #quickStats .g-mini { font-size:13px; line-height:1.5; color:var(--ink); margin-top:8px; }
+  .stat .asof { font-size:11.5px; color:var(--faint); font-weight:500; margin-left:6px; font-family:var(--sans); }
+  .untracked { color:var(--dim); font-size:13.5px; margin:-8px 0 14px; }
+  .wk-row { display:grid; grid-template-columns:44px 1fr 70px; gap:10px; align-items:center; padding:4px 0; font-size:13px; }
+  .wk-row .wk-bar { height:10px; background:var(--panel2); border-radius:5px; overflow:hidden; }
+  .wk-row .wk-bar > div { height:100%; background:#34d399; border-radius:5px; }
+  .wk-row .wk-n { font-family:var(--mono); font-weight:700; text-align:right; }
+
+  @media (max-width:640px) {
+    .scoreboard { grid-template-columns:1fr; }
+    .greet-hi { font-size:23px; }
+    .wd .w-steps { font-size:12px; }
+  }
 
   footer { color:var(--faint); font-size:11.5px; text-align:left; padding:28px 0 10px; border-top:1px solid var(--line); margin-top:10px; }
 
@@ -246,61 +349,70 @@ export function renderDashboard(): string {
       <button class="tab" data-tab="activity" onclick="showTab('activity')">Activity &amp; Mobility</button>
       <button class="tab" data-tab="sleep" onclick="showTab('sleep')">Sleep</button>
       <button class="tab" data-tab="age" onclick="showTab('age')">Biological Age</button>
-      <button class="tab" data-tab="ai" onclick="showTab('ai')">AI Analyst</button>
+      <button class="tab" data-tab="ai" onclick="showTab('ai')">Ask AI</button>
       <button class="tab" data-tab="discoveries" onclick="showTab('discoveries')">Discoveries</button>
-      <button class="tab" data-tab="more" onclick="showTab('more')">Everything Else</button>
+      <button class="tab" data-tab="more" onclick="showTab('more')">More data</button>
       <button class="tab" data-tab="settings" onclick="showTab('settings')">Import &amp; Settings</button>
     </nav>
   </header>
 
   <!-- OVERVIEW -->
   <section class="section active" id="tab-overview">
-    <div class="hero">
-      <div class="ring-wrap">
-        <svg width="148" height="148" viewBox="0 0 148 148">
-          <circle cx="74" cy="74" r="64" fill="none" stroke="#1d222b" stroke-width="12" />
-          <circle id="bioRing" cx="74" cy="74" r="64" fill="none" stroke="url(#ringGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="402" stroke-dashoffset="402" />
-          <defs>
-            <linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
-              <stop offset="0%" stop-color="#b4ff39" /><stop offset="100%" stop-color="#60a5fa" />
-            </linearGradient>
-          </defs>
-        </svg>
-        <div class="ring-label"><div class="n" id="bioAgeNum">—</div><div class="u">bio age</div></div>
-      </div>
-      <div class="hero-meta">
-        <div id="bioDelta" class="delta good">—</div>
-        <h2 id="bioHeadline">Set your profile to see your biological age</h2>
-        <div class="sub" id="bioSub"></div>
-        <div style="display:flex; flex-wrap:wrap; gap:8px;">
-          <div class="readiness-chip" id="readinessChip" style="display:none;">
-            <span class="dot" id="readinessDot"></span>
-            <span id="readinessText">Readiness —</span>
-          </div>
-          <div class="readiness-chip" id="strainChip" style="display:none;">
-            <span class="dot" id="strainDot" style="background:#fbbf24;"></span>
-            <span id="strainText">Strain —</span>
-          </div>
-        </div>
-      </div>
+    <div class="greet">
+      <div class="greet-hi" id="greeting">Hello</div>
+      <div class="greet-sub" id="greetingSub">Loading your data…</div>
     </div>
 
-    <div id="heroGuide"></div>
+    <div class="scoreboard card">
+      <div class="score-main">
+        <div class="ring-wrap">
+          <svg width="148" height="148" viewBox="0 0 148 148">
+            <circle cx="74" cy="74" r="64" fill="none" stroke="#1d1d1d" stroke-width="12" />
+            <circle id="scoreRing" cx="74" cy="74" r="64" fill="none" stroke="url(#ringGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="402" stroke-dashoffset="402" />
+            <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#b4ff39" /><stop offset="100%" stop-color="#34d399" /></linearGradient></defs>
+          </svg>
+          <div class="ring-label"><div class="n" id="scoreNum">—</div><div class="u">health score</div></div>
+        </div>
+        <div>
+          <div class="score-word" id="scoreWord">—</div>
+          <div class="score-summary" id="scoreSummary">Calculating…</div>
+        </div>
+      </div>
+      <div class="score-parts" id="scoreParts"></div>
+      <details class="more"><summary>How is this calculated?</summary><div>An average of four areas, each scored 0-100 against <em>your</em> data: Recovery (today's heart data vs your 30-day normal), Activity (exercise minutes vs 150/week and daily steps vs 8,000), Fitness (VO2max for your age plus how many days you were active) and Sleep (hours vs your goal). Areas without enough data are left out rather than guessed.</div></details>
+    </div>
 
-    ${reviewCard("today", "Today's call", "Train hard, train easy, or recover — and the plan for today.")}
-
+    <h2 class="sec">Today<span>How ready you are, and what to do about it</span></h2>
+    <div class="trio" id="todayTrio"></div>
+    ${reviewCard("today", "Today's call", "Train hard, train easy, or recover, with a plan for today.")}
     <div class="card">
-      <h3>Action items</h3>
-      <div class="card-sub">Ranked by priority, computed from your data — each with the reason.</div>
+      <h3>Your action items</h3>
+      <div class="card-sub">Ranked by priority and worked out from your data. Each one comes with the reason.</div>
       <ul class="actions" id="overviewActions"><li class="sub">Loading…</li></ul>
     </div>
 
-    <div class="grid" id="quickStats"></div>
-
-    <div class="card">
-      <h3>Personal bests</h3>
-      <div class="bests" id="bestsGrid"></div>
+    <h2 class="sec">This week<span>The last 7 days, day by day</span></h2>
+    <div class="card"><div class="week" id="weekStrip"></div>
+      <div class="legend"><span><i class="lg-bar"></i>steps</span><span><i class="lg-dot on"></i>ring closed</span><span><i class="lg-dot"></i>ring missed</span></div>
     </div>
+    <div class="highlights" id="highlights"></div>
+    ${reviewCard("weekly", "Your week in review", "A coach's take on the last 7 days, and what to change next week.")}
+
+    <h2 class="sec">Key numbers<span>Today, with the last 30 days behind it</span></h2>
+    <div class="grid" id="quickStats"></div>
+    <div class="untracked" id="untracked"></div>
+
+    <h2 class="sec">The long view<span>Monthly averages over the last 12 months</span></h2>
+    <div class="longview" id="longView"></div>
+    <div class="card">
+      <h3>Your weekly rhythm</h3>
+      <div class="card-sub">Average steps for each day of the week, over the last 12 weeks.</div>
+      <div id="weekdayBars"></div>
+    </div>
+    ${reviewCard("longterm", "Where you're heading", "Where the 12-month trends point, and the habits to build over the next 3 months.")}
+
+    <h2 class="sec">Personal bests<span>Your all-time records</span></h2>
+    <div class="card"><div class="bests" id="bestsGrid"></div></div>
   </section>
 
   <!-- AI ANALYST -->
@@ -549,7 +661,7 @@ function timeAgo(iso) {
 
 var reviewLoadedOnce = {};
 var appBooted = false;
-var TAB_REVIEWS = { overview: 'today', training: 'training', heart: 'recovery', activity: 'activity', sleep: 'sleep', age: 'body', discoveries: 'discoveries', ai: 'overview' };
+var TAB_REVIEWS = { overview: ['today', 'weekly', 'longterm'], training: ['training'], heart: ['recovery'], activity: ['activity'], sleep: ['sleep'], age: ['body'], discoveries: ['discoveries'], ai: ['overview'] };
 function showTab(id) {
   document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); });
   document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
@@ -559,8 +671,9 @@ function showTab(id) {
 
   // AI reviews are slow on a cache miss (an LLM call), so each is loaded
   // lazily on first visit to its tab rather than all at once in boot().
-  var domain = TAB_REVIEWS[id];
-  if (domain && appBooted && !reviewLoadedOnce[domain]) { reviewLoadedOnce[domain] = true; loadReview(domain, false); }
+  if (appBooted) (TAB_REVIEWS[id] || []).forEach(function (domain) {
+    if (!reviewLoadedOnce[domain]) { reviewLoadedOnce[domain] = true; loadReview(domain, false); }
+  });
 }
 
 async function saveProfile(e) {
@@ -672,27 +785,6 @@ function trendArrow(curr, prev) {
   return { cls: up ? 'up' : 'down', text: (up ? '▲ ' : '▼ ') + Math.abs(pct).toFixed(0) + '%' };
 }
 
-function statTile(label, value, unit, trend, goodWhenUp, guideKey, guideValue) {
-  var t = trend;
-  var cls = t.cls;
-  if (cls !== 'flat' && goodWhenUp === false) cls = (cls === 'up') ? 'down' : 'up';
-  return '<div class="stat"><div class="label">' + label + '</div><div class="value">' + value + (unit ? '<span class="unit">' + unit + '</span>' : '') + '</div>' +
-    (t.text ? '<div class="trend ' + cls + '">' + t.text + ' vs last wk</div>' : '<div class="trend flat">—</div>') +
-    (guideKey ? miniGuide(guideKey, guideValue) : '') + '</div>';
-}
-
-function renderQuickStats(today, trends) {
-  var l7 = trends.last7, p7 = trends.prev7;
-  var html = '';
-  html += statTile('Steps today', fmtCompact(today.steps), '', trendArrow(l7.steps, p7.steps), true, 'steps', l7.steps);
-  html += statTile('Resting HR', fmt(today.restingHeartRate, 0), 'bpm', trendArrow(l7.restingHeartRate, p7.restingHeartRate), false, 'restingHeartRate', l7.restingHeartRate);
-  html += statTile('HRV', fmt(today.hrv, 0), 'ms', trendArrow(l7.hrv, p7.hrv), true, 'hrv', l7.hrv);
-  html += statTile('VO2max', fmt(l7.vo2max, 1), '', trendArrow(l7.vo2max, p7.vo2max), true, 'vo2max', l7.vo2max);
-  html += statTile('Sleep', fmt(today.sleepHours, 1), 'hr', trendArrow(l7.sleepHours, p7.sleepHours), true, 'sleepHours', l7.sleepHours);
-  html += statTile('Weight', fmt(today.weightKg, 1), 'kg', trendArrow(l7.weightKg, p7.weightKg), null, 'weightKg', l7.weightKg);
-  document.getElementById('quickStats').innerHTML = html;
-}
-
 // A concrete, actionable training-load readout: 7-day exercise volume and
 // workout frequency vs. the prior week, with a plain-language load status
 // instead of just raw numbers.
@@ -700,9 +792,13 @@ function renderTrainingLoad(trends) {
   var l7 = trends.last7, p7 = trends.prev7;
   var exMin = l7.exerciseMinutes, prevExMin = p7.exerciseMinutes;
   var html = '';
-  html += statTile('Exercise (7d avg/day)', fmtCompact(exMin), 'min', trendArrow(exMin, prevExMin), true, 'exerciseMinutes', exMin);
-  html += statTile('Active energy (7d avg)', fmtCompact(l7.activeEnergy), 'kcal', trendArrow(l7.activeEnergy, p7.activeEnergy), true, 'activeEnergy', l7.activeEnergy);
-  html += statTile('Steps (7d avg)', fmtCompact(l7.steps), '', trendArrow(l7.steps, p7.steps), true, 'steps', l7.steps);
+  var tile = function (label, value, unit, trend, key, v) {
+    return '<div class="stat"><div class="label">' + label + '</div><div class="value">' + value + (unit ? '<span class="unit">' + unit + '</span>' : '') + '</div>' +
+      (trend.text ? '<div class="trend ' + trend.cls + '">' + trend.text + ' vs last week</div>' : '<div class="trend flat">—</div>') + miniGuide(key, v) + '</div>';
+  };
+  html += tile('Exercise / day (7-day avg)', fmtCompact(exMin), 'min', trendArrow(exMin, prevExMin), 'exerciseMinutes', exMin);
+  html += tile('Active energy / day (7-day avg)', fmtCompact(l7.activeEnergy), 'kcal', trendArrow(l7.activeEnergy, p7.activeEnergy), 'activeEnergy', l7.activeEnergy);
+  html += tile('Steps / day (7-day avg)', fmtCompact(l7.steps), '', trendArrow(l7.steps, p7.steps), 'steps', l7.steps);
 
   var status = 'Not enough data';
   if (exMin !== null && exMin !== undefined) {
@@ -729,24 +825,6 @@ function renderBests(bests) {
     if (!b) return '<div class="best"><div class="label">' + name + '</div><div class="value">—</div></div>';
     return '<div class="best"><div class="label">' + name + '</div><div class="value">' + fmt(b.value, dp) + (unit ? ' ' + unit : '') + '</div><div class="date">' + b.date + '</div></div>';
   }).join('');
-}
-
-function renderReadiness(score) {
-  var chip = document.getElementById('readinessChip');
-  if (score === null || score === undefined) { chip.style.display = 'none'; return; }
-  chip.style.display = 'inline-flex';
-  var color = score >= 70 ? '#34d399' : score >= 45 ? '#fbbf24' : '#f76b4d';
-  document.getElementById('readinessDot').style.background = color;
-  document.getElementById('readinessText').textContent = 'Readiness ' + score + '/100';
-}
-
-function renderStrain(strain) {
-  var chip = document.getElementById('strainChip');
-  if (strain === null || strain === undefined) { chip.style.display = 'none'; return; }
-  chip.style.display = 'inline-flex';
-  var color = strain >= 14 ? '#f76b4d' : strain >= 8 ? '#fbbf24' : '#34d399';
-  document.getElementById('strainDot').style.background = color;
-  document.getElementById('strainText').textContent = 'Strain ' + fmt(strain, 1) + '/21';
 }
 
 function renderExtraMetrics(days) {
@@ -781,30 +859,6 @@ function renderActivityRings(today) {
   }).join('') + '</div>';
 }
 
-function renderBioHero(latest, days) {
-  var ring = document.getElementById('bioRing');
-  var circumference = 402;
-  if (!latest) {
-    document.getElementById('bioAgeNum').textContent = '—';
-    document.getElementById('bioHeadline').textContent = 'Set your profile in Settings to see your biological age';
-    document.getElementById('bioDelta').style.display = 'none';
-    ring.setAttribute('stroke-dashoffset', circumference);
-    return;
-  }
-  document.getElementById('bioDelta').style.display = 'inline-flex';
-  document.getElementById('bioAgeNum').textContent = fmt(latest.biologicalAge, 0);
-  var frac = Math.max(0.04, Math.min(1, latest.biologicalAge / 100));
-  ring.setAttribute('stroke-dashoffset', String(circumference * (1 - frac)));
-  var delta = latest.deltaYears;
-  var deltaEl = document.getElementById('bioDelta');
-  deltaEl.className = 'delta ' + (delta <= 0 ? 'good' : 'bad');
-  deltaEl.textContent = (delta > 0 ? '+' : '') + fmt(delta, 1) + ' yrs vs actual age ' + fmt(latest.chronologicalAge, 0);
-  document.getElementById('bioHeadline').textContent = delta <= 0
-    ? 'Your body is tracking younger than your years'
-    : 'A few markers are pulling your estimate up';
-  document.getElementById('bioSub').textContent = days.length ? ('Based on your last 7 days of data, as of ' + latest.date) : '';
-}
-
 function renderMarkers(latest) {
   var el = document.getElementById('markersList');
   if (!latest || !latest.markers.length) { el.innerHTML = '<p class="sub">No markers yet.</p>'; return; }
@@ -815,6 +869,222 @@ function renderMarkers(latest) {
       '<div class="marker-bar"><div style="width:' + pct + '%;background:' + colors[i % colors.length] + '"></div></div>' +
       '<div class="mval">' + fmt(m.markerAge, 0) + 'y</div></div>';
   }).join('');
+}
+
+// ---------------- overview: plain-language building blocks ----------------
+var STATUS_WORD = { good: 'Good', ok: 'OK', watch: 'Watch', bad: 'Act now', unknown: 'No data' };
+function pill(status, text) { return status ? '<span class="pill p-' + status + '">' + (text || STATUS_WORD[status] || status) + '</span>' : ''; }
+function more(text, label) { return text ? '<details class="more"><summary>' + (label || 'What does this mean?') + '</summary><div>' + text + '</div></details>' : ''; }
+function scoreStatus(n) { return n === null || n === undefined ? 'unknown' : n >= 65 ? 'good' : n >= 50 ? 'ok' : n >= 35 ? 'watch' : 'bad'; }
+function scoreColor(n) { return { good: '#34d399', ok: '#b4ff39', watch: '#fbbf24', bad: '#f76b4d', unknown: '#555' }[scoreStatus(n)]; }
+function compact(n) { if (n === null || n === undefined) return '—'; return n >= 10000 ? (n / 1000).toFixed(1).replace('.0', '') + 'k' : n >= 1000 ? (n / 1000).toFixed(1) + 'k' : String(Math.round(n)); }
+var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function niceDate(iso) { var p = iso.split('-'); return Number(p[2]) + ' ' + MONTHS[Number(p[1]) - 1]; }
+
+// Tiny inline SVG trend line (nulls skipped, not drawn as zero).
+function spark(values, color, h) {
+  h = h || 30;
+  var w = 100;
+  var pts = [];
+  values.forEach(function (v, i) { if (typeof v === 'number') pts.push([i, v]); });
+  if (pts.length < 2) return '';
+  var ys = pts.map(function (p) { return p[1]; });
+  var min = Math.min.apply(null, ys), max = Math.max.apply(null, ys), span = (max - min) || 1;
+  var n = Math.max(1, values.length - 1);
+  var d = pts.map(function (p, j) { return (j ? 'L' : 'M') + (p[0] / n * w).toFixed(2) + ' ' + (h - 3 - (p[1] - min) / span * (h - 6)).toFixed(2); }).join(' ');
+  var lp = pts[pts.length - 1];
+  return '<svg class="spark" viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" width="100%" height="' + h + '">' +
+    '<path d="' + d + '" fill="none" stroke="' + color + '" stroke-width="1.8" vector-effect="non-scaling-stroke" stroke-linejoin="round" />' +
+    '<circle cx="' + (lp[0] / n * w).toFixed(2) + '" cy="' + (h - 3 - (lp[1] - min) / span * (h - 6)).toFixed(2) + '" r="2.5" fill="' + color + '" vector-effect="non-scaling-stroke" /></svg>';
+}
+
+function workoutName(t) {
+  if (!t) return null;
+  var w = t.replace(/^HKWorkoutActivityType/, '').replace(/^(Traditional|Functional)(?=StrengthTraining)/, '').replace(/([a-z])([A-Z])/g, '$1 $2').toLowerCase();
+  return w.charAt(0).toUpperCase() + w.slice(1);
+}
+
+function renderGreeting(days) {
+  var h = new Date().getHours();
+  document.getElementById('greeting').textContent = h < 5 ? 'Late night check-in' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  var lastDate = days.length ? days[days.length - 1].date : null;
+  document.getElementById('greetingSub').textContent = lastDate
+    ? 'Here is where you stand. Data synced up to ' + niceDate(lastDate) + '.'
+    : 'No data yet. Import your Apple Health export in Settings.';
+}
+
+function renderTodayTrio(trends, bio) {
+  var tiles = [];
+  var r = trends.readinessScore;
+  if (r !== null && r !== undefined) {
+    var g = guideFor('readiness', r);
+    tiles.push({ label: 'Readiness', val: r + '<small>/100</small>', status: g.status, word: r >= 70 ? 'Recovered' : r >= 45 ? 'Partly recovered' : 'Still recovering', act: g.action, meaning: g.meaning });
+  }
+  var st = trends.todayStrain;
+  if (st !== null && st !== undefined) {
+    var gs = guideFor('strain', st);
+    tiles.push({ label: "Today's strain", val: fmt(st, 1) + '<small>/21</small>', status: gs.status, word: st >= 18 ? 'All-out' : st >= 14 ? 'Hard' : st >= 8 ? 'Moderate' : 'Light', act: gs.action, meaning: gs.meaning });
+  }
+  if (bio) {
+    var gb = guideFor('biologicalAge', bio.deltaYears);
+    tiles.push({ label: 'Biological age', val: fmt(bio.biologicalAge, 0) + '<small> yrs</small>', status: gb.status,
+      word: (bio.deltaYears > 0 ? '+' : '') + fmt(bio.deltaYears, 1) + ' vs your age (' + fmt(bio.chronologicalAge, 0) + ')', act: gb.action, meaning: gb.meaning });
+  } else {
+    tiles.push({ label: 'Biological age', val: '—', status: 'unknown', word: 'Not set up', act: 'Add your birth date in Settings to see it.', meaning: METRIC_GUIDE.biologicalAge.meaning });
+  }
+  document.getElementById('todayTrio').innerHTML = tiles.map(function (t) {
+    return '<div class="t"><div class="t-label">' + t.label + '</div><div class="t-val">' + t.val + '</div>' + pill(t.status || 'ok', t.word) +
+      '<div class="t-act">' + t.act + '</div>' + more(t.meaning) + '</div>';
+  }).join('');
+}
+
+function renderScore(score) {
+  var ring = document.getElementById('scoreRing');
+  var n = score.overall;
+  document.getElementById('scoreNum').textContent = n === null ? '—' : n;
+  document.getElementById('scoreWord').textContent = score.word;
+  document.getElementById('scoreWord').style.color = scoreColor(n);
+  document.getElementById('scoreSummary').textContent = score.summary;
+  ring.setAttribute('stroke-dashoffset', String(402 * (1 - Math.max(0.03, (n || 0) / 100))));
+  document.getElementById('scoreParts').innerHTML = score.parts.map(function (p) {
+    return '<div class="score-part"><div class="sp-top"><span class="sp-name">' + p.label + ' ' + pill(scoreStatus(p.score), p.word) + '</span>' +
+      '<span class="sp-num" style="color:' + scoreColor(p.score) + '">' + (p.score === null ? '—' : p.score) + '</span></div>' +
+      '<div class="sp-bar"><div style="width:' + (p.score || 0) + '%;background:' + scoreColor(p.score) + '"></div></div>' +
+      '<div class="sp-detail">' + p.detail + '</div></div>';
+  }).join('');
+}
+
+function renderWeekStrip(week) {
+  var el = document.getElementById('weekStrip');
+  if (!week.length) { el.innerHTML = '<p class="sub">No data yet.</p>'; return; }
+  var max = Math.max.apply(null, week.map(function (d) { return d.steps || 0; }).concat([10000]));
+  el.innerHTML = week.map(function (d, i) {
+    var rings = '';
+    for (var k = 0; k < d.ringsTracked; k++) rings += '<span class="' + (k < d.ringsClosed ? 'ring-on' : 'ring-off') + '">●</span>';
+    var title = niceDate(d.date) + ': ' + (d.steps !== null ? Math.round(d.steps).toLocaleString() + ' steps' : 'no steps') + (d.exerciseMinutes !== null ? ', ' + d.exerciseMinutes + ' exercise min' : '') + (d.ringsTracked ? ', ' + d.ringsClosed + '/' + d.ringsTracked + ' rings' : '');
+    return '<div class="wd' + (i === week.length - 1 ? ' today' : '') + '" title="' + title + '"><div class="w-name">' + (i === week.length - 1 ? 'Today' : d.weekday) + '</div>' +
+      '<div class="w-barbox"><div class="w-bar" style="height:' + Math.round(((d.steps || 0) / max) * 100) + '%;' + ((d.steps || 0) >= 8000 ? '' : 'opacity:.45;') + '"></div></div>' +
+      '<div class="w-steps">' + compact(d.steps) + '</div><div class="w-rings">' + (rings || '&nbsp;') + '</div>' +
+      '<div class="w-type">' + (d.workoutType || (d.exerciseMinutes ? d.exerciseMinutes + ' min' : '')) + '</div></div>';
+  }).join('');
+}
+
+function renderHighlights(list) {
+  var el = document.getElementById('highlights');
+  if (!list.length) { el.innerHTML = ''; return; }
+  var icon = { win: '▲', watch: '!', info: 'i' };
+  el.innerHTML = list.map(function (h) {
+    return '<div class="hl ' + h.tone + '"><div class="hl-ic">' + icon[h.tone] + '</div><div><div class="hl-title">' + h.title + '</div><div class="hl-detail">' + h.detail + '</div></div></div>';
+  }).join('');
+}
+
+var LONG_VIEW = [
+  { key: 'steps', label: 'Daily steps', unit: '', dp: 0, up: true, color: '#34d399' },
+  { key: 'exerciseMinutes', label: 'Exercise minutes / day', unit: 'min', dp: 0, up: true, color: '#b4ff39' },
+  { key: 'restingHeartRate', label: 'Resting heart rate', unit: 'bpm', dp: 0, up: false, color: '#f76b4d' },
+  { key: 'hrv', label: 'HRV', unit: 'ms', dp: 0, up: true, color: '#60a5fa' },
+  { key: 'vo2max', label: 'VO2max', unit: '', dp: 1, up: true, color: '#a78bfa' },
+  { key: 'weightKg', label: 'Weight', unit: 'kg', dp: 1, up: null, color: '#fbbf24' },
+];
+
+function renderLongView(monthly, pattern) {
+  var el = document.getElementById('longView');
+  el.innerHTML = LONG_VIEW.map(function (m) {
+    var vals = monthly.map(function (p) { return p[m.key]; });
+    var present = monthly.filter(function (p) { return typeof p[m.key] === 'number'; });
+    if (present.length < 2) return '';
+    var first = present[0], lastP = present[present.length - 1];
+    var a = first[m.key], b = lastP[m.key];
+    var pct = a ? ((b - a) / Math.abs(a)) * 100 : 0;
+    var status = 'unknown', word = 'Steady';
+    if (Math.abs(pct) >= 3) {
+      var better = m.up === null ? null : (pct > 0) === m.up;
+      status = better === null ? 'ok' : better ? 'good' : 'watch';
+      word = better === null ? (pct > 0 ? 'Rising' : 'Falling') : better ? 'Improving' : 'Slipping';
+    } else { status = 'ok'; }
+    var fmtV = function (v) { return m.dp ? v.toFixed(m.dp) : Math.round(v).toLocaleString(); };
+    return '<div class="lv"><div class="lv-label"><span>' + m.label + '</span>' + pill(status, word) + '</div>' +
+      '<div class="lv-val">' + fmtV(b) + ' <small>' + m.unit + ' in ' + MONTHS[Number(lastP.month.slice(5)) - 1] + '</small></div>' +
+      spark(vals, m.color, 34) +
+      '<div class="lv-note">' + (pct >= 0 ? '+' : '') + pct.toFixed(0) + '% since ' + MONTHS[Number(first.month.slice(5)) - 1] + ' ' + first.month.slice(0, 4) + ' (' + fmtV(a) + ')</div></div>';
+  }).join('') || '<p class="sub">Not enough monthly history yet.</p>';
+
+  var wk = document.getElementById('weekdayBars');
+  var order = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  var byDay = {};
+  pattern.forEach(function (p) { byDay[p.weekday] = p; });
+  var maxS = Math.max.apply(null, pattern.map(function (p) { return p.avgSteps || 0; }).concat([1]));
+  wk.innerHTML = order.map(function (d) {
+    var p = byDay[d] || {};
+    var v = p.avgSteps || 0;
+    return '<div class="wk-row"><span>' + d + '</span><div class="wk-bar"><div style="width:' + (v / maxS * 100) + '%;' + (v >= 8000 ? '' : 'opacity:.5;') + '"></div></div><span class="wk-n">' + compact(p.avgSteps) + '</span></div>';
+  }).join('');
+}
+
+async function loadOverview() {
+  try {
+    var o = await authedFetch('/api/overview');
+    renderScore(o.score);
+    renderWeekStrip(o.week || []);
+    renderHighlights(o.highlights || []);
+    renderLongView(o.monthly || [], o.weekdayPattern || []);
+  } catch (err) {
+    document.getElementById('scoreSummary').textContent = 'Could not load (' + err.message + ').';
+  }
+}
+
+// Latest reading of a field within the last N days (some metrics,
+// like VO2max or weight, aren't measured daily).
+function latestReading(key, within) {
+  var recent = GUIDE_DAYS.slice(-(within || 30));
+  for (var i = recent.length - 1; i >= 0; i--) if (typeof recent[i][key] === 'number') return { value: recent[i][key], date: recent[i].date };
+  return null;
+}
+
+function statTile(def, trends) {
+  var l7 = trends.last7, p7 = trends.prev7;
+  var reading = latestReading(def.key, 30);
+  if (!reading) return null;
+  var isToday = reading.date === GUIDE_DAYS[GUIDE_DAYS.length - 1].date;
+  var trend = trendArrow(l7[def.key], p7[def.key]);
+  var cls = trend.cls;
+  if (cls !== 'flat' && def.up === false) cls = (cls === 'up') ? 'down' : 'up';
+  if (def.up === null) cls = 'flat';
+  var color = cls === 'up' ? '#34d399' : cls === 'down' ? '#f76b4d' : '#8a8a8a';
+  var series = GUIDE_DAYS.slice(-30).map(function (d) { return typeof d[def.key] === 'number' ? d[def.key] : null; });
+  var guideVal = l7[def.key] !== null && l7[def.key] !== undefined ? l7[def.key] : reading.value;
+  var shown = def.dp === 0 && reading.value >= 1000 ? Math.round(reading.value).toLocaleString() : fmt(reading.value, def.dp);
+  return '<div class="stat"><div class="label">' + def.label + '</div><div class="value">' + shown + (def.unit ? '<span class="unit">' + def.unit + '</span>' : '') +
+    (isToday ? '' : '<span class="asof">' + niceDate(reading.date) + '</span>') + '</div>' +
+    (trend.text ? '<div class="trend ' + cls + '">' + trend.text + ' vs last week (7-day avg)</div>' : '<div class="trend flat">not enough data to compare weeks</div>') +
+    spark(series, color, 28) + miniGuide(def.key, guideVal) + '</div>';
+}
+
+var KEY_NUMBERS = [
+  { key: 'steps', label: 'Steps', unit: '', dp: 0, up: true },
+  { key: 'exerciseMinutes', label: 'Exercise', unit: 'min', dp: 0, up: true },
+  { key: 'restingHeartRate', label: 'Resting heart rate', unit: 'bpm', dp: 0, up: false },
+  { key: 'hrv', label: 'HRV', unit: 'ms', dp: 0, up: true },
+  { key: 'vo2max', label: 'VO2max', unit: '', dp: 1, up: true },
+  { key: 'walkingSpeed', label: 'Walking speed', unit: 'm/s', dp: 2, up: true },
+  { key: 'sleepHours', label: 'Sleep', unit: 'hr', dp: 1, up: true },
+  { key: 'weightKg', label: 'Weight', unit: 'kg', dp: 1, up: null },
+];
+
+function renderQuickStats(today, trends) {
+  var untracked = [];
+  var html = KEY_NUMBERS.map(function (def) {
+    var t = GUIDE_DAYS.length ? statTile(def, trends) : null;
+    if (!t) untracked.push(def.label.toLowerCase());
+    return t || '';
+  }).join('');
+  document.getElementById('quickStats').innerHTML = html;
+  document.getElementById('untracked').textContent = untracked.length
+    ? 'Not tracked in the last 30 days: ' + untracked.join(', ') + '. ' + untracked.map(function (u) {
+        var k = KEY_NUMBERS.filter(function (d) { return d.label.toLowerCase() === u; })[0];
+        return METRIC_GUIDE[k.key] ? METRIC_GUIDE[k.key].fallback : '';
+      }).join(' ')
+    : '';
 }
 
 // ---------------- metric guide: meaning + what to do ----------------
@@ -859,26 +1129,22 @@ function guideBlock(key) {
   if (!e) return '';
   var v = recentValue(key);
   var g = guideFor(key, v);
-  var valLabel = GUIDE_VALUES[key] !== undefined ? 'now' : '7d avg';
-  return '<div class="guide"><div><span class="g-name">' + e.label + '</span>' +
-    (v !== null ? '<span class="g-val">' + fmtGuideValue(key, v) + '</span> <span class="faint">' + valLabel + '</span>' : '') + '</div>' +
-    '<div class="g-mean">' + g.meaning + '</div>' +
-    (g.action ? '<div class="g-act s-' + (g.status || 'ok') + '">' + g.action + '</div>' : '') + '</div>';
+  var valLabel = GUIDE_VALUES[key] !== undefined ? 'now' : '7-day avg';
+  return '<div class="guide"><div class="g-top"><span class="g-name">' + e.label + '</span>' +
+    (v !== null ? '<span class="g-val">' + fmtGuideValue(key, v) + '</span><span class="faint">' + valLabel + '</span>' : '') + pill(g.status) + '</div>' +
+    (g.action ? '<div class="g-act s-' + (g.status || 'ok') + '">' + g.action + '</div>' : '') + more(g.meaning) + '</div>';
 }
 
 function miniGuide(key, v) {
   var g = guideFor(key, v);
   if (!g) return '';
-  return '<div class="g-mini">' + g.meaning.split('. ')[0].replace(/\\.$/, '') + '. <b>→ ' + g.action + '</b></div>';
+  return '<div class="g-mini">' + pill(g.status) + ' ' + g.action + more(g.meaning) + '</div>';
 }
 
 function fillGuides() {
   document.querySelectorAll('[data-guide]').forEach(function (el) {
     el.innerHTML = el.getAttribute('data-guide').split(',').map(guideBlock).join('');
   });
-  var hero = document.getElementById('heroGuide');
-  if (hero) hero.innerHTML = ['readiness', 'strain', 'biologicalAge'].filter(function (k) { return GUIDE_VALUES[k] !== undefined && GUIDE_VALUES[k] !== null; })
-    .map(guideBlock).join('');
 }
 
 // ---------------- training & fitness ----------------
@@ -895,8 +1161,8 @@ function renderFitnessMetrics(metrics) {
   var el = document.getElementById('fitnessMetrics');
   if (!metrics.length) { el.innerHTML = '<p class="sub">Not enough data yet.</p>'; return; }
   el.innerHTML = metrics.map(function (m) {
-    return '<div class="fit ' + m.status + '"><div class="label">' + m.label + '</div><div class="value">' + m.display + '</div>' +
-      '<div class="meaning">' + m.meaning + '</div><div class="act">' + m.action + '</div></div>';
+    return '<div class="fit ' + m.status + '"><div class="fit-top"><span class="label">' + m.label + '</span>' + pill(m.status) + '</div><div class="value">' + m.display + '</div>' +
+      '<div class="act">' + m.action + '</div>' + more(m.meaning) + '</div>';
   }).join('');
 }
 
@@ -937,23 +1203,27 @@ async function loadReview(domain, force) {
   if (!btn || !body) return;
   reviewLoadedOnce[domain] = true;
   btn.disabled = true;
+  var slow = setTimeout(function () {
+    if (body.querySelector('.skeleton') && !body.querySelector('.ai-loading')) body.insertAdjacentHTML('beforeend', '<div class="ai-loading">Writing your review from your latest data. The first run takes about 30 seconds.</div>');
+  }, 2500);
   if (force) body.innerHTML = '<div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:90%"></div><div class="skeleton" style="width:55%"></div>';
   try {
     var res = await authedFetch('/api/insights?domain=' + domain + (force ? '&force=1' : ''));
     var ins = res.insights;
     var html = '<div class="ai-headline">' + ins.headline + '</div>';
-    html += '<ul class="ai-list">' + ins.insights.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
-    if (ins.concerns && ins.concerns.length) {
-      html += '<div class="ai-section-title">Worth a look</div><ul class="ai-list concerns">' + ins.concerns.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
-    }
     if (ins.recommendations && ins.recommendations.length) {
-      html += '<div class="ai-section-title">Try next</div><ul class="ai-list recs">' + ins.recommendations.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
+      html += '<div class="ai-section-title">Do next</div><ul class="ai-list recs">' + ins.recommendations.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
+    }
+    html += '<div class="ai-section-title">What the data shows</div><ul class="ai-list">' + ins.insights.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
+    if (ins.concerns && ins.concerns.length) {
+      html += '<div class="ai-section-title">Keep an eye on</div><ul class="ai-list concerns">' + ins.concerns.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
     }
     html += '<div class="ai-meta">' + (res.cached ? 'Cached · generated ' + timeAgo(res.generatedAt) : 'Freshly generated') + '</div>';
     body.innerHTML = html;
   } catch (err) {
     body.innerHTML = '<p class="sub">Couldn\\'t load this review (' + err.message + ').</p>';
   } finally {
+    clearTimeout(slow);
     btn.disabled = false;
   }
 }
@@ -1061,7 +1331,7 @@ function buildCharts(days, history) {
     listEl.textContent = 'No workout sessions in the imported data yet.';
   } else {
     listEl.innerHTML = '<table class="simple-table"><tbody>' + workoutDays.map(function (d) {
-      var parts = [d.date, d.workoutType || 'Workout', d.workoutMinutes + ' min'];
+      var parts = [niceDate(d.date), workoutName(d.workoutType) || 'Workout', d.workoutMinutes + ' min'];
       if (d.workoutEnergy) parts.push(Math.round(d.workoutEnergy) + ' kcal');
       if (d.workoutDistanceKm) parts.push(d.workoutDistanceKm.toFixed(1) + ' km');
       return '<tr>' + parts.map(function (p) { return '<td>' + p + '</td>'; }).join('') + '</tr>';
@@ -1116,13 +1386,12 @@ async function boot() {
   GUIDE_VALUES = { readiness: trends.readinessScore, strain: trends.todayStrain, biologicalAge: latestAnalytics ? latestAnalytics.deltaYears : null };
   Object.keys(GUIDE_VALUES).forEach(function (k) { if (GUIDE_VALUES[k] === null || GUIDE_VALUES[k] === undefined) delete GUIDE_VALUES[k]; });
   fillGuides();
-  renderBioHero(latestAnalytics, days);
+  renderGreeting(days);
+  renderTodayTrio(trends, latestAnalytics);
   renderMarkers(latestAnalytics);
   renderQuickStats(today, trends);
   renderTrainingLoad(trends);
   renderBests(trends.bests);
-  renderReadiness(trends.readinessScore);
-  renderStrain(trends.todayStrain);
   renderExtraMetrics(days);
   renderActivityRings(today);
   buildCharts(days.slice(-180), history.slice(-180));
@@ -1133,6 +1402,7 @@ async function boot() {
   showTab(savedTab && document.getElementById('tab-' + savedTab) ? savedTab : 'overview');
 
   loadFitness();
+  loadOverview();
   loadDataQuality();
   loadDiscoveries();
   loadReport('week');

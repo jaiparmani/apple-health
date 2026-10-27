@@ -6,6 +6,8 @@ import { computeCorrelations } from "./correlations";
 import { detectAnomalies } from "./anomalies";
 import { computeBaselines } from "./baselines";
 import { computePeriodReport } from "./report";
+import { computeTrends } from "./trends";
+import { computeHighlights, computeHealthScore, computeMonthly, computeWeek, computeWeekdayPattern } from "./overview";
 
 /**
  * Builds the domain-specific half of an AI review's snapshot — the numbers
@@ -69,6 +71,29 @@ export function buildReviewContext(domain: ReviewDomain, input: ReviewInputs): R
         actionItems: fitness.actionItems,
         last3Days: rows(days.slice(-3), ["hrv", "restingHeartRate", "sleepHours", "steps", "exerciseMinutes", "workoutType", "workoutMinutes"], load),
       };
+    case "weekly": {
+      const trends = computeTrends(days);
+      return {
+        user: userContext,
+        healthScore: computeHealthScore(days, trends, fitness, profile, sleepTarget),
+        highlights: computeHighlights(days, trends, fitness),
+        thisWeekByDay: computeWeek(days, age),
+        thisWeekVsLastWeek: computePeriodReport(days, "week")?.metricChanges.filter((m) => m.direction === "up" || m.direction === "down"),
+        actionItems: fitness.actionItems,
+      };
+    }
+    case "longterm": {
+      const hist = input.bioHistory;
+      const bioByMonth = new Map<string, number>();
+      for (const h of hist) bioByMonth.set(h.date.slice(0, 7), h.deltaYears);
+      return {
+        user: userContext,
+        monthlyAverages: computeMonthly(days, 12),
+        bioAgeDeltaByMonth: [...bioByMonth.entries()].slice(-12).map(([month, deltaYears]) => ({ month, deltaYears })),
+        weekdayPattern12Weeks: computeWeekdayPattern(days),
+        fitnessMetrics: pickMetrics(fitness, ["fitness", "vo2Category", "vo2Trend", "consistency", "weightTrend"]),
+      };
+    }
     case "training":
       return {
         user: userContext,

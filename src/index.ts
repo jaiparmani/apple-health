@@ -13,6 +13,7 @@ import { computeExperimentResult, type Experiment } from "./experiments";
 import { generateReview, answerHealthQuestion, generateChartFromQuestion, REVIEW_DOMAINS, type AiInsights, type ReviewDomain } from "./ai";
 import { buildReviewContext } from "./reviewContext";
 import { computeFitnessReport } from "./fitness";
+import { computeOverview } from "./overview";
 import { renderDashboard } from "./dashboard";
 
 const SERIES_PATH = "data/series.json";
@@ -26,9 +27,9 @@ const MAX_SERIES_DAYS = 4000; // ~11 years, enough headroom for a full Apple Hea
 const MAX_HISTORY_ENTRIES = 4000;
 const ANALYTICS_WINDOW_DAYS = 7;
 function insightsCacheKey(domain: ReviewDomain): string {
-  // v2: snapshots now carry domain-specific computed context (fitness
+  // v3: plainer voice + weekly/longterm domains. v2: snapshots carry domain-specific computed context (fitness
   // report, recent rows...) — don't serve reviews generated without it.
-  return `insights:v2:${domain}`;
+  return `insights:v3:${domain}`;
 }
 const INSIGHTS_CACHE_TTL_SECONDS = 60 * 60; // 1 hour
 
@@ -233,7 +234,7 @@ async function handleGetInsights(req: Request, env: Env): Promise<Response> {
     getJson<UserProfile>(env, PROFILE_PATH),
     getJson<BiologicalAgeResult>(env, LATEST_PATH),
     getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
-    domain === "body" ? getJson<{ entries: BiologicalAgeResult[] }>(env, HISTORY_PATH) : Promise.resolve({ data: null }),
+    domain === "body" || domain === "longterm" ? getJson<{ entries: BiologicalAgeResult[] }>(env, HISTORY_PATH) : Promise.resolve({ data: null }),
   ]);
   const days = seriesData?.days ?? [];
   if (days.length === 0) return json({ error: "no data yet" }, 400);
@@ -260,6 +261,24 @@ async function handleGetFitness(req: Request, env: Env): Promise<Response> {
     getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
   ]);
   return json(computeFitnessReport(seriesData?.days ?? [], profile, knowledge?.sleepTargetHours ?? 7.5));
+}
+
+/**
+ * Everything the Overview page needs beyond /api/trends: health score,
+ * highlights feed, this-week strip, weekday pattern, 12-month trends and
+ * 30-day sparklines. See src/overview.ts.
+ */
+async function handleGetOverview(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const [{ data: seriesData }, { data: profile }, { data: knowledge }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<UserProfile>(env, PROFILE_PATH),
+    getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
+  ]);
+  const days = seriesData?.days ?? [];
+  const sleepTarget = knowledge?.sleepTargetHours ?? 7.5;
+  const fitness = computeFitnessReport(days, profile, sleepTarget);
+  return json(computeOverview(days, computeTrends(days), fitness, profile, sleepTarget));
 }
 
 async function handleGetDiscoveries(req: Request, env: Env): Promise<Response> {
@@ -539,6 +558,7 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/analytics") return await handleGetAnalytics(req, env);
       if (req.method === "GET" && url.pathname === "/api/trends") return await handleGetTrends(req, env);
       if (req.method === "GET" && url.pathname === "/api/insights") return await handleGetInsights(req, env);
+      if (req.method === "GET" && url.pathname === "/api/overview") return await handleGetOverview(req, env);
       if (req.method === "GET" && url.pathname === "/api/fitness") return await handleGetFitness(req, env);
       if (req.method === "GET" && url.pathname === "/api/baselines") return await handleGetBaselines(req, env);
       if (req.method === "GET" && url.pathname === "/api/coverage") return await handleGetCoverage(req, env);
