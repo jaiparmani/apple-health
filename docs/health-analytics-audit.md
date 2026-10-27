@@ -111,10 +111,21 @@ direction. Order of attack:
    dataset it currently reports no strong correlations and no recent
    anomalies — correctly honest, not manufactured.
 
+6. ✅ **Weekly/monthly reports** — `src/report.ts`: a 7- or 28-day period
+   vs. the immediately preceding period of the same length, per-metric %
+   change with a real-move threshold (ignores <3% as noise), reusing the
+   anomaly/correlation layers rather than recomputing anything. `GET
+   /api/report?period=week|month`, Week/Month toggle on the Overview tab.
+7. ✅ **Automated test suite** — `vitest` + `npm test`, 49 tests across
+   every analytics module (`baselines`, `coverage`, `correlations`,
+   `anomalies`, `query`, `analytics`, `normalize`, `report`). Includes
+   regression guards for bugs actually hit earlier in this project (the
+   RHR curve divide-by-zero, the `\d`-escaping parser bug's class of
+   issue via the biological-age clamp test).
+
 Still ahead: personal experiments tracking (adherence + before/after
-comparison for user-defined behavior changes), weekly/monthly structured
-reports, AI-generated chart specs from natural language, a personal health
-knowledge-base (goals/preferences separate from sensor data), exports, a
-fuller navigation IA (Reports/Discoveries as real tabs rather than cards on
-Overview), and an automated test suite. No tests exist yet beyond the
-synthetic-data sanity checks run during development.
+comparison for user-defined behavior changes), AI-generated chart specs
+from natural language, a personal health knowledge-base (goals/preferences
+separate from sensor data), data exports, and a fuller navigation IA
+(Reports/Discoveries as real tabs rather than cards stacked on Overview —
+the Overview tab is getting crowded and should probably split soon).
