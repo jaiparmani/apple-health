@@ -232,8 +232,9 @@ type ReviewResult = InsightsCacheEntry & { cached: boolean; stale?: boolean; ref
 
 /**
  * AI reviews are written AHEAD of time, not on page open:
- *   - warmAllReviews() runs hourly (cron) and right after every sync, and
- *     rewrites any review whose inputs changed;
+ *   - warmAllReviews() runs right after every sync and after the 07:00
+ *     morning-brief call (no cron of our own: the account is at the free
+ *     plan's 5-cron limit), rewriting any review whose inputs changed;
  *   - opening the dashboard always gets the cached review instantly; if it
  *     is out of date, it is refreshed in the background (ctx.waitUntil) and
  *     the page picks up the new one a minute later.
@@ -312,7 +313,7 @@ async function refreshReview(env: Env, domain: ReviewDomain, inputs?: AiInputs):
 
 /**
  * Pre-writes every out-of-date review (and makes sure this week's plan
- * exists), loading the data once. Run by the hourly cron and after syncs.
+ * exists), loading the data once. Run after syncs and the morning brief.
  */
 async function warmAllReviews(env: Env): Promise<{ written: string[]; skipped: string[]; failed: string[] }> {
   const out = { written: [] as string[], skipped: [] as string[], failed: [] as string[] };
@@ -515,7 +516,7 @@ async function handleTogglePlanDone(req: Request, env: Env): Promise<Response> {
  * in, { text } (MarkdownV2) out, null text when there's nothing to say.
  * Accepts BRIEF_TOKEN (the token those workers hold) or INGEST_TOKEN.
  */
-async function handleTelegramBrief(req: Request, env: Env): Promise<Response> {
+async function handleTelegramBrief(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const auth = req.headers.get("Authorization") || "";
   const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
   const ok = !!token && (token === env.BRIEF_TOKEN || token === env.INGEST_TOKEN);
@@ -529,8 +530,13 @@ async function handleTelegramBrief(req: Request, env: Env): Promise<Response> {
   const [plan, goals, review] = await Promise.all([
     loadPlan(env).catch(() => null),
     loadGoalProgress(env, days),
-    // Pre-written by the hourly warm-up (06:45 run covers the 07:00 brief).
-    getReview(env, "today").catch(() => null),
+    // A new day makes yesterday's "today" review out of date: write it now
+    // (well inside the caller's 60s budget) rather than send a stale call.
+    (async () => {
+      const cached = await env.INSIGHTS_CACHE.get<InsightsCacheEntry>(insightsCacheKey("today"), "json");
+      const force = !cached || isOutOfDate(cached, await reviewVersion(env));
+      return getReview(env, "today", { force });
+    })().catch(() => null),
   ]);
   const fitness = computeFitnessReport(days, profile, 7.5);
   const text = healthBriefMessage({
@@ -543,6 +549,9 @@ async function handleTelegramBrief(req: Request, env: Env): Promise<Response> {
     goals,
     dashboardUrl: env.PUBLIC_URL || "",
   });
+  // The 7am call doubles as the daily warm-up: pre-write every other review
+  // so the dashboard opens ready.
+  ctx.waitUntil(warmAllReviews(env).catch(() => undefined));
   return json({ text });
 }
 
@@ -864,7 +873,7 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/analytics") return await handleGetAnalytics(req, env);
       if (req.method === "GET" && url.pathname === "/api/trends") return await handleGetTrends(req, env);
       if (req.method === "GET" && url.pathname === "/api/insights") return await handleGetInsights(req, env, ctx);
-      if (req.method === "POST" && url.pathname === "/telegram/brief") return await handleTelegramBrief(req, env);
+      if (req.method === "POST" && url.pathname === "/telegram/brief") return await handleTelegramBrief(req, env, ctx);
       if (req.method === "GET" && url.pathname === "/api/goals") return await handleGetGoals(req, env);
       if (req.method === "POST" && url.pathname === "/api/goals") return await handlePostGoal(req, env);
       if (req.method === "DELETE" && url.pathname === "/api/goals") return await handleDeleteGoal(req, env);
@@ -895,10 +904,5 @@ export default {
     } catch (err) {
       return json({ error: "internal error", detail: (err as Error).message }, 500);
     }
-  },
-
-  /** Hourly: pre-write every out-of-date AI review and this week's plan. */
-  async scheduled(_event: ScheduledController, env: Env, ctx: ExecutionContext): Promise<void> {
-    ctx.waitUntil(warmAllReviews(env).catch(() => undefined));
   },
 };
