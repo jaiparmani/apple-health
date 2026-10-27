@@ -48,6 +48,10 @@ const ALIASES: Record<
   workoutMinutes: ["workoutminutes", "workout_minutes"],
   workoutEnergy: ["workoutenergy", "workout_energy"],
   workoutDistanceKm: ["workoutdistancekm", "workout_distance_km"],
+  activeEnergyGoal: ["activeenergygoal", "active_energy_goal"],
+  exerciseMinutesGoal: ["exerciseminutesgoal", "exercise_minutes_goal"],
+  standHours: ["standhours", "stand_hours"],
+  standHoursGoal: ["standhoursgoal", "stand_hours_goal"],
 };
 
 function toNumber(v: unknown): number | undefined {

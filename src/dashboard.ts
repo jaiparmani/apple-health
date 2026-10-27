@@ -288,6 +288,11 @@ export function renderDashboard(): string {
       <h3>Recent sessions</h3>
       <div id="workoutList" class="card-sub">No workout sessions in the imported data yet.</div>
     </div>
+    <div class="card">
+      <h3>Activity Rings</h3>
+      <div class="card-sub">Move/Exercise/Stand goals from your export's Activity Summary, vs. today's actual.</div>
+      <div id="activityRings" class="sub">No Activity Ring data in the imported data yet.</div>
+    </div>
   </section>
 
   <!-- SLEEP -->
@@ -578,6 +583,23 @@ function renderExtraMetrics(days) {
   }).join('') + '</div>';
 }
 
+function renderActivityRings(today) {
+  var el = document.getElementById('activityRings');
+  if (!today || (today.activeEnergyGoal === undefined && today.exerciseMinutesGoal === undefined && today.standHoursGoal === undefined && today.standHours === undefined)) {
+    return; // leave the default "no data yet" message in place
+  }
+  var rings = [
+    { label: 'Move', actual: today.activeEnergy, goal: today.activeEnergyGoal, unit: 'kcal', color: '#ff375f' },
+    { label: 'Exercise', actual: today.exerciseMinutes, goal: today.exerciseMinutesGoal, unit: 'min', color: '#30d158' },
+    { label: 'Stand', actual: today.standHours, goal: today.standHoursGoal, unit: 'hr', color: '#64d2ff' },
+  ];
+  el.innerHTML = '<div class="grid">' + rings.map(function (r) {
+    if (r.goal === undefined) return '';
+    var pct = r.actual !== undefined ? Math.round((r.actual / r.goal) * 100) : 0;
+    return '<div class="stat"><div class="label" style="color:' + r.color + ';">' + r.label + '</div><div class="value">' + fmt(r.actual, 0) + ' / ' + fmt(r.goal, 0) + ' ' + r.unit + '</div><div class="trend flat">' + pct + '% of goal</div></div>';
+  }).join('') + '</div>';
+}
+
 function renderBioHero(latest, days) {
   var ring = document.getElementById('bioRing');
   var circumference = 402;
@@ -794,6 +816,7 @@ async function boot() {
   renderReadiness(trends.readinessScore);
   renderStrain(trends.todayStrain);
   renderExtraMetrics(days);
+  renderActivityRings(today);
   buildCharts(days.slice(-180), history.slice(-180));
 
   var savedTab = null;
@@ -1080,6 +1103,28 @@ function healthToKm(value, unit) {
 // exercise session, with its own duration/energy/distance attributes
 // directly on the opening tag (even though the element itself usually has
 // nested <WorkoutEvent>/<MetadataEntry> children on later lines).
+// <ActivitySummary> is a separate, once-per-day element carrying the
+// three Activity Ring goals and the Stand ring's actual value (Move and
+// Exercise actuals are already captured from <Record> ActiveEnergyBurned
+// and AppleExerciseTime sums, so only their goals are new information
+// here).
+function healthProcessActivitySummaryLine(days, line) {
+  var date = healthAttr(line, 'dateComponents');
+  if (!date) return;
+  if (!days.has(date)) days.set(date, healthNewDayAcc());
+  var d = days.get(date);
+
+  var moveGoal = Number(healthAttr(line, 'activeEnergyBurnedGoal'));
+  var exerciseGoal = Number(healthAttr(line, 'appleExerciseTimeGoal'));
+  var standGoal = Number(healthAttr(line, 'appleStandHoursGoal'));
+  var standActual = Number(healthAttr(line, 'appleStandHours'));
+
+  if (!Number.isNaN(moveGoal) && moveGoal > 0) d.moveGoalKcal = moveGoal;
+  if (!Number.isNaN(exerciseGoal) && exerciseGoal > 0) d.exerciseGoalMinutes = exerciseGoal;
+  if (!Number.isNaN(standGoal) && standGoal > 0) d.standGoalHours = standGoal;
+  if (!Number.isNaN(standActual)) d.standHoursActual = standActual;
+}
+
 function healthProcessWorkoutLine(days, line) {
   var startDate = healthAttr(line, 'startDate');
   var endDate = healthAttr(line, 'endDate');
@@ -1108,6 +1153,7 @@ function healthProcessWorkoutLine(days, line) {
 
 function healthProcessLine(days, line) {
   if (line.indexOf('<Workout ') !== -1) { healthProcessWorkoutLine(days, line); return; }
+  if (line.indexOf('<ActivitySummary ') !== -1) { healthProcessActivitySummaryLine(days, line); return; }
   if (line.indexOf('<Record ') === -1) return;
   var typeMatch = line.match(/type="HK(Quantity|Category)TypeIdentifier([A-Za-z0-9]+)"/);
   if (!typeMatch) return;
@@ -1209,6 +1255,11 @@ function healthFinalizeDays(days) {
       for (var wt in d.workoutTypes) { if (d.workoutTypes[wt] > topCount) { topType = wt; topCount = d.workoutTypes[wt]; } }
       if (topType) rec.workoutType = topType;
     }
+
+    if (d.moveGoalKcal !== undefined) rec.activeEnergyGoal = d.moveGoalKcal;
+    if (d.exerciseGoalMinutes !== undefined) rec.exerciseMinutesGoal = d.exerciseGoalMinutes;
+    if (d.standGoalHours !== undefined) rec.standHoursGoal = d.standGoalHours;
+    if (d.standHoursActual !== undefined) rec.standHours = d.standHoursActual;
 
     var extra = {};
     for (var avgKey in d.extraAvg) extra[avgKey] = healthRound(healthAvg(d.extraAvg[avgKey]), 3);

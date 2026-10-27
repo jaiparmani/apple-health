@@ -61,6 +61,11 @@ export interface DailyMetrics {
   workoutEnergy?: number; // kcal
   workoutDistanceKm?: number;
   workoutType?: string; // most common HKWorkoutActivityType that day
+  // Activity Rings (from <ActivitySummary> elements, distinct from <Record>)
+  activeEnergyGoal?: number; // kcal, the Move ring's goal that day
+  exerciseMinutesGoal?: number; // the Exercise ring's goal that day
+  standHours?: number; // hours with >=1 min standing (the Stand ring's actual)
+  standHoursGoal?: number; // the Stand ring's goal that day
   // Every other HealthKit quantity/category type the export contains, so
   // nothing from "Export All Health Data" is ever silently dropped. Keyed by
   // the HK identifier with its HKQuantityTypeIdentifier/HKCategoryTypeIdentifier
