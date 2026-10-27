@@ -10,7 +10,9 @@ import { detectAnomalies } from "./anomalies";
 import { computePeriodReport, type ReportPeriod } from "./report";
 import { toCsv } from "./export";
 import { computeExperimentResult, type Experiment } from "./experiments";
-import { generateInsights, answerHealthQuestion, generateChartFromQuestion, type AiInsights } from "./ai";
+import { generateReview, answerHealthQuestion, generateChartFromQuestion, REVIEW_DOMAINS, type AiInsights, type ReviewDomain } from "./ai";
+import { buildReviewContext } from "./reviewContext";
+import { computeFitnessReport } from "./fitness";
 import { renderDashboard } from "./dashboard";
 
 const SERIES_PATH = "data/series.json";
@@ -23,7 +25,11 @@ const EXPERIMENTS_PATH = "data/experiments.json";
 const MAX_SERIES_DAYS = 4000; // ~11 years, enough headroom for a full Apple Health export backfill
 const MAX_HISTORY_ENTRIES = 4000;
 const ANALYTICS_WINDOW_DAYS = 7;
-const INSIGHTS_CACHE_KEY = "insights:v1";
+function insightsCacheKey(domain: ReviewDomain): string {
+  // v2: snapshots now carry domain-specific computed context (fitness
+  // report, recent rows...) — don't serve reviews generated without it.
+  return `insights:v2:${domain}`;
+}
 const INSIGHTS_CACHE_TTL_SECONDS = 60 * 60; // 1 hour
 
 function unauthorized(): Response {
@@ -201,34 +207,59 @@ interface InsightsCacheEntry {
 }
 
 /**
- * AI-generated narrative insights, cached in KV for an hour so the dashboard
- * doesn't pay for (or wait on) an LLM call on every reload. `?force=1` (the
- * dashboard's Retry button) bypasses the cache and regenerates immediately.
+ * AI-generated narrative review for one domain (overview/today/training/
+ * recovery/activity/sleep/body/discoveries),
+ * cached in KV for an hour per domain so the dashboard doesn't pay for (or
+ * wait on) an LLM call on every reload. `?force=1` (the dashboard's Retry
+ * button) bypasses the cache and regenerates immediately. Same caching
+ * architecture for every domain — only the cache key and the model's
+ * system-prompt focus differ.
  */
 async function handleGetInsights(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
-  const force = new URL(req.url).searchParams.get("force") === "1";
+  const url = new URL(req.url);
+  const force = url.searchParams.get("force") === "1";
+  const domainParam = url.searchParams.get("domain");
+  const domain: ReviewDomain = REVIEW_DOMAINS.includes(domainParam as ReviewDomain) ? (domainParam as ReviewDomain) : "overview";
+  const cacheKey = insightsCacheKey(domain);
 
   if (!force) {
-    const cached = await env.INSIGHTS_CACHE.get<InsightsCacheEntry>(INSIGHTS_CACHE_KEY, "json");
+    const cached = await env.INSIGHTS_CACHE.get<InsightsCacheEntry>(cacheKey, "json");
     if (cached) return json({ ...cached, cached: true });
   }
 
-  const [{ data: seriesData }, { data: profile }, { data: latest }] = await Promise.all([
+  const [{ data: seriesData }, { data: profile }, { data: latest }, { data: knowledge }, history] = await Promise.all([
     getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
     getJson<UserProfile>(env, PROFILE_PATH),
     getJson<BiologicalAgeResult>(env, LATEST_PATH),
+    getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
+    domain === "body" ? getJson<{ entries: BiologicalAgeResult[] }>(env, HISTORY_PATH) : Promise.resolve({ data: null }),
   ]);
   const days = seriesData?.days ?? [];
   if (days.length === 0) return json({ error: "no data yet" }, 400);
   if (!env.LLM_GATEWAY_URL || !env.LLM_GATEWAY_TOKEN) return json({ error: "AI insights not configured" }, 503);
 
   const trends = computeTrends(days);
-  const insights = await generateInsights(env, days, trends, profile ? latest : null);
+  const context = buildReviewContext(domain, { days, profile, knowledge, bioHistory: history.data?.entries ?? [] });
+  const insights = await generateReview(env, domain, days, trends, profile ? latest : null, context);
   const entry: InsightsCacheEntry = { generatedAt: new Date().toISOString(), insights };
-  await env.INSIGHTS_CACHE.put(INSIGHTS_CACHE_KEY, JSON.stringify(entry), { expirationTtl: INSIGHTS_CACHE_TTL_SECONDS });
+  await env.INSIGHTS_CACHE.put(cacheKey, JSON.stringify(entry), { expirationTtl: INSIGHTS_CACHE_TTL_SECONDS });
 
   return json({ ...entry, cached: false });
+}
+
+/**
+ * Training & fitness metrics (load, form, consistency, VO2max class...) and
+ * the prioritised action-item list, all computed in code — see src/fitness.ts.
+ */
+async function handleGetFitness(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const [{ data: seriesData }, { data: profile }, { data: knowledge }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<UserProfile>(env, PROFILE_PATH),
+    getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
+  ]);
+  return json(computeFitnessReport(seriesData?.days ?? [], profile, knowledge?.sleepTargetHours ?? 7.5));
 }
 
 async function handleGetDiscoveries(req: Request, env: Env): Promise<Response> {
@@ -508,6 +539,7 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/analytics") return await handleGetAnalytics(req, env);
       if (req.method === "GET" && url.pathname === "/api/trends") return await handleGetTrends(req, env);
       if (req.method === "GET" && url.pathname === "/api/insights") return await handleGetInsights(req, env);
+      if (req.method === "GET" && url.pathname === "/api/fitness") return await handleGetFitness(req, env);
       if (req.method === "GET" && url.pathname === "/api/baselines") return await handleGetBaselines(req, env);
       if (req.method === "GET" && url.pathname === "/api/coverage") return await handleGetCoverage(req, env);
       if (req.method === "POST" && url.pathname === "/api/ask") return await handleAsk(req, env);

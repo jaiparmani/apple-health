@@ -1,3 +1,22 @@
+import { METRIC_GUIDE } from "./metricGuide";
+
+// Every AI review card is identical apart from its domain and title — same
+// loader, same 1-hour KV cache, same Retry (force) button.
+function reviewCard(domain: string, title: string, sub = ""): string {
+  return `<div class="card ai-card">
+      <div class="ai-head">
+        <h3>✦ ${title}</h3>
+        <button class="btn btn-ghost btn-sm" id="review-${domain}-btn" onclick="loadReview('${domain}',true)">Retry</button>
+      </div>
+      ${sub ? `<div class="card-sub">${sub}</div>` : ""}
+      <div id="review-${domain}">
+        <div class="skeleton" style="width:70%"></div>
+        <div class="skeleton" style="width:90%"></div>
+        <div class="skeleton" style="width:55%"></div>
+      </div>
+    </div>`;
+}
+
 export function renderDashboard(): string {
   return `<!doctype html>
 <html lang="en">
@@ -138,10 +157,12 @@ export function renderDashboard(): string {
   .best .value { font-family:var(--mono); font-size:20px; font-weight:800; margin-top:4px; color:var(--pulse); }
   .best .date { color:var(--faint); font-size:11px; margin-top:2px; font-family:var(--mono); }
 
-  .extra-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:0; border-top:1px solid var(--line); }
+  .extra-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:0; border-top:1px solid var(--line); }
   .extra-tile { padding:10px 12px 10px 0; border-bottom:1px solid var(--line); }
   .extra-tile .label { color:var(--dim); font-size:10.5px; }
   .extra-tile .value { font-family:var(--mono); font-size:16px; font-weight:700; margin-top:2px; }
+  .extra-tile .g-mini { font-size:11px; color:var(--dim); line-height:1.4; margin-top:4px; padding-right:8px; }
+  .extra-tile .g-mini b { color:var(--ink); font-weight:600; }
 
   .markers-list { display:flex; flex-direction:column; gap:10px; }
   .marker-row { display:flex; align-items:center; gap:10px; }
@@ -155,6 +176,44 @@ export function renderDashboard(): string {
   .profile-form input, .profile-form select { padding:8px 10px; border-radius:6px; border:1px solid var(--line); background:var(--panel2); color:var(--ink); font-size:13.5px; }
   input[type="file"] { color:var(--dim); font-size:13px; }
   progress { width:100%; height:4px; border-radius:2px; overflow:hidden; accent-color:var(--pulse); margin-top:8px; }
+
+  /* ---- "what it means / what to do" under every metric ---- */
+  .guide { margin-top:10px; padding-top:10px; border-top:1px dashed var(--line); font-size:12.5px; line-height:1.55; }
+  .guide + .guide { margin-top:8px; }
+  .guide .g-name { color:var(--ink); font-weight:700; font-size:12px; }
+  .guide .g-val { font-family:var(--mono); font-weight:700; color:var(--ink); margin-left:6px; }
+  .guide .g-mean { color:var(--dim); }
+  .guide .g-act { color:var(--ink); margin-top:3px; }
+  .guide .g-act::before { content:"→ "; font-weight:700; }
+  .s-good::before, .s-good .dot-s { color:var(--up); }
+  .s-ok::before { color:var(--pulse); }
+  .s-watch::before { color:var(--caution); }
+  .s-bad::before { color:var(--down); }
+  .stat .g-mini { font-size:11.5px; color:var(--dim); line-height:1.45; margin-top:6px; }
+  .stat .g-mini b { color:var(--ink); font-weight:600; }
+  .chart-box { position:relative; height:240px; }
+
+  /* ---- action items ---- */
+  .actions { list-style:none; margin:0; padding:0; }
+  .actions li { display:grid; grid-template-columns:auto 1fr; gap:10px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .actions li:last-child { border-bottom:none; }
+  .prio { font-family:var(--mono); font-size:11px; font-weight:800; padding:2px 7px; border-radius:3px; height:fit-content; text-transform:uppercase; letter-spacing:.04em; }
+  .prio.high { background:var(--down); color:var(--void); }
+  .prio.medium { background:var(--caution); color:var(--void); }
+  .prio.low { background:var(--panel2); color:var(--dim); border:1px solid var(--line); }
+  .actions .a-text { font-weight:600; font-size:14px; }
+  .actions .a-why { color:var(--dim); font-size:12.5px; margin-top:2px; }
+
+  /* ---- fitness metric cards ---- */
+  .fit-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:10px; margin-bottom:12px; }
+  .fit { background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--line); border-radius:0 8px 8px 0; padding:14px; }
+  .fit.good { border-left-color:var(--up); } .fit.ok { border-left-color:var(--pulse); }
+  .fit.watch { border-left-color:var(--caution); } .fit.bad { border-left-color:var(--down); }
+  .fit .label { color:var(--dim); font-size:12px; font-weight:600; }
+  .fit .value { font-family:var(--mono); font-size:24px; font-weight:800; margin:2px 0 6px; }
+  .fit .meaning { color:var(--dim); font-size:12px; line-height:1.5; }
+  .fit .act { font-size:12.5px; line-height:1.5; margin-top:6px; }
+  .fit .act::before { content:"→ "; font-weight:700; color:var(--pulse); }
 
   footer { color:var(--faint); font-size:11.5px; text-align:left; padding:28px 0 10px; border-top:1px solid var(--line); margin-top:10px; }
 
@@ -182,6 +241,7 @@ export function renderDashboard(): string {
     </div>
     <nav class="tabs">
       <button class="tab active" data-tab="overview" onclick="showTab('overview')">Overview</button>
+      <button class="tab" data-tab="training" onclick="showTab('training')">Training</button>
       <button class="tab" data-tab="heart" onclick="showTab('heart')">Heart &amp; Recovery</button>
       <button class="tab" data-tab="activity" onclick="showTab('activity')">Activity &amp; Mobility</button>
       <button class="tab" data-tab="sleep" onclick="showTab('sleep')">Sleep</button>
@@ -225,6 +285,16 @@ export function renderDashboard(): string {
       </div>
     </div>
 
+    <div id="heroGuide"></div>
+
+    ${reviewCard("today", "Today's call", "Train hard, train easy, or recover — and the plan for today.")}
+
+    <div class="card">
+      <h3>Action items</h3>
+      <div class="card-sub">Ranked by priority, computed from your data — each with the reason.</div>
+      <ul class="actions" id="overviewActions"><li class="sub">Loading…</li></ul>
+    </div>
+
     <div class="grid" id="quickStats"></div>
 
     <div class="card">
@@ -235,17 +305,7 @@ export function renderDashboard(): string {
 
   <!-- AI ANALYST -->
   <section class="section" id="tab-ai">
-    <div class="card ai-card">
-      <div class="ai-head">
-        <h3>✦ AI Insights</h3>
-        <button class="btn btn-ghost btn-sm" id="aiRetryBtn" onclick="loadInsights(true)">Retry</button>
-      </div>
-      <div id="aiBody">
-        <div class="skeleton" style="width:70%"></div>
-        <div class="skeleton" style="width:90%"></div>
-        <div class="skeleton" style="width:55%"></div>
-      </div>
-    </div>
+    ${reviewCard("overview", "AI Insights")}
 
     <div class="card ai-card">
       <h3>✦ Ask my health data</h3>
@@ -271,6 +331,7 @@ export function renderDashboard(): string {
 
   <!-- DISCOVERIES -->
   <section class="section" id="tab-discoveries">
+    ${reviewCard("discoveries", "Discoveries review", "What the patterns in your data suggest — and experiments to test them.")}
     <div class="card">
       <h3>Report
         <button class="btn btn-ghost btn-sm" onclick="loadReport('week')" style="margin-left:8px;">Week</button>
@@ -298,24 +359,49 @@ export function renderDashboard(): string {
     </div>
   </section>
 
+  <!-- TRAINING -->
+  <section class="section" id="tab-training">
+    ${reviewCard("training", "Training review", "Load, consistency and a prescription for the next 7 days.")}
+    <div class="card">
+      <h3>Action items</h3>
+      <ul class="actions" id="trainingActions"><li class="sub">Loading…</li></ul>
+    </div>
+    <div id="trainingLoadStats" class="grid"></div>
+    <div class="fit-grid" id="fitnessMetrics"></div>
+    <div class="card">
+      <h3>Fitness, fatigue &amp; form</h3>
+      <div class="card-sub">Bars: daily load (0-21). Fitness = 42-day load (your base). Fatigue = 7-day load. Form = fitness − fatigue.</div>
+      <div class="chart-box"><canvas id="loadChart"></canvas></div>
+      <div class="guide"><div class="g-mean">Fitness rising slowly while form hovers between −5 and +3 is productive training. Form below −5 for days = overreaching; above +5 for weeks = detraining.</div><div class="g-act">Build fitness ~5-10% a week; every 3-4 weeks take an easier week to let form recover.</div></div>
+    </div>
+    <div class="card">
+      <h3>Weekly volume (last 8 weeks)</h3>
+      <div class="card-sub">Active day = ≥20 exercise minutes or a logged workout.</div>
+      <div id="weeklyTable"></div>
+    </div>
+  </section>
+
   <!-- HEART & RECOVERY -->
   <section class="section" id="tab-heart">
-    <div class="card"><h3>Resting heart rate &amp; HRV</h3><canvas id="heartChart"></canvas></div>
-    <div class="card"><h3>Heart rate range (avg / min / max)</h3><canvas id="hrRangeChart"></canvas></div>
-    <div class="card"><h3>VO2max trend</h3><canvas id="vo2Chart"></canvas></div>
+    ${reviewCard("recovery", "Recovery review", "HRV, resting HR and how you bounce back from hard days.")}
+    <div class="card"><h3>Resting heart rate &amp; HRV</h3><div class="chart-box"><canvas id="heartChart"></canvas></div><div data-guide="restingHeartRate,hrv"></div></div>
+    <div class="card"><h3>Heart rate range (avg / min / max)</h3><div class="chart-box"><canvas id="hrRangeChart"></canvas></div><div data-guide="heartRateAvg,walkingHeartRateAvg"></div></div>
+    <div class="card"><h3>VO2max trend</h3><div class="chart-box"><canvas id="vo2Chart"></canvas></div><div data-guide="vo2max"></div></div>
     <div class="card">
       <h3>Readiness, explained</h3>
       <div class="card-sub">HRV, resting HR, and sleep vs. <em>your</em> own 30-day baseline — never compared across people.</div>
+      <div data-guide="readiness,strain,respiratoryRate,oxygenSaturation"></div>
     </div>
   </section>
 
   <!-- ACTIVITY & MOBILITY -->
   <section class="section" id="tab-activity">
-    <div class="card"><h3>Steps</h3><canvas id="stepsChart"></canvas></div>
-    <div class="card"><h3>Active energy &amp; exercise minutes</h3><canvas id="energyChart"></canvas></div>
-    <div class="card"><h3>Stand minutes &amp; flights climbed</h3><canvas id="standChart"></canvas></div>
-    <div class="card"><h3>Walking speed &amp; gait quality</h3><div class="card-sub">Gait speed is one of the better-studied single predictors of healthy aging.</div><canvas id="gaitChart"></canvas></div>
-    <div class="card"><h3>Workouts</h3><canvas id="workoutChart"></canvas></div>
+    ${reviewCard("activity", "Activity review")}
+    <div class="card"><h3>Steps</h3><div class="chart-box"><canvas id="stepsChart"></canvas></div><div data-guide="steps"></div></div>
+    <div class="card"><h3>Active energy &amp; exercise minutes</h3><div class="chart-box"><canvas id="energyChart"></canvas></div><div data-guide="activeEnergy,exerciseMinutes"></div></div>
+    <div class="card"><h3>Stand minutes &amp; flights climbed</h3><div class="chart-box"><canvas id="standChart"></canvas></div><div data-guide="standHours,flightsClimbed"></div></div>
+    <div class="card"><h3>Walking speed &amp; gait quality</h3><div class="card-sub">Gait speed is one of the better-studied single predictors of healthy aging.</div><div class="chart-box"><canvas id="gaitChart"></canvas></div><div data-guide="walkingSpeed,walkingAsymmetryPct,walkingDoubleSupportPct"></div></div>
+    <div class="card"><h3>Workouts</h3><div class="chart-box"><canvas id="workoutChart"></canvas></div><div data-guide="workoutMinutes"></div></div>
     <div class="card">
       <h3>Recent sessions</h3>
       <div id="workoutList" class="card-sub">No workout sessions in the imported data yet.</div>
@@ -329,14 +415,16 @@ export function renderDashboard(): string {
 
   <!-- SLEEP -->
   <section class="section" id="tab-sleep">
-    <div class="card"><h3>Sleep duration</h3><canvas id="sleepChart"></canvas></div>
-    <div class="card"><h3>Sleep stages</h3><div class="card-sub">Core, deep, REM and awake time, where your export has stage-level detail.</div><canvas id="sleepStagesChart"></canvas></div>
-    <div class="card"><h3>Weight</h3><canvas id="weightChart"></canvas></div>
+    ${reviewCard("sleep", "Sleep review")}
+    <div class="card"><h3>Sleep duration</h3><div class="chart-box"><canvas id="sleepChart"></canvas></div><div data-guide="sleepHours,sleepEfficiency"></div></div>
+    <div class="card"><h3>Sleep stages</h3><div class="card-sub">Core, deep, REM and awake time, where your export has stage-level detail.</div><div class="chart-box"><canvas id="sleepStagesChart"></canvas></div><div data-guide="sleepDeepHours,sleepRemHours"></div></div>
+    <div class="card"><h3>Weight</h3><div class="chart-box"><canvas id="weightChart"></canvas></div><div data-guide="weightKg,bodyFatPct"></div></div>
   </section>
 
   <!-- BIOLOGICAL AGE -->
   <section class="section" id="tab-age">
-    <div class="card"><h3>Biological vs chronological age</h3><canvas id="ageChart"></canvas></div>
+    ${reviewCard("body", "Body & bio-age review", "Which marker is ageing you most, and what moves it.")}
+    <div class="card"><h3>Biological vs chronological age</h3><div class="chart-box"><canvas id="ageChart"></canvas></div><div data-guide="biologicalAge"></div></div>
     <div class="card">
       <h3>What's driving it</h3>
       <div class="card-sub">Closer to the left (younger) is better.</div>
@@ -459,12 +547,20 @@ function timeAgo(iso) {
   return Math.round(hr / 24) + 'd ago';
 }
 
+var reviewLoadedOnce = {};
+var appBooted = false;
+var TAB_REVIEWS = { overview: 'today', training: 'training', heart: 'recovery', activity: 'activity', sleep: 'sleep', age: 'body', discoveries: 'discoveries', ai: 'overview' };
 function showTab(id) {
   document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); });
   document.querySelectorAll('.tab').forEach(function (t) { t.classList.remove('active'); });
   document.getElementById('tab-' + id).classList.add('active');
   document.querySelector('.tab[data-tab="' + id + '"]').classList.add('active');
   try { localStorage.setItem('healthTab', id); } catch (e) {}
+
+  // AI reviews are slow on a cache miss (an LLM call), so each is loaded
+  // lazily on first visit to its tab rather than all at once in boot().
+  var domain = TAB_REVIEWS[id];
+  if (domain && appBooted && !reviewLoadedOnce[domain]) { reviewLoadedOnce[domain] = true; loadReview(domain, false); }
 }
 
 async function saveProfile(e) {
@@ -576,24 +672,47 @@ function trendArrow(curr, prev) {
   return { cls: up ? 'up' : 'down', text: (up ? '▲ ' : '▼ ') + Math.abs(pct).toFixed(0) + '%' };
 }
 
-function statTile(label, value, unit, trend, goodWhenUp) {
+function statTile(label, value, unit, trend, goodWhenUp, guideKey, guideValue) {
   var t = trend;
   var cls = t.cls;
   if (cls !== 'flat' && goodWhenUp === false) cls = (cls === 'up') ? 'down' : 'up';
   return '<div class="stat"><div class="label">' + label + '</div><div class="value">' + value + (unit ? '<span class="unit">' + unit + '</span>' : '') + '</div>' +
-    (t.text ? '<div class="trend ' + cls + '">' + t.text + ' vs last wk</div>' : '<div class="trend flat">—</div>') + '</div>';
+    (t.text ? '<div class="trend ' + cls + '">' + t.text + ' vs last wk</div>' : '<div class="trend flat">—</div>') +
+    (guideKey ? miniGuide(guideKey, guideValue) : '') + '</div>';
 }
 
 function renderQuickStats(today, trends) {
   var l7 = trends.last7, p7 = trends.prev7;
   var html = '';
-  html += statTile('Steps today', fmtCompact(today.steps), '', trendArrow(l7.steps, p7.steps), true);
-  html += statTile('Resting HR', fmt(today.restingHeartRate, 0), 'bpm', trendArrow(l7.restingHeartRate, p7.restingHeartRate), false);
-  html += statTile('HRV', fmt(today.hrv, 0), 'ms', trendArrow(l7.hrv, p7.hrv), true);
-  html += statTile('VO2max', fmt(l7.vo2max, 1), '', trendArrow(l7.vo2max, p7.vo2max), true);
-  html += statTile('Sleep', fmt(today.sleepHours, 1), 'hr', trendArrow(l7.sleepHours, p7.sleepHours), true);
-  html += statTile('Weight', fmt(today.weightKg, 1), 'kg', trendArrow(l7.weightKg, p7.weightKg), null);
+  html += statTile('Steps today', fmtCompact(today.steps), '', trendArrow(l7.steps, p7.steps), true, 'steps', l7.steps);
+  html += statTile('Resting HR', fmt(today.restingHeartRate, 0), 'bpm', trendArrow(l7.restingHeartRate, p7.restingHeartRate), false, 'restingHeartRate', l7.restingHeartRate);
+  html += statTile('HRV', fmt(today.hrv, 0), 'ms', trendArrow(l7.hrv, p7.hrv), true, 'hrv', l7.hrv);
+  html += statTile('VO2max', fmt(l7.vo2max, 1), '', trendArrow(l7.vo2max, p7.vo2max), true, 'vo2max', l7.vo2max);
+  html += statTile('Sleep', fmt(today.sleepHours, 1), 'hr', trendArrow(l7.sleepHours, p7.sleepHours), true, 'sleepHours', l7.sleepHours);
+  html += statTile('Weight', fmt(today.weightKg, 1), 'kg', trendArrow(l7.weightKg, p7.weightKg), null, 'weightKg', l7.weightKg);
   document.getElementById('quickStats').innerHTML = html;
+}
+
+// A concrete, actionable training-load readout: 7-day exercise volume and
+// workout frequency vs. the prior week, with a plain-language load status
+// instead of just raw numbers.
+function renderTrainingLoad(trends) {
+  var l7 = trends.last7, p7 = trends.prev7;
+  var exMin = l7.exerciseMinutes, prevExMin = p7.exerciseMinutes;
+  var html = '';
+  html += statTile('Exercise (7d avg/day)', fmtCompact(exMin), 'min', trendArrow(exMin, prevExMin), true, 'exerciseMinutes', exMin);
+  html += statTile('Active energy (7d avg)', fmtCompact(l7.activeEnergy), 'kcal', trendArrow(l7.activeEnergy, p7.activeEnergy), true, 'activeEnergy', l7.activeEnergy);
+  html += statTile('Steps (7d avg)', fmtCompact(l7.steps), '', trendArrow(l7.steps, p7.steps), true, 'steps', l7.steps);
+
+  var status = 'Not enough data';
+  if (exMin !== null && exMin !== undefined) {
+    if (exMin < 90) status = 'Low volume this week';
+    else if (prevExMin !== null && prevExMin !== undefined && exMin > prevExMin * 1.15) status = 'Building — up from last week';
+    else if (prevExMin !== null && prevExMin !== undefined && exMin < prevExMin * 0.85) status = 'Tapering — down from last week';
+    else status = 'Steady — holding last week\\'s volume';
+  }
+  html += '<div class="stat"><div class="label">Load status</div><div class="value" style="font-size:16px;">' + status + '</div></div>';
+  document.getElementById('trainingLoadStats').innerHTML = html;
 }
 
 function renderBests(bests) {
@@ -639,7 +758,9 @@ function renderExtraMetrics(days) {
   if (!latest) { el.innerHTML = '<p class="sub">Nothing extra captured yet — re-run Import once your export has more record types, or they\\'ll show up here automatically.</p>'; return; }
   var keys = Object.keys(latest.extra).sort();
   el.innerHTML = '<p class="sub" style="margin-bottom:10px;">As of ' + latest.date + ':</p><div class="extra-grid">' + keys.map(function (k) {
-    return '<div class="extra-tile"><div class="label">' + k.replace(/([A-Z])/g, ' $1').trim() + '</div><div class="value">' + fmt(latest.extra[k], 2) + '</div></div>';
+    var g = METRIC_GUIDE[k];
+    return '<div class="extra-tile"><div class="label">' + (g ? g.label : k.replace(/([A-Z])/g, ' $1').trim()) + '</div><div class="value">' + fmt(latest.extra[k], 2) + '</div>' +
+      (g ? miniGuide(k, latest.extra[k]) : '<div class="g-mini">Raw Apple Health reading — no interpretation available yet.</div>') + '</div>';
   }).join('') + '</div>';
 }
 
@@ -696,13 +817,129 @@ function renderMarkers(latest) {
   }).join('');
 }
 
-async function loadInsights(force) {
-  var btn = document.getElementById('aiRetryBtn');
-  var body = document.getElementById('aiBody');
+// ---------------- metric guide: meaning + what to do ----------------
+// Data from src/metricGuide.ts, serialised at render time so the copy lives
+// in one (tested) place.
+var METRIC_GUIDE = ${JSON.stringify(METRIC_GUIDE)};
+var GUIDE_VALUES = {}; // values not on daily rows (readiness, strain, bio-age delta)
+var GUIDE_DAYS = [];
+var PCT_KEYS = { oxygenSaturation: 1, walkingAsymmetryPct: 1, walkingDoubleSupportPct: 1, sleepEfficiency: 1 };
+
+function guideFor(key, v) {
+  var e = METRIC_GUIDE[key];
+  if (!e) return null;
+  if (typeof v === 'number' && !Number.isNaN(v)) {
+    for (var i = 0; i < e.rules.length; i++) {
+      var r = e.rules[i];
+      var hit = r.op === '<' ? v < r.value : r.op === '<=' ? v <= r.value : r.op === '>' ? v > r.value : v >= r.value;
+      if (hit) return { meaning: e.meaning, status: r.status, action: r.action };
+    }
+  }
+  return { meaning: e.meaning, status: null, action: e.fallback };
+}
+
+// 7-day mean of a field (or extra[field]) — what "your current value" means
+// for a chart card, smoothing over a single odd day.
+function recentValue(key) {
+  if (GUIDE_VALUES[key] !== undefined) return GUIDE_VALUES[key];
+  var vals = GUIDE_DAYS.slice(-7).map(function (d) { return d[key] !== undefined ? d[key] : (d.extra ? d.extra[key] : undefined); })
+    .filter(function (v) { return typeof v === 'number'; });
+  return vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null;
+}
+
+function fmtGuideValue(key, v) {
+  if (v === null || v === undefined) return '—';
+  if (PCT_KEYS[key]) return (v * 100).toFixed(1) + '%';
+  if (key === 'biologicalAge') return (v > 0 ? '+' : '') + v.toFixed(1) + ' yrs vs actual';
+  return Math.abs(v) >= 100 ? Math.round(v).toLocaleString() : (Math.round(v * 10) / 10).toString();
+}
+
+function guideBlock(key) {
+  var e = METRIC_GUIDE[key];
+  if (!e) return '';
+  var v = recentValue(key);
+  var g = guideFor(key, v);
+  var valLabel = GUIDE_VALUES[key] !== undefined ? 'now' : '7d avg';
+  return '<div class="guide"><div><span class="g-name">' + e.label + '</span>' +
+    (v !== null ? '<span class="g-val">' + fmtGuideValue(key, v) + '</span> <span class="faint">' + valLabel + '</span>' : '') + '</div>' +
+    '<div class="g-mean">' + g.meaning + '</div>' +
+    (g.action ? '<div class="g-act s-' + (g.status || 'ok') + '">' + g.action + '</div>' : '') + '</div>';
+}
+
+function miniGuide(key, v) {
+  var g = guideFor(key, v);
+  if (!g) return '';
+  return '<div class="g-mini">' + g.meaning.split('. ')[0].replace(/\\.$/, '') + '. <b>→ ' + g.action + '</b></div>';
+}
+
+function fillGuides() {
+  document.querySelectorAll('[data-guide]').forEach(function (el) {
+    el.innerHTML = el.getAttribute('data-guide').split(',').map(guideBlock).join('');
+  });
+  var hero = document.getElementById('heroGuide');
+  if (hero) hero.innerHTML = ['readiness', 'strain', 'biologicalAge'].filter(function (k) { return GUIDE_VALUES[k] !== undefined && GUIDE_VALUES[k] !== null; })
+    .map(guideBlock).join('');
+}
+
+// ---------------- training & fitness ----------------
+function renderActionItems(elId, items, limit) {
+  var el = document.getElementById(elId);
+  if (!el) return;
+  if (!items || items.length === 0) { el.innerHTML = '<li class="sub">Nothing flagged — keep the current plan.</li>'; return; }
+  el.innerHTML = items.slice(0, limit || items.length).map(function (a) {
+    return '<li><span class="prio ' + a.priority + '">' + a.priority + '</span><div><div class="a-text">' + a.text + '</div><div class="a-why">' + a.area + ' · ' + a.why + '</div></div></li>';
+  }).join('');
+}
+
+function renderFitnessMetrics(metrics) {
+  var el = document.getElementById('fitnessMetrics');
+  if (!metrics.length) { el.innerHTML = '<p class="sub">Not enough data yet.</p>'; return; }
+  el.innerHTML = metrics.map(function (m) {
+    return '<div class="fit ' + m.status + '"><div class="label">' + m.label + '</div><div class="value">' + m.display + '</div>' +
+      '<div class="meaning">' + m.meaning + '</div><div class="act">' + m.action + '</div></div>';
+  }).join('');
+}
+
+function renderWeekly(weeks) {
+  var el = document.getElementById('weeklyTable');
+  if (!weeks.length) { el.innerHTML = '<p class="sub">No data yet.</p>'; return; }
+  el.innerHTML = '<table class="simple-table"><thead><tr class="faint"><td>Week of</td><td>Active days</td><td>Exercise</td><td>Workouts</td><td>Distance</td><td>Load</td></tr></thead><tbody>' +
+    weeks.slice().reverse().map(function (w) {
+      return '<tr><td>' + w.weekStart + '</td><td>' + w.activeDays + '/7</td><td>' + w.exerciseMinutes + ' min</td><td>' + w.workouts + '</td><td>' + w.distanceKm + ' km</td><td>' + w.load + '</td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+async function loadFitness() {
+  try {
+    var f = await authedFetch('/api/fitness');
+    renderActionItems('overviewActions', f.actionItems, 4);
+    renderActionItems('trainingActions', f.actionItems);
+    renderFitnessMetrics(f.metrics || []);
+    renderWeekly(f.weekly || []);
+    var s = f.loadSeries || [];
+    upsertChart('loadChart', { type: 'bar', data: { labels: s.map(function (p) { return p.date; }), datasets: [
+      { type: 'bar', label: 'Daily load', data: s.map(function (p) { return p.load; }), backgroundColor: '#ffffff22', order: 3 },
+      { type: 'line', label: 'Fitness', data: s.map(function (p) { return p.fitness; }), borderColor: '#b4ff39', pointRadius: 0, borderWidth: 2, tension: .3, order: 1 },
+      { type: 'line', label: 'Fatigue', data: s.map(function (p) { return p.fatigue; }), borderColor: '#f76b4d', pointRadius: 0, borderWidth: 1.5, tension: .3, order: 1 },
+      { type: 'line', label: 'Form', data: s.map(function (p) { return p.form; }), borderColor: '#60a5fa', borderDash: [4, 4], pointRadius: 0, borderWidth: 1.5, tension: .3, order: 1 },
+    ]}});
+  } catch (err) {
+    ['overviewActions', 'trainingActions'].forEach(function (id) { var el = document.getElementById(id); if (el) el.innerHTML = '<li class="sub">Could not load (' + err.message + ').</li>'; });
+  }
+}
+
+// Generic AI review loader — same KV-cached-for-an-hour-with-retry
+// architecture for every domain (overview/training/sleep/...); only the
+// domain query param and the target DOM ids change per call site.
+async function loadReview(domain, force) {
+  var btn = document.getElementById('review-' + domain + '-btn');
+  var body = document.getElementById('review-' + domain);
+  if (!btn || !body) return;
+  reviewLoadedOnce[domain] = true;
   btn.disabled = true;
   if (force) body.innerHTML = '<div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:90%"></div><div class="skeleton" style="width:55%"></div>';
   try {
-    var res = await authedFetch('/api/insights' + (force ? '?force=1' : ''));
+    var res = await authedFetch('/api/insights?domain=' + domain + (force ? '&force=1' : ''));
     var ins = res.insights;
     var html = '<div class="ai-headline">' + ins.headline + '</div>';
     html += '<ul class="ai-list">' + ins.insights.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
@@ -715,12 +952,18 @@ async function loadInsights(force) {
     html += '<div class="ai-meta">' + (res.cached ? 'Cached · generated ' + timeAgo(res.generatedAt) : 'Freshly generated') + '</div>';
     body.innerHTML = html;
   } catch (err) {
-    body.innerHTML = '<p class="sub">Couldn\\'t load AI insights (' + err.message + ').</p>';
+    body.innerHTML = '<p class="sub">Couldn\\'t load this review (' + err.message + ').</p>';
   } finally {
     btn.disabled = false;
   }
 }
 
+function loadInsights(force) { return loadReview('overview', force); }
+
+// The Overview tab gets a compact version of the same overview-domain
+// review (headline + top action items only, no retry button of its own)
+// so "how am I doing + what should I do" is visible without switching to
+// the AI Analyst tab. Same cache entry as loadInsights — no extra LLM cost.
 async function askHealthQuestion(evt) {
   evt.preventDefault();
   var input = document.getElementById('askInput');
@@ -869,9 +1112,14 @@ async function boot() {
 
   document.getElementById('lastUpdated').textContent = days.length ? ('Synced ' + days[days.length - 1].date) : 'No data yet';
 
+  GUIDE_DAYS = days;
+  GUIDE_VALUES = { readiness: trends.readinessScore, strain: trends.todayStrain, biologicalAge: latestAnalytics ? latestAnalytics.deltaYears : null };
+  Object.keys(GUIDE_VALUES).forEach(function (k) { if (GUIDE_VALUES[k] === null || GUIDE_VALUES[k] === undefined) delete GUIDE_VALUES[k]; });
+  fillGuides();
   renderBioHero(latestAnalytics, days);
   renderMarkers(latestAnalytics);
   renderQuickStats(today, trends);
+  renderTrainingLoad(trends);
   renderBests(trends.bests);
   renderReadiness(trends.readinessScore);
   renderStrain(trends.todayStrain);
@@ -881,9 +1129,10 @@ async function boot() {
 
   var savedTab = null;
   try { savedTab = localStorage.getItem('healthTab'); } catch (e) {}
-  if (savedTab) showTab(savedTab);
+  appBooted = true;
+  showTab(savedTab && document.getElementById('tab-' + savedTab) ? savedTab : 'overview');
 
-  loadInsights(false);
+  loadFitness();
   loadDataQuality();
   loadDiscoveries();
   loadReport('week');
@@ -1035,7 +1284,10 @@ function renderBaselines(list) {
   el.innerHTML = '<table class="simple-table"><tbody>' + list.map(function (b) {
     var z = b.zScore !== undefined ? (b.zScore > 0 ? '+' : '') + b.zScore.toFixed(1) + 'σ' : '—';
     var insufficient = !b.sufficient ? ' <span class="sub">(limited history)</span>' : '';
-    return '<tr><td>' + b.metric + '</td><td>' + b.mean + '</td><td>' + arrows[b.trend] + '</td><td>' + z + insufficient + '</td></tr>';
+    var g = guideFor(b.metric, b.mean);
+    var name = g ? METRIC_GUIDE[b.metric].label : b.metric;
+    return '<tr title="' + (g ? g.meaning.replace(/"/g, '&quot;') : '') + '"><td>' + name + '</td><td>' + b.mean + '</td><td>' + arrows[b.trend] + '</td><td>' + z + insufficient + '</td>' +
+      '<td style="font-family:var(--sans);font-weight:400;color:var(--dim);font-size:12px;">' + (g ? g.action : '') + '</td></tr>';
   }).join('') + '</tbody></table>';
 }
 

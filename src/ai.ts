@@ -10,7 +10,7 @@ export interface AiInsights {
   recommendations: string[];
 }
 
-interface GatewayMessage {
+export interface GatewayMessage {
   role: "system" | "user";
   content: string;
 }
@@ -22,7 +22,7 @@ interface GatewayMessage {
  * even after the gateway's own internal retries — a retry from here
  * usually lands on a different, better-behaved model.
  */
-async function callGateway(env: Env, messages: GatewayMessage[], expectKey: string, maxTokens: number): Promise<Record<string, unknown>> {
+export async function callGateway(env: Env, messages: GatewayMessage[], expectKey: string, maxTokens: number): Promise<Record<string, unknown>> {
   let res: Response | undefined;
   let lastError = "";
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -44,15 +44,21 @@ async function callGateway(env: Env, messages: GatewayMessage[], expectKey: stri
   return body.data;
 }
 
-const SYSTEM_PROMPT =
+// Every domain review (overview, training, sleep, ...) shares this voice
+// and output shape — only the "focus" clause changes what the model is
+// asked to pay attention to within the same full snapshot.
+const BASE_VOICE =
   "You write like a terse, elite performance analyst briefing an athlete they respect — think a Bloomberg " +
   "terminal note, not a wellness app notification. You are given a JSON snapshot of one person's own Apple " +
   "Health data: their biological-age estimate, trailing 7/30-day averages vs the prior week, personal bests, " +
-  "and a recovery/readiness score. Every number you cite must come from the snapshot — never invent one. " +
+  "a recovery/readiness score, and domain-specific metrics computed in code (training load, action items, recent " +
+  "daily rows, correlations — whatever this review is about). Every number you cite must come from the snapshot — never invent one. " +
   "Lead every line with the number and the delta, not a mood. Banned, under any circumstance: \"crushed it\", " +
   "\"great job\", \"keep it up\", \"amazing\", \"way to go\", exclamation points, any sentence whose first " +
   "clause is praise rather than data, and any generic filler that would still be true if you deleted the " +
-  "specific numbers. If a sentence could appear in a form-letter wellness app, rewrite it or cut it. " +
+  "specific numbers. If a sentence could appear in a form-letter wellness app, rewrite it or cut it.";
+
+const OUTPUT_SHAPE =
   'Reply with ONLY a JSON object of this exact shape: {"headline": string, "insights": string[], ' +
   '"concerns": string[], "recommendations": string[]}. ' +
   '"headline" is one sentence: the single most decision-relevant fact right now, numbers first. ' +
@@ -62,6 +68,39 @@ const SYSTEM_PROMPT =
   "outlier, low recovery) — leave this empty if nothing stands out, never manufacture concern. " +
   '"recommendations" is 1-3 concrete, specific, achievable next actions grounded in the data (not generic ' +
   'advice like "eat healthy"). Never give medical diagnoses or claim this is medical advice.';
+
+export type ReviewDomain = "overview" | "today" | "training" | "recovery" | "activity" | "sleep" | "body" | "discoveries";
+
+export const REVIEW_DOMAINS: ReviewDomain[] = ["overview", "today", "training", "recovery", "activity", "sleep", "body", "discoveries"];
+
+const DOMAIN_FOCUS: Record<ReviewDomain, string> = {
+  overview: "overall health trends across recovery, activity, and sleep — whatever in the snapshot matters most right now",
+  today:
+    "TODAY only: should this person train hard, train moderately, or recover today, and why — combine readiness, form (TSB), " +
+    "HRV/resting-HR vs baseline, last night's sleep and recent load. The headline must be the call for today. Recommendations " +
+    "are a concrete plan for today (session type, duration/intensity, bedtime) — draw on the fitness.actionItems list",
+  training:
+    "training: load (acute:chronic ratio, fitness/fatigue/form), consistency (active days, weekly minutes vs 150), workout " +
+    "frequency/types/volume per week, monotony, and whether load is outpacing recovery or there's room to push. Recommendations " +
+    "must be a concrete training prescription for the next 7 days (sessions, durations, intensities), tied to the person's goals if given",
+  recovery:
+    "recovery and heart: HRV vs 60-day baseline, resting HR drift, readiness, walking HR, respiratory rate, and how recovery " +
+    "responds to the days of high strain/load in the series. Flag patterns (e.g. HRV dips after hard days). Recommendations are " +
+    "recovery actions (easy days, sleep timing, deload) with specific triggers",
+  activity:
+    "daily activity and mobility: steps, exercise minutes vs WHO 150/week, Activity Ring completion vs goals, stand hours, " +
+    "walking speed/asymmetry/double support (gait as an aging marker). Recommendations are specific habit changes with numbers " +
+    "(e.g. steps to add, when)",
+  sleep:
+    "sleep duration, consistency night to night, stages where available, sleep debt vs the target, and sleep's relationship to " +
+    "next-day recovery (HRV/RHR). If there's little or no sleep data, say so plainly in the headline and recommend how to start tracking it",
+  body:
+    "biological age and body composition: which biological-age marker is oldest (the biggest lever), the bio-age trend, VO2max " +
+    "category for age, weight/BMI/body-fat trend. Recommendations target the single oldest marker first",
+  discoveries:
+    "the correlations and anomalies found in this person's data: explain what each meaningful correlation suggests in plain " +
+    "terms (always as correlation, never causation), which anomalies matter, and propose 1-3 self-experiments to test them",
+};
 
 function buildSnapshot(days: DailyMetrics[], trends: Trends, bioAge: BiologicalAgeResult | null) {
   const latest = days[days.length - 1];
@@ -77,23 +116,32 @@ function buildSnapshot(days: DailyMetrics[], trends: Trends, bioAge: BiologicalA
   };
 }
 
-export async function generateInsights(
+/**
+ * One AI review for one domain. Every domain shares the voice and output
+ * shape; `context` carries the domain-specific, code-computed numbers
+ * (fitness report, recent daily rows, correlations...) layered on top of
+ * the common snapshot. The model never computes — it narrates these.
+ */
+export async function generateReview(
   env: Env,
+  domain: ReviewDomain,
   days: DailyMetrics[],
   trends: Trends,
-  bioAge: BiologicalAgeResult | null
+  bioAge: BiologicalAgeResult | null,
+  context: Record<string, unknown> = {}
 ): Promise<AiInsights> {
-  const snapshot = buildSnapshot(days, trends, bioAge);
+  const snapshot = { ...buildSnapshot(days, trends, bioAge), ...context };
+  const systemPrompt = `${BASE_VOICE} Focus specifically on ${DOMAIN_FOCUS[domain]} — mention other metrics only as supporting context. ${OUTPUT_SHAPE}`;
   const messages: GatewayMessage[] = [
-    { role: "system", content: SYSTEM_PROMPT },
-    { role: "user", content: `Snapshot:\n${JSON.stringify(snapshot, null, 2)}` },
+    { role: "system", content: systemPrompt },
+    { role: "user", content: `Snapshot:\n${JSON.stringify(snapshot)}` },
   ];
 
-  const data = await callGateway(env, messages, "headline", 700);
+  const data = await callGateway(env, messages, "headline", 900);
   return parseInsights(data);
 }
 
-function parseInsights(data: Record<string, unknown>): AiInsights {
+export function parseInsights(data: Record<string, unknown>): AiInsights {
   const headline = typeof data.headline === "string" ? data.headline.trim() : "";
   const insights = toStringArray(data.insights);
   const concerns = toStringArray(data.concerns);
