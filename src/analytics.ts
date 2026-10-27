@@ -17,7 +17,7 @@ import type { BiologicalAgeResult, DailyMetrics, MarkerAgeResult, UserProfile } 
 type Curve = [age: number, value: number][];
 
 interface AgeCurveMarker {
-  field: "restingHeartRate" | "hrv" | "vo2max" | "bodyFatPct";
+  field: "restingHeartRate" | "hrv" | "vo2max" | "bodyFatPct" | "walkingSpeed";
   label: string;
   weight: number;
   curve: Curve; // sorted ascending by age
@@ -83,12 +83,29 @@ const BODYFAT_CURVE_FEMALE: Curve = [
   [80, 32],
 ];
 
+// Gait (walking) speed is one of the better-replicated single predictors of
+// healthy aging in the geriatrics literature (e.g. Studenski et al. 2011,
+// "Gait speed and survival in older adults") — faster self-paced walking
+// speed tracks with younger physiological age. Figures here are a rough,
+// unisex approximation of normal-population comfortable walking speed by
+// age decade, in m/s.
+const WALKING_SPEED_CURVE: Curve = [
+  [20, 1.45],
+  [30, 1.42],
+  [40, 1.38],
+  [50, 1.32],
+  [60, 1.22],
+  [70, 1.07],
+  [80, 0.86],
+];
+
 function markersForSex(sex: "male" | "female"): AgeCurveMarker[] {
   return [
-    { field: "vo2max", label: "VO2max (cardio fitness)", weight: 0.35, curve: sex === "male" ? VO2MAX_CURVE_MALE : VO2MAX_CURVE_FEMALE },
-    { field: "hrv", label: "Heart rate variability", weight: 0.25, curve: HRV_CURVE },
-    { field: "restingHeartRate", label: "Resting heart rate", weight: 0.2, curve: RHR_CURVE },
-    { field: "bodyFatPct", label: "Body fat %", weight: 0.2, curve: sex === "male" ? BODYFAT_CURVE_MALE : BODYFAT_CURVE_FEMALE },
+    { field: "vo2max", label: "VO2max (cardio fitness)", weight: 0.3, curve: sex === "male" ? VO2MAX_CURVE_MALE : VO2MAX_CURVE_FEMALE },
+    { field: "walkingSpeed", label: "Walking speed (gait)", weight: 0.2, curve: WALKING_SPEED_CURVE },
+    { field: "hrv", label: "Heart rate variability", weight: 0.2, curve: HRV_CURVE },
+    { field: "restingHeartRate", label: "Resting heart rate", weight: 0.15, curve: RHR_CURVE },
+    { field: "bodyFatPct", label: "Body fat %", weight: 0.15, curve: sex === "male" ? BODYFAT_CURVE_MALE : BODYFAT_CURVE_FEMALE },
   ];
 }
 

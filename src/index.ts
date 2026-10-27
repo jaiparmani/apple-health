@@ -2,6 +2,8 @@ import type { BiologicalAgeResult, DailyMetrics, Env, UserProfile } from "./type
 import { bulkCommit, getJson, putJson, type BulkFile } from "./github";
 import { mergeDaily, normalizePayload } from "./normalize";
 import { estimateBiologicalAge } from "./analytics";
+import { computeTrends } from "./trends";
+import { generateInsights, type AiInsights } from "./ai";
 import { renderDashboard } from "./dashboard";
 
 const SERIES_PATH = "data/series.json";
@@ -11,6 +13,8 @@ const LATEST_PATH = "data/analytics/latest.json";
 const MAX_SERIES_DAYS = 4000; // ~11 years, enough headroom for a full Apple Health export backfill
 const MAX_HISTORY_ENTRIES = 4000;
 const ANALYTICS_WINDOW_DAYS = 7;
+const INSIGHTS_CACHE_KEY = "insights:v1";
+const INSIGHTS_CACHE_TTL_SECONDS = 60 * 60; // 1 hour
 
 function unauthorized(): Response {
   return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
@@ -159,6 +163,49 @@ async function handleGetAnalytics(req: Request, env: Env): Promise<Response> {
   return json({ profileSet: !!profile, latest, history: history?.entries ?? [] });
 }
 
+async function handleGetTrends(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const days = seriesData?.days ?? [];
+  return json(computeTrends(days));
+}
+
+interface InsightsCacheEntry {
+  generatedAt: string;
+  insights: AiInsights;
+}
+
+/**
+ * AI-generated narrative insights, cached in KV for an hour so the dashboard
+ * doesn't pay for (or wait on) an LLM call on every reload. `?force=1` (the
+ * dashboard's Retry button) bypasses the cache and regenerates immediately.
+ */
+async function handleGetInsights(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const force = new URL(req.url).searchParams.get("force") === "1";
+
+  if (!force) {
+    const cached = await env.INSIGHTS_CACHE.get<InsightsCacheEntry>(INSIGHTS_CACHE_KEY, "json");
+    if (cached) return json({ ...cached, cached: true });
+  }
+
+  const [{ data: seriesData }, { data: profile }, { data: latest }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<UserProfile>(env, PROFILE_PATH),
+    getJson<BiologicalAgeResult>(env, LATEST_PATH),
+  ]);
+  const days = seriesData?.days ?? [];
+  if (days.length === 0) return json({ error: "no data yet" }, 400);
+  if (!env.LLM_GATEWAY_URL || !env.LLM_GATEWAY_TOKEN) return json({ error: "AI insights not configured" }, 503);
+
+  const trends = computeTrends(days);
+  const insights = await generateInsights(env, days, trends, profile ? latest : null);
+  const entry: InsightsCacheEntry = { generatedAt: new Date().toISOString(), insights };
+  await env.INSIGHTS_CACHE.put(INSIGHTS_CACHE_KEY, JSON.stringify(entry), { expirationTtl: INSIGHTS_CACHE_TTL_SECONDS });
+
+  return json({ ...entry, cached: false });
+}
+
 async function handlePutProfile(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   let body: Partial<UserProfile>;
@@ -188,6 +235,8 @@ export default {
       if (req.method === "POST" && url.pathname === "/import-bulk") return await handleImportBulk(req, env);
       if (req.method === "GET" && url.pathname === "/api/series") return await handleGetSeries(req, env);
       if (req.method === "GET" && url.pathname === "/api/analytics") return await handleGetAnalytics(req, env);
+      if (req.method === "GET" && url.pathname === "/api/trends") return await handleGetTrends(req, env);
+      if (req.method === "GET" && url.pathname === "/api/insights") return await handleGetInsights(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
       if (req.method === "GET" && url.pathname === "/") {
         return new Response(renderDashboard(), { headers: { "Content-Type": "text/html; charset=utf-8" } });

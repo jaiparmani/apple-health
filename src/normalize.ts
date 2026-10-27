@@ -5,11 +5,29 @@ import type { DailyMetrics } from "./types";
 // than requiring an exact schema from the Shortcut author.
 const ALIASES: Record<keyof Omit<DailyMetrics, "date" | "receivedAt" | "source">, string[]> = {
   restingHeartRate: ["restingheartrate", "resting_heart_rate", "rhr"],
+  heartRateAvg: ["heartrateavg", "heart_rate_avg", "avgheartrate", "heartrate"],
+  heartRateMin: ["heartratemin", "heart_rate_min", "minheartrate"],
+  heartRateMax: ["heartratemax", "heart_rate_max", "maxheartrate"],
+  walkingHeartRateAvg: ["walkingheartrateaverage", "walking_heart_rate_avg", "walkingheartrate"],
   hrv: ["hrv", "heartratevariability", "heart_rate_variability", "hrvsdnn"],
+  respiratoryRate: ["respiratoryrate", "respiratory_rate"],
+  oxygenSaturation: ["oxygensaturation", "oxygen_saturation", "spo2", "bloodoxygen"],
+  bodyTemperature: ["bodytemperature", "body_temperature", "temperature"],
   vo2max: ["vo2max", "vo2_max", "cardiofitness"],
   steps: ["steps", "stepcount", "step_count"],
   activeEnergy: ["activeenergy", "active_energy", "activeenergyburned", "calories"],
+  basalEnergy: ["basalenergy", "basal_energy", "basalenergyburned", "restingcalories"],
   exerciseMinutes: ["exerciseminutes", "exercise_minutes", "exercisetime"],
+  standMinutes: ["standminutes", "stand_minutes", "standtime", "applestandtime"],
+  flightsClimbed: ["flightsclimbed", "flights_climbed"],
+  distanceKm: ["distancekm", "distance_km", "distancewalkingrunning", "distance"],
+  distanceCyclingKm: ["distancecyclingkm", "distance_cycling_km", "distancecycling"],
+  daylightMinutes: ["daylightminutes", "daylight_minutes", "timeindaylight"],
+  mindfulMinutes: ["mindfulminutes", "mindful_minutes", "mindfulsession"],
+  walkingSpeed: ["walkingspeed", "walking_speed"],
+  walkingStepLength: ["walkingsteplength", "walking_step_length"],
+  walkingAsymmetryPct: ["walkingasymmetrypct", "walking_asymmetry_pct", "walkingasymmetrypercentage"],
+  walkingDoubleSupportPct: ["walkingdoublesupportpct", "walking_double_support_pct", "walkingdoublesupportpercentage"],
   sleepHours: ["sleephours", "sleep_hours", "sleepduration", "timeasleep"],
   sleepEfficiency: ["sleepefficiency", "sleep_efficiency"],
   weightKg: ["weightkg", "weight_kg", "bodymass", "weight"],
@@ -17,9 +35,6 @@ const ALIASES: Record<keyof Omit<DailyMetrics, "date" | "receivedAt" | "source">
   bloodPressureSystolic: ["bloodpressuresystolic", "systolic", "bpsystolic"],
   bloodPressureDiastolic: ["bloodpressurediastolic", "diastolic", "bpdiastolic"],
   bloodGlucose: ["bloodglucose", "blood_glucose", "glucose"],
-  respiratoryRate: ["respiratoryrate", "respiratory_rate"],
-  oxygenSaturation: ["oxygensaturation", "oxygen_saturation", "spo2", "bloodoxygen"],
-  bodyTemperature: ["bodytemperature", "body_temperature", "temperature"],
 };
 
 function toNumber(v: unknown): number | undefined {
@@ -67,6 +82,12 @@ export function normalizePayload(raw: unknown, source?: string): DailyMetrics {
   }
   if (metrics.oxygenSaturation !== undefined && metrics.oxygenSaturation > 1) {
     metrics.oxygenSaturation = metrics.oxygenSaturation / 100;
+  }
+  if (metrics.walkingAsymmetryPct !== undefined && metrics.walkingAsymmetryPct > 1) {
+    metrics.walkingAsymmetryPct = metrics.walkingAsymmetryPct / 100;
+  }
+  if (metrics.walkingDoubleSupportPct !== undefined && metrics.walkingDoubleSupportPct > 1) {
+    metrics.walkingDoubleSupportPct = metrics.walkingDoubleSupportPct / 100;
   }
 
   return metrics;

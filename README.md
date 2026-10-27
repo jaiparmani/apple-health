@@ -1,10 +1,11 @@
 # apple-health
 
 A Cloudflare Worker that:
-1. Exposes a `POST /ingest` API for an Apple Shortcut to push Health data to.
+1. Exposes a `POST /ingest` API for an Apple Shortcut to push Health data to, and a browser-side **Import Apple Health export** flow that unzips and parses a full `export.xml` client-side (no server ever sees the raw file).
 2. Stores every reading as JSON directly in this GitHub repo (no database — git is the datastore, so you get a free audit trail and history).
-3. Computes a running **biological age estimate** from the data (resting heart rate, HRV, VO2max, body fat %, sleep, steps).
-4. Serves a dashboard (`GET /`) with charts and the biological-age trend.
+3. Computes a running **biological age estimate** (resting heart rate, HRV, VO2max, gait speed, body fat %), a **readiness score**, weekly trends, and personal bests from ~25 tracked metrics (heart rate range, activity, mobility/gait, sleep, body).
+4. Generates **AI narrative insights** via [llm-gateway](../llm-gateway), cached for an hour so reloads are instant, with a manual retry.
+5. Serves a tabbed dashboard (`GET /`) — Overview, Heart & Recovery, Activity & Mobility, Sleep, Biological Age, Import & Settings.
 
 > The biological-age number is a transparent heuristic for tracking your *own* trend over time, built from commonly cited population-average curves (ACSM VO2max norms, HRV-by-decade references, general RHR/body-fat ranges). It is **not** a clinical or diagnostic measurement (unlike validated epigenetic clocks such as PhenoAge/GrimAge) and shouldn't be used to compare across people. See `src/analytics.ts` for the exact math.
 
@@ -26,9 +27,12 @@ data/
 cd apple-health
 npm install
 npx wrangler login                 # authorize Wrangler against your Cloudflare account
-npx wrangler secret put INGEST_TOKEN   # pick a long random string — this is your shared app secret
-npx wrangler secret put GITHUB_TOKEN   # a GitHub PAT with contents read/write on this repo
+npx wrangler secret put INGEST_TOKEN      # pick a long random string — this is your shared app secret
+npx wrangler secret put GITHUB_TOKEN      # a GitHub PAT with contents read/write on this repo
+npx wrangler secret put LLM_GATEWAY_TOKEN # client token from llm-gateway, for AI insights (optional)
 ```
+
+AI insights need a KV namespace for the 1-hour cache (already provisioned in `wrangler.toml` as `INSIGHTS_CACHE` — create your own with `npx wrangler kv namespace create INSIGHTS_CACHE` and swap the id if you fork this).
 
 Generate a token for `INGEST_TOKEN`, e.g.:
 
@@ -76,8 +80,11 @@ Create a Shortcut that runs on a schedule (e.g. daily via Automations) or manual
 All endpoints except `GET /` require `Authorization: Bearer <INGEST_TOKEN>`.
 
 - `POST /ingest?source=shortcut` — body: flexible JSON dict of metrics (see aliases above). Merges into today's (or `date` field's) record, re-syncs to GitHub, recomputes analytics.
+- `POST /import-bulk` — body: `{ days: [...] }`, an array of daily metric dicts. Used by the dashboard's zip-import flow; merges and bulk-commits everything in one git commit.
 - `GET /api/series` — the rolling daily metrics window used by the dashboard.
 - `GET /api/analytics` — `{ profileSet, latest, history }`.
+- `GET /api/trends` — 7/30-day averages vs. the prior week, personal bests, step-goal streak, and today's readiness score.
+- `GET /api/insights` — AI-generated `{ headline, insights, concerns, recommendations }` via llm-gateway, cached 1 hour in KV. `?force=1` bypasses the cache (the dashboard's Retry button).
 - `PUT /api/profile` — body: `{ birthDate: "YYYY-MM-DD", sex: "male"|"female", heightCm?: number }`.
 
 ## Local development

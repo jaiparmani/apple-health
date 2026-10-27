@@ -6,7 +6,13 @@ compatibility_date = "2024-11-01"
 GITHUB_OWNER = "jaiparmani"
 GITHUB_REPO = "apple-health"
 GITHUB_DATA_BRANCH = "main"
+LLM_GATEWAY_URL = "https://llm-gateway.brain-store.workers.dev"
+
+[[kv_namespaces]]
+binding = "INSIGHTS_CACHE"
+id = "6814485a982543cfbf487dcadd4478d4"
 
 # Secrets (set via `wrangler secret put <NAME>`, never committed):
-#   INGEST_TOKEN   - bearer token the Apple Shortcut must send
-#   GITHUB_TOKEN   - PAT with repo contents read/write on jaiparmani/apple-health
+#   INGEST_TOKEN      - bearer token the Apple Shortcut must send
+#   GITHUB_TOKEN      - PAT with repo contents read/write on jaiparmani/apple-health
+#   LLM_GATEWAY_TOKEN - client token issued by llm-gateway for the AI insights feature
