@@ -224,6 +224,17 @@ export function renderDashboard(): string {
       </form>
       <div id="askBody"></div>
     </div>
+
+    <div class="card ai-card">
+      <h3>✦ Chart this for me</h3>
+      <div class="card-sub">Picks a chart type, 1-3 metrics, and a date range from the same fixed menu — the app queries and renders the real data, the model never supplies a data point.</div>
+      <form class="profile-form" onsubmit="askForChart(event)" style="margin-bottom:10px;">
+        <input id="chartInput" type="text" placeholder="e.g. Chart my steps and sleep over the last 60 days" style="flex:1;" />
+        <button type="submit" class="btn btn-sm" id="chartAskBtn">Chart</button>
+      </form>
+      <div id="chartAskStatus" class="sub"></div>
+      <canvas id="aiChartCanvas" style="display:none;"></canvas>
+    </div>
   </section>
 
   <!-- DISCOVERIES -->
@@ -644,6 +655,35 @@ async function askHealthQuestion(evt) {
     body.innerHTML = '<div class="ai-headline">' + res.answer + '</div><div class="ai-meta">' + meta + '</div>';
   } catch (err) {
     body.innerHTML = '<p class="sub">Couldn\\'t answer that (' + err.message + ').</p>';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+var AI_CHART_COLORS = ['#64d2ff', '#ff9f0a', '#30d158'];
+
+async function askForChart(evt) {
+  evt.preventDefault();
+  var input = document.getElementById('chartInput');
+  var question = input.value.trim();
+  if (!question) return;
+  var btn = document.getElementById('chartAskBtn');
+  var status = document.getElementById('chartAskStatus');
+  var canvas = document.getElementById('aiChartCanvas');
+  btn.disabled = true;
+  status.textContent = 'Thinking…';
+  try {
+    var res = await authedFetch('/api/chart', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: question }) });
+    var chart = res.chart;
+    var spec = chart.spec;
+    canvas.style.display = 'block';
+    upsertChart('aiChartCanvas', { type: spec.type, data: { labels: chart.labels, datasets: chart.series.map(function (s, i) {
+      return { label: s.metric, data: s.values, borderColor: AI_CHART_COLORS[i % AI_CHART_COLORS.length], backgroundColor: AI_CHART_COLORS[i % AI_CHART_COLORS.length] + '99', tension: .3, pointRadius: 0, borderWidth: 1.5, spanGaps: true };
+    }) } });
+    status.textContent = spec.title + ' — ' + spec.startDate + ' to ' + spec.endDate;
+  } catch (err) {
+    canvas.style.display = 'none';
+    status.textContent = 'Could not chart that (' + err.message + ').';
   } finally {
     btn.disabled = false;
   }

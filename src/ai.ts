@@ -1,6 +1,7 @@
 import type { BiologicalAgeResult, DailyMetrics, Env } from "./types";
 import type { Trends } from "./trends";
 import { AGGREGATIONS, QUERYABLE_METRICS, clampDateRange, runQuery, type Aggregation, type QueryResult, type QuerySpec } from "./query";
+import { CHART_TYPES, sanitizeChartSpec, buildChartData, type ChartData } from "./chartspec";
 
 export interface AiInsights {
   headline: string;
@@ -203,4 +204,52 @@ export async function answerHealthQuestion(env: Env, question: string, days: Dai
   const answer = rawAnswer.length >= 10 && /[a-zA-Z]{3,}/.test(rawAnswer) ? rawAnswer : "Could not generate an explanation for that result.";
 
   return { question, spec, result, answer };
+}
+
+export interface ChartFromQuestionResult {
+  question: string;
+  chart: ChartData;
+}
+
+/**
+ * "Chart this for me": the model picks a chart type, 1-3 metrics, and a
+ * date range from the same whitelist "ask my health data" uses — nothing
+ * else. sanitizeChartSpec() then validates that choice against real data
+ * before anything is rendered; the model never sees or supplies the
+ * actual data points, and its output is never executed as code.
+ */
+export async function generateChartFromQuestion(env: Env, question: string, days: DailyMetrics[]): Promise<ChartFromQuestionResult> {
+  if (days.length === 0) throw new Error("No data yet.");
+
+  const datasetStart = days[0].date;
+  const datasetEnd = days[days.length - 1].date;
+  const today = new Date().toISOString().slice(0, 10);
+
+  const parsePrompt =
+    "You translate a request for a chart of someone's personal Apple Health data into a structured chart " +
+    `spec. Valid metric names (pick 1-3, the closest matches, never invent one): ${QUERYABLE_METRICS.join(", ")}. ` +
+    `Valid chart types: ${CHART_TYPES.join(", ")}. The stored dataset covers ${datasetStart} to ${datasetEnd}. ` +
+    `Today's date is ${today}. Reply with ONLY a JSON object: {"title": string, "type": string, "metrics": ` +
+    'string[], "startDate": "YYYY-MM-DD", "endDate": "YYYY-MM-DD"}. If no date range is specified, use a ' +
+    `sensible one (e.g. the trailing 90 days ending ${datasetEnd}, or the full dataset range for a "how has X ` +
+    'changed over time" request). Use "bar" for daily totals like steps or energy, "line" for trends like HRV ' +
+    "or weight.";
+
+  const parsed = await callGateway(
+    env,
+    [
+      { role: "system", content: parsePrompt },
+      { role: "user", content: question },
+    ],
+    "metrics",
+    200
+  );
+
+  const spec = sanitizeChartSpec(days, parsed as never);
+  if (!spec) {
+    throw new Error(`Could not map that request to a known metric. Known metrics: ${QUERYABLE_METRICS.join(", ")}.`);
+  }
+
+  const chart = buildChartData(days, spec);
+  return { question, chart };
 }

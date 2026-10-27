@@ -10,7 +10,7 @@ import { detectAnomalies } from "./anomalies";
 import { computePeriodReport, type ReportPeriod } from "./report";
 import { toCsv } from "./export";
 import { computeExperimentResult, type Experiment } from "./experiments";
-import { generateInsights, answerHealthQuestion, type AiInsights } from "./ai";
+import { generateInsights, answerHealthQuestion, generateChartFromQuestion, type AiInsights } from "./ai";
 import { renderDashboard } from "./dashboard";
 
 const SERIES_PATH = "data/series.json";
@@ -285,6 +285,31 @@ async function handleAsk(req: Request, env: Env): Promise<Response> {
   }
 }
 
+async function handleChart(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  if (!env.LLM_GATEWAY_URL || !env.LLM_GATEWAY_TOKEN) return json({ error: "AI is not configured" }, 503);
+
+  let body: { question?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "invalid json body" }, 400);
+  }
+  if (typeof body.question !== "string" || !body.question.trim()) {
+    return json({ error: "body.question (string) is required" }, 400);
+  }
+
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const days = seriesData?.days ?? [];
+
+  try {
+    const result = await generateChartFromQuestion(env, body.question.trim(), days);
+    return json(result);
+  } catch (err) {
+    return json({ error: (err as Error).message }, 422);
+  }
+}
+
 const BASELINE_WINDOWS = [7, 30, 90];
 
 async function handleGetBaselines(req: Request, env: Env): Promise<Response> {
@@ -478,6 +503,7 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/baselines") return await handleGetBaselines(req, env);
       if (req.method === "GET" && url.pathname === "/api/coverage") return await handleGetCoverage(req, env);
       if (req.method === "POST" && url.pathname === "/api/ask") return await handleAsk(req, env);
+      if (req.method === "POST" && url.pathname === "/api/chart") return await handleChart(req, env);
       if (req.method === "GET" && url.pathname === "/api/discoveries") return await handleGetDiscoveries(req, env);
       if (req.method === "GET" && url.pathname === "/api/report") return await handleGetReport(req, env);
       if (req.method === "GET" && url.pathname === "/api/export") return await handleExport(req, env);
