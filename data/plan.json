@@ -1,57 +1,57 @@
 {
   "weekStart": "2026-10-26",
-  "generatedAt": "2026-10-27T19:15:52.692Z",
-  "source": "ai",
-  "rationale": "Base fitness is slipping, so add a fourth active day before intensity. VO2max is falling, so include one interval session. Keep current rhythm plus one extra strength day.",
+  "generatedAt": "2026-10-27T19:17:01.086Z",
+  "source": "template",
+  "rationale": "3 sessions: one step up from your 9 active days in the last 4 weeks. Intervals weekly to lift VO2max.",
   "days": [
     {
       "date": "2026-10-26",
-      "type": "easy",
-      "title": "Morning easy run",
-      "minutes": 30,
-      "detail": "Run at comfortable pace, able to hold a conversation"
+      "type": "strength",
+      "title": "Strength",
+      "minutes": 40,
+      "detail": "Squats, push-ups, rows, lunges. 3 sets of 8-12."
     },
     {
       "date": "2026-10-27",
-      "type": "rest",
-      "title": "Rest day",
-      "minutes": 0,
-      "detail": "No structured exercise, light walking ok"
+      "type": "walk",
+      "title": "Brisk walk",
+      "minutes": 30,
+      "detail": "Brisk pace, phone in pocket."
     },
     {
       "date": "2026-10-28",
-      "type": "zone2",
-      "title": "Steady ride",
-      "minutes": 40,
-      "detail": "Cycle at moderate effort, breathe steady"
+      "type": "intervals",
+      "title": "Intervals",
+      "minutes": 30,
+      "detail": "Warm up 8 min, then 4×4 min hard, 3 min easy."
     },
     {
       "date": "2026-10-29",
-      "type": "intervals",
-      "title": "4x4 minute intervals",
-      "minutes": 25,
-      "detail": "Four four-minute fast efforts with three-minute recoveries"
+      "type": "rest",
+      "title": "Rest",
+      "minutes": 0,
+      "detail": "Light stretching only."
     },
     {
       "date": "2026-10-30",
-      "type": "rest",
-      "title": "Rest day",
-      "minutes": 0,
-      "detail": "No structured exercise, light stretching ok"
+      "type": "mobility",
+      "title": "Mobility",
+      "minutes": 15,
+      "detail": "Hips, hamstrings, upper back."
     },
     {
       "date": "2026-10-31",
-      "type": "strength",
-      "title": "Full body strength",
-      "minutes": 35,
-      "detail": "Bodyweight or light weights, two sets of ten reps"
+      "type": "walk",
+      "title": "Brisk walk",
+      "minutes": 30,
+      "detail": "Brisk pace, phone in pocket."
     },
     {
       "date": "2026-11-01",
-      "type": "walk",
-      "title": "Brisk walk",
-      "minutes": 45,
-      "detail": "Walk at pace where you can still talk comfortably"
+      "type": "long",
+      "title": "Long easy session",
+      "minutes": 60,
+      "detail": "Walk, ride or jog at an easy pace."
     }
   ],
   "done": []
