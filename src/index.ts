@@ -60,7 +60,11 @@ async function recomputeAnalytics(env: Env, series: DailyMetrics[]): Promise<Bio
   entries.sort((a, b) => a.date.localeCompare(b.date));
   const trimmed = entries.slice(-MAX_HISTORY_ENTRIES);
 
-  await putJson(env, HISTORY_PATH, { entries: trimmed }, `analytics: update ${result.date}`, historySha);
+  // HISTORY_PATH grows without bound (up to MAX_HISTORY_ENTRIES) and can
+  // cross the Contents API's ~1MB inline-content ceiling the same way
+  // SERIES_PATH did — write it via the Git Data API instead, which has no
+  // such limit.
+  await bulkCommit(env, [{ path: HISTORY_PATH, content: JSON.stringify({ entries: trimmed }, null, 2) }], `analytics: update ${result.date}`);
   const { sha: latestSha } = await getJson<BiologicalAgeResult>(env, LATEST_PATH);
   await putJson(env, LATEST_PATH, result, `analytics: latest ${result.date}`, latestSha);
 
@@ -84,14 +88,18 @@ async function handleIngest(req: Request, env: Env): Promise<Response> {
   const mergedDay = mergeDaily(existingDay, incoming);
   await putJson(env, dayPath(incoming.date), mergedDay, `health: ${incoming.date} from ${source}`, daySha);
 
-  const { data: seriesData, sha: seriesSha } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
   const days = seriesData?.days ?? [];
   const idx = days.findIndex((d) => d.date === mergedDay.date);
   if (idx >= 0) days[idx] = mergedDay;
   else days.push(mergedDay);
   days.sort((a, b) => a.date.localeCompare(b.date));
   const trimmedDays = days.slice(-MAX_SERIES_DAYS);
-  await putJson(env, SERIES_PATH, { days: trimmedDays }, `series: update ${mergedDay.date}`, seriesSha);
+  // series.json is the biggest file in the store and grows every ingest —
+  // it has already crossed the Contents API's ~1MB inline-content ceiling
+  // once (silently truncated reads until fixed in github.ts). Write it via
+  // the Git Data API, which has no such limit, not the Contents API PUT.
+  await bulkCommit(env, [{ path: SERIES_PATH, content: JSON.stringify({ days: trimmedDays }, null, 2) }], `series: update ${mergedDay.date}`);
 
   const analytics = await recomputeAnalytics(env, trimmedDays);
 

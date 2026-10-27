@@ -23,9 +23,29 @@ export async function getFile(env: Env, path: string): Promise<GetFileResult> {
   if (!res.ok) {
     throw new Error(`GitHub getFile ${path} failed: ${res.status} ${await res.text()}`);
   }
-  const json = await res.json<{ sha: string; content: string }>();
-  const content = atob(json.content.replace(/\n/g, ""));
+  const json = await res.json<{ sha: string; content?: string }>();
+
+  // The Contents API only inlines `content` for files under ~1MB; above
+  // that it still returns 200 with sha/size but an empty content field,
+  // which looks identical to "the file exists and is empty" unless you
+  // check for it. Fall back to the Git Blobs API (no such size limit,
+  // handles files up to 100MB) whenever content wasn't inlined.
+  const content =
+    json.content && json.content.trim() !== ""
+      ? atob(json.content.replace(/\n/g, ""))
+      : await getBlobContent(env, json.sha);
+
   return { sha: json.sha, content };
+}
+
+async function getBlobContent(env: Env, sha: string): Promise<string> {
+  const url = `${API_BASE}/repos/${env.GITHUB_OWNER}/${env.GITHUB_REPO}/git/blobs/${sha}`;
+  const res = await fetch(url, { headers: headers(env) });
+  if (!res.ok) {
+    throw new Error(`GitHub getBlob ${sha} failed: ${res.status} ${await res.text()}`);
+  }
+  const json = await res.json<{ content: string }>();
+  return atob(json.content.replace(/\n/g, ""));
 }
 
 export async function putFile(
