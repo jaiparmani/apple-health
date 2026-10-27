@@ -92,14 +92,29 @@ direction. Order of attack:
    discovered dynamically (not hardcoded) from whatever fields actually
    appear in the data, with first/last-seen dates and staleness. Exposed
    via `GET /api/coverage`, surfaced on the Import & Settings tab.
-4. **"Ask my health data"** (next) — a constrained NL query tool: the LLM
-   only picks a metric + date range + aggregation from a fixed menu; all
-   math happens in `trends.ts`/`baselines.ts`, never in the model.
-5. **Correlation discovery + anomaly explanations** — built on top of (2)
-   and (3), gated by minimum sample size, explicitly labeled
-   correlation-not-causation.
+4. ✅ **"Ask my health data"** — `src/query.ts` (whitelisted metric/date
+   range/aggregation, deterministic math) + `src/ai.ts`'s
+   `answerHealthQuestion()` (two-call round trip: model picks the query
+   spec, we compute it, model turns the number into a sentence — it never
+   sees raw records or does arithmetic). `POST /api/ask`, box on the
+   Overview tab. Note from wiring this up: a raw JSON dump as context
+   confuses some free-tier models into chatting instead of returning JSON;
+   a plain-English description of the result works far more reliably.
+5. ✅ **Correlation discovery + anomaly detection** — `src/correlations.ts`
+   (Pearson r over a fixed, hand-picked set of physiologically plausible
+   pairs, not a brute-force scan — min 14 samples, min |r| 0.25 to be
+   "reportable", everything else explicitly "negligible" or
+   "insufficient_data") and `src/anomalies.ts` (rule-based z-score
+   deviation from a personal baseline computed from days strictly before
+   each candidate day — no LLM, so no invented explanations). `GET
+   /api/discoveries`, surfaced on the Overview tab. Against the real
+   dataset it currently reports no strong correlations and no recent
+   anomalies — correctly honest, not manufactured.
 
-Everything below that in the original brief (experiments tracking, AI chart
-generation, exports, a full navigation IA with Reports/Discoveries pages) is
-real, valuable scope but is being sequenced after the above, since those
-depend on the baseline/coverage layer existing first.
+Still ahead: personal experiments tracking (adherence + before/after
+comparison for user-defined behavior changes), weekly/monthly structured
+reports, AI-generated chart specs from natural language, a personal health
+knowledge-base (goals/preferences separate from sensor data), exports, a
+fuller navigation IA (Reports/Discoveries as real tabs rather than cards on
+Overview), and an automated test suite. No tests exist yet beyond the
+synthetic-data sanity checks run during development.
