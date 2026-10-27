@@ -1,0 +1,58 @@
+{
+  "weekStart": "2026-10-26",
+  "generatedAt": "2026-10-27T19:15:52.692Z",
+  "source": "ai",
+  "rationale": "Base fitness is slipping, so add a fourth active day before intensity. VO2max is falling, so include one interval session. Keep current rhythm plus one extra strength day.",
+  "days": [
+    {
+      "date": "2026-10-26",
+      "type": "easy",
+      "title": "Morning easy run",
+      "minutes": 30,
+      "detail": "Run at comfortable pace, able to hold a conversation"
+    },
+    {
+      "date": "2026-10-27",
+      "type": "rest",
+      "title": "Rest day",
+      "minutes": 0,
+      "detail": "No structured exercise, light walking ok"
+    },
+    {
+      "date": "2026-10-28",
+      "type": "zone2",
+      "title": "Steady ride",
+      "minutes": 40,
+      "detail": "Cycle at moderate effort, breathe steady"
+    },
+    {
+      "date": "2026-10-29",
+      "type": "intervals",
+      "title": "4x4 minute intervals",
+      "minutes": 25,
+      "detail": "Four four-minute fast efforts with three-minute recoveries"
+    },
+    {
+      "date": "2026-10-30",
+      "type": "rest",
+      "title": "Rest day",
+      "minutes": 0,
+      "detail": "No structured exercise, light stretching ok"
+    },
+    {
+      "date": "2026-10-31",
+      "type": "strength",
+      "title": "Full body strength",
+      "minutes": 35,
+      "detail": "Bodyweight or light weights, two sets of ten reps"
+    },
+    {
+      "date": "2026-11-01",
+      "type": "walk",
+      "title": "Brisk walk",
+      "minutes": 45,
+      "detail": "Walk at pace where you can still talk comfortably"
+    }
+  ],
+  "done": []
+}
