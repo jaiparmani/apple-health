@@ -209,6 +209,16 @@ export function renderDashboard(): string {
       <h3>Personal bests</h3>
       <div class="bests" id="bestsGrid"></div>
     </div>
+
+    <div class="card ai-card">
+      <h3>✦ Ask my health data</h3>
+      <div class="card-sub">Picks a metric, date range, and aggregation from a fixed menu and computes the answer in code — the model never does the arithmetic itself.</div>
+      <form class="profile-form" onsubmit="askHealthQuestion(event)" style="margin-bottom:10px;">
+        <input id="askInput" type="text" placeholder="e.g. How has my HRV changed over 90 days?" style="flex:1;" />
+        <button type="submit" class="btn btn-sm" id="askBtn">Ask</button>
+      </form>
+      <div id="askBody"></div>
+    </div>
   </section>
 
   <!-- HEART & RECOVERY -->
@@ -313,7 +323,11 @@ async function authedFetch(path, opts) {
   var token = getToken();
   var res = await fetch(path, Object.assign({}, opts, { headers: Object.assign({}, opts.headers || {}, { 'Authorization': 'Bearer ' + token }) }));
   if (res.status === 401) throw new Error('unauthorized');
-  if (!res.ok) throw new Error('request failed: ' + res.status);
+  if (!res.ok) {
+    var errBody = null;
+    try { errBody = await res.json(); } catch (e) {}
+    throw new Error((errBody && errBody.error) || ('request failed: ' + res.status));
+  }
   return res.json();
 }
 
@@ -499,6 +513,27 @@ async function loadInsights(force) {
     body.innerHTML = html;
   } catch (err) {
     body.innerHTML = '<p class="sub">Couldn\\'t load AI insights (' + err.message + ').</p>';
+  } finally {
+    btn.disabled = false;
+  }
+}
+
+async function askHealthQuestion(evt) {
+  evt.preventDefault();
+  var input = document.getElementById('askInput');
+  var question = input.value.trim();
+  if (!question) return;
+  var btn = document.getElementById('askBtn');
+  var body = document.getElementById('askBody');
+  btn.disabled = true;
+  body.innerHTML = '<div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:60%"></div>';
+  try {
+    var res = await authedFetch('/api/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question: question }) });
+    var r = res.result;
+    var meta = r.sampleCount + ' day' + (r.sampleCount === 1 ? '' : 's') + ' of data, ' + r.spec.startDate + ' to ' + r.spec.endDate + ' (' + r.spec.metric + ', ' + r.spec.aggregation + ')';
+    body.innerHTML = '<div class="ai-headline">' + res.answer + '</div><div class="ai-meta">' + meta + '</div>';
+  } catch (err) {
+    body.innerHTML = '<p class="sub">Couldn\\'t answer that (' + err.message + ').</p>';
   } finally {
     btn.disabled = false;
   }

@@ -5,7 +5,7 @@ import { chronologicalAge, computeStrain, estimateBiologicalAge } from "./analyt
 import { computeTrends } from "./trends";
 import { computeBaselines } from "./baselines";
 import { computeCoverage } from "./coverage";
-import { generateInsights, type AiInsights } from "./ai";
+import { generateInsights, answerHealthQuestion, type AiInsights } from "./ai";
 import { renderDashboard } from "./dashboard";
 
 const SERIES_PATH = "data/series.json";
@@ -215,6 +215,31 @@ async function handleGetInsights(req: Request, env: Env): Promise<Response> {
   return json({ ...entry, cached: false });
 }
 
+async function handleAsk(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  if (!env.LLM_GATEWAY_URL || !env.LLM_GATEWAY_TOKEN) return json({ error: "AI is not configured" }, 503);
+
+  let body: { question?: unknown };
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "invalid json body" }, 400);
+  }
+  if (typeof body.question !== "string" || !body.question.trim()) {
+    return json({ error: "body.question (string) is required" }, 400);
+  }
+
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const days = seriesData?.days ?? [];
+
+  try {
+    const result = await answerHealthQuestion(env, body.question.trim(), days);
+    return json(result);
+  } catch (err) {
+    return json({ error: (err as Error).message }, 422);
+  }
+}
+
 const BASELINE_WINDOWS = [7, 30, 90];
 
 async function handleGetBaselines(req: Request, env: Env): Promise<Response> {
@@ -266,6 +291,7 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/insights") return await handleGetInsights(req, env);
       if (req.method === "GET" && url.pathname === "/api/baselines") return await handleGetBaselines(req, env);
       if (req.method === "GET" && url.pathname === "/api/coverage") return await handleGetCoverage(req, env);
+      if (req.method === "POST" && url.pathname === "/api/ask") return await handleAsk(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
       if (req.method === "GET" && url.pathname === "/") {
         return new Response(renderDashboard(), { headers: { "Content-Type": "text/html; charset=utf-8" } });
