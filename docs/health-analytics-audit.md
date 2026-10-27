@@ -140,9 +140,31 @@ direction. Order of attack:
     /api/knowledge`, `POST`/`DELETE /api/knowledge/notes`, "Goals & notes"
     card on Import & Settings. Verified live end to end.
 
-Still ahead: personal experiments tracking (adherence + before/after
-comparison for user-defined behavior changes, building on the knowledge
-base's notes) and AI-generated chart specs from natural language (an
-extension of the "ask my health data" pattern — validate a chart spec
-against the same metric whitelist, render with the existing Chart.js
-infrastructure, never execute generated code).
+11. ✅ **Personal experiments tracking** — `src/experiments.ts`:
+    before/after comparison (baseline = same-length period immediately
+    before the experiment start), adherence check-ins capped at 100%, a
+    fixed confounder caveat on every result — never implies causation.
+    CRUD via `/api/experiments` (+ `/api/experiments/adherence`),
+    "Experiments" card on the Discoveries tab. Caught a real `\'`/`\\'`
+    escaping bug while wiring the two onclick handlers (same class as the
+    earlier `\d`/`\n` bugs) — fixed before deploy, by actually rendering
+    and `node --check`ing the compiled script rather than eyeballing it.
+
+Every item from the original mission brief's analytics/AI/reporting scope
+now has a real, working foundation (full list above). What's genuinely
+still open:
+
+- **AI-generated chart specs from natural language** — the one AI
+  capability from the original brief not yet built. Would extend the
+  "ask my health data" pattern: model picks a chart type + metric(s) +
+  date range from a whitelist, the app renders it with the existing
+  Chart.js infrastructure, never executes generated code.
+- **Workout `<Route>`/GPS data, ECG, and `<ActivitySummary>` Activity
+  Ring data** — `<Workout>` sessions are parsed, but not these related
+  export elements.
+- **Multi-day/overnight sleep splitting** — a sleep session crossing
+  midnight still has its minutes attributed entirely to the date it
+  started, documented as a known simplification, not fixed.
+- Experiments and knowledge-base notes have no UI test coverage beyond
+  the deterministic computation layer (`experiments.ts` itself is
+  tested; the dashboard wiring around it is only manually verified).
