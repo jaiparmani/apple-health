@@ -5,7 +5,9 @@
       "title": "Test experiment",
       "metric": "hrv",
       "startDate": "2026-10-01",
-      "adherenceDates": []
+      "adherenceDates": [
+        "2026-10-02"
+      ]
     }
   ]
 }
