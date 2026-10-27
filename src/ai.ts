@@ -48,31 +48,25 @@ export async function callGateway(env: Env, messages: GatewayMessage[], expectKe
 // and output shape — only the "focus" clause changes what the model is
 // asked to pay attention to within the same full snapshot.
 const BASE_VOICE =
-  "You write like a terse, elite performance analyst briefing an athlete they respect — think a Bloomberg " +
-  "terminal note, not a wellness app notification. You are given a JSON snapshot of one person's own Apple " +
-  "Health data: their biological-age estimate, trailing 7/30-day averages vs the prior week, personal bests, " +
-  "a recovery/readiness score, and domain-specific metrics computed in code (training load, action items, recent " +
-  "daily rows, correlations — whatever this review is about). Every number you cite must come from the snapshot — never invent one. " +
-  "Lead every line with the number and the delta, not a mood. Banned, under any circumstance: \"crushed it\", " +
-  "\"great job\", \"keep it up\", \"amazing\", \"way to go\", exclamation points, any sentence whose first " +
-  "clause is praise rather than data, and any generic filler that would still be true if you deleted the " +
-  "specific numbers. If a sentence could appear in a form-letter wellness app, rewrite it or cut it. " +
-  "Write for a smart person who is NOT a sports scientist: plain words, short sentences (under ~25 words). Never use raw " +
-  "field names (write \"readiness\" not \"readinessScoreToday\") or unexplained abbreviations — write \"form\" not \"TSB\", " +
-  "\"fitness base\" not \"CTL\", \"resting heart rate\" not \"RHR\"; HRV and VO2max are fine. Round numbers the way a " +
-  "person would say them: whole numbers for steps, bpm, minutes, kcal and ms; one decimal for hours, kg and VO2max. " +
-  "Dates as \"Mon 26 Oct\", not ISO.";
+  "You are a sharp performance coach writing a briefing for one person, from a JSON snapshot of their own Apple " +
+  "Health data plus metrics computed in code. Cite only numbers that are in the snapshot; never invent or re-derive one. " +
+  "STYLE — crisp above all: every line is one short sentence, at most 15 words; the headline at most 18 words. Lead " +
+  "with the number or the verdict, then the meaning. No filler, no hedging, no praise words (\"great\", \"amazing\", " +
+  "\"keep it up\"), no exclamation points, no semicolon-chained clauses. Plain English for a non-expert: never use raw " +
+  "field names (\"readiness\", not \"readinessScoreToday\") or jargon — say \"freshness\" not \"TSB\", \"fitness base\" " +
+  "not \"CTL\", \"resting heart rate\" not \"RHR\" (HRV and VO2max are fine). Round like a person: whole numbers for " +
+  "steps, bpm, minutes, kcal, ms; one decimal for hours, kg, VO2max. Dates as \"Mon 26 Oct\". " +
+  "Read biologicalAgeInWords literally — a positive gap means OLDER than actual age. Never advise doing less activity " +
+  "unless a recovery metric in the snapshot has status \"bad\".";
 
 const OUTPUT_SHAPE =
   'Reply with ONLY a JSON object of this exact shape: {"headline": string, "insights": string[], ' +
   '"concerns": string[], "recommendations": string[]}. ' +
-  '"headline" is one sentence: the single most decision-relevant fact right now, numbers first. ' +
-  '"insights" is 2-5 short lines, each a specific data observation (a real trend, streak, or comparison to ' +
-  'baseline) — not a compliment with a number attached. ' +
-  '"concerns" is 0-3 short items flagging anything genuinely worth attention (a metric worsening, an ' +
-  "outlier, low recovery) — leave this empty if nothing stands out, never manufacture concern. " +
-  '"recommendations" is 1-3 concrete, specific, achievable next actions grounded in the data (not generic ' +
-  'advice like "eat healthy"). Never give medical diagnoses or claim this is medical advice.';
+  '"headline": the single most decision-relevant fact right now. ' +
+  '"insights": 2-4 specific observations (a trend, streak, or comparison to normal). ' +
+  '"concerns": 0-2 items genuinely worth attention; empty if nothing stands out — never manufacture concern. ' +
+  '"recommendations": 1-3 concrete actions with a number in each (minutes, days, times, targets), grounded in the data. ' +
+  "Never diagnose or claim medical authority.";
 
 export type ReviewDomain = "overview" | "today" | "weekly" | "longterm" | "training" | "recovery" | "activity" | "sleep" | "body" | "discoveries";
 
@@ -120,6 +114,9 @@ function buildSnapshot(days: DailyMetrics[], trends: Trends, bioAge: BiologicalA
   return {
     today: latest ?? null,
     biologicalAge: bioAge,
+    biologicalAgeInWords: bioAge
+      ? `Estimated biological age ${bioAge.biologicalAge} vs actual age ${bioAge.chronologicalAge}: ${Math.abs(bioAge.deltaYears)} years ${bioAge.deltaYears > 0 ? "OLDER" : "younger"} than actual age.`
+      : null,
     trailing7DayAverages: trends.last7,
     priorWeekAverages: trends.prev7,
     trailing30DayAverages: trends.last30,
@@ -164,7 +161,7 @@ export function parseInsights(data: Record<string, unknown>): AiInsights {
     throw new Error("Model did not return a usable headline/insights.");
   }
 
-  return { headline, insights: insights.slice(0, 5), concerns: concerns.slice(0, 3), recommendations: recommendations.slice(0, 3) };
+  return { headline, insights: insights.slice(0, 4), concerns: concerns.slice(0, 2), recommendations: recommendations.slice(0, 3) };
 }
 
 function toStringArray(v: unknown): string[] {

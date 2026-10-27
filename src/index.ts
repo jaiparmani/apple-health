@@ -27,11 +27,14 @@ const MAX_SERIES_DAYS = 4000; // ~11 years, enough headroom for a full Apple Hea
 const MAX_HISTORY_ENTRIES = 4000;
 const ANALYTICS_WINDOW_DAYS = 7;
 function insightsCacheKey(domain: ReviewDomain): string {
-  // v3: plainer voice + weekly/longterm domains. v2: snapshots carry domain-specific computed context (fitness
+  // v4: crisper voice. v3: plainer voice + weekly/longterm domains. v2: snapshots carry domain-specific computed context (fitness
   // report, recent rows...) — don't serve reviews generated without it.
-  return `insights:v3:${domain}`;
+  return `insights:v4:${domain}`;
 }
-const INSIGHTS_CACHE_TTL_SECONDS = 60 * 60; // 1 hour
+const INSIGHTS_FRESH_SECONDS = 60 * 60; // served as-is for 1 hour
+// Kept in KV well past "fresh" so a flaky llm-gateway call can fall back to
+// the last good review (flagged stale) instead of an empty error card.
+const INSIGHTS_KEEP_SECONDS = 7 * 24 * 60 * 60;
 
 function unauthorized(): Response {
   return new Response(JSON.stringify({ error: "unauthorized" }), { status: 401, headers: { "Content-Type": "application/json" } });
@@ -224,10 +227,9 @@ async function handleGetInsights(req: Request, env: Env): Promise<Response> {
   const domain: ReviewDomain = REVIEW_DOMAINS.includes(domainParam as ReviewDomain) ? (domainParam as ReviewDomain) : "overview";
   const cacheKey = insightsCacheKey(domain);
 
-  if (!force) {
-    const cached = await env.INSIGHTS_CACHE.get<InsightsCacheEntry>(cacheKey, "json");
-    if (cached) return json({ ...cached, cached: true });
-  }
+  const cached = await env.INSIGHTS_CACHE.get<InsightsCacheEntry>(cacheKey, "json");
+  const ageSeconds = cached ? (Date.now() - Date.parse(cached.generatedAt)) / 1000 : Infinity;
+  if (cached && !force && ageSeconds < INSIGHTS_FRESH_SECONDS) return json({ ...cached, cached: true });
 
   const [{ data: seriesData }, { data: profile }, { data: latest }, { data: knowledge }, history] = await Promise.all([
     getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
@@ -242,9 +244,15 @@ async function handleGetInsights(req: Request, env: Env): Promise<Response> {
 
   const trends = computeTrends(days);
   const context = buildReviewContext(domain, { days, profile, knowledge, bioHistory: history.data?.entries ?? [] });
-  const insights = await generateReview(env, domain, days, trends, profile ? latest : null, context);
+  let insights: AiInsights;
+  try {
+    insights = await generateReview(env, domain, days, trends, profile ? latest : null, context);
+  } catch (err) {
+    if (cached) return json({ ...cached, cached: true, stale: true });
+    throw err;
+  }
   const entry: InsightsCacheEntry = { generatedAt: new Date().toISOString(), insights };
-  await env.INSIGHTS_CACHE.put(cacheKey, JSON.stringify(entry), { expirationTtl: INSIGHTS_CACHE_TTL_SECONDS });
+  await env.INSIGHTS_CACHE.put(cacheKey, JSON.stringify(entry), { expirationTtl: INSIGHTS_KEEP_SECONDS });
 
   return json({ ...entry, cached: false });
 }

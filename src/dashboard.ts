@@ -379,37 +379,37 @@ export function renderDashboard(): string {
         </div>
       </div>
       <div class="score-parts" id="scoreParts"></div>
-      <details class="more"><summary>How is this calculated?</summary><div>An average of four areas, each scored 0-100 against <em>your</em> data: Recovery (today's heart data vs your 30-day normal), Activity (exercise minutes vs 150/week and daily steps vs 8,000), Fitness (VO2max for your age plus how many days you were active) and Sleep (hours vs your goal). Areas without enough data are left out rather than guessed.</div></details>
+      <details class="more"><summary>How is this calculated?</summary><div>The average of four 0-100 scores. <b>Recovery</b>: today's heart data vs your normal. <b>Activity</b>: exercise minutes vs 150 a week, steps vs 8,000. <b>Fitness</b>: VO2max for your age, plus active days. <b>Sleep</b>: hours vs your goal. Areas without data are skipped, not guessed.</div></details>
     </div>
 
-    <h2 class="sec">Today<span>How ready you are, and what to do about it</span></h2>
+    <h2 class="sec">Today<span>How ready you are, and what to do</span></h2>
     <div class="trio" id="todayTrio"></div>
-    ${reviewCard("today", "Today's call", "Train hard, train easy, or recover, with a plan for today.")}
+    ${reviewCard("today", "Today's call", "Push, go easy, or recover.")}
     <div class="card">
       <h3>Your action items</h3>
-      <div class="card-sub">Ranked by priority and worked out from your data. Each one comes with the reason.</div>
+      <div class="card-sub">Most important first.</div>
       <ul class="actions" id="overviewActions"><li class="sub">Loading…</li></ul>
     </div>
 
-    <h2 class="sec">This week<span>The last 7 days, day by day</span></h2>
+    <h2 class="sec">This week<span>Last 7 days</span></h2>
     <div class="card"><div class="week" id="weekStrip"></div>
       <div class="legend"><span><i class="lg-bar"></i>steps</span><span><i class="lg-dot on"></i>ring closed</span><span><i class="lg-dot"></i>ring missed</span></div>
     </div>
     <div class="highlights" id="highlights"></div>
-    ${reviewCard("weekly", "Your week in review", "A coach's take on the last 7 days, and what to change next week.")}
+    ${reviewCard("weekly", "Your week in review", "What worked, what slipped, what to change.")}
 
-    <h2 class="sec">Key numbers<span>Today, with the last 30 days behind it</span></h2>
+    <h2 class="sec">Key numbers<span>Latest values with 30-day trend</span></h2>
     <div class="grid" id="quickStats"></div>
     <div class="untracked" id="untracked"></div>
 
-    <h2 class="sec">The long view<span>Monthly averages over the last 12 months</span></h2>
+    <h2 class="sec">The long view<span>12 months of monthly averages</span></h2>
     <div class="longview" id="longView"></div>
     <div class="card">
       <h3>Your weekly rhythm</h3>
-      <div class="card-sub">Average steps for each day of the week, over the last 12 weeks.</div>
+      <div class="card-sub">Average steps by weekday, last 12 weeks.</div>
       <div id="weekdayBars"></div>
     </div>
-    ${reviewCard("longterm", "Where you're heading", "Where the 12-month trends point, and the habits to build over the next 3 months.")}
+    ${reviewCard("longterm", "Where you're heading", "Where your trends point, and habits for the next 3 months.")}
 
     <h2 class="sec">Personal bests<span>Your all-time records</span></h2>
     <div class="card"><div class="bests" id="bestsGrid"></div></div>
@@ -421,7 +421,7 @@ export function renderDashboard(): string {
 
     <div class="card ai-card">
       <h3>✦ Ask my health data</h3>
-      <div class="card-sub">Computed in code, not guessed by the model.</div>
+      <div class="card-sub">Answers come from your real numbers.</div>
       <form class="profile-form" onsubmit="askHealthQuestion(event)" style="margin-bottom:10px;">
         <input id="askInput" type="text" placeholder="e.g. How has my HRV changed over 90 days?" style="flex:1;" />
         <button type="submit" class="btn btn-sm" id="askBtn">Ask</button>
@@ -431,7 +431,7 @@ export function renderDashboard(): string {
 
     <div class="card ai-card">
       <h3>✦ Chart this for me</h3>
-      <div class="card-sub">Real data, rendered by the app — the model only picks what to show.</div>
+      <div class="card-sub">Your real data. AI only picks what to plot.</div>
       <form class="profile-form" onsubmit="askForChart(event)" style="margin-bottom:10px;">
         <input id="chartInput" type="text" placeholder="e.g. Chart my steps and sleep over the last 60 days" style="flex:1;" />
         <button type="submit" class="btn btn-sm" id="chartAskBtn">Chart</button>
@@ -443,7 +443,7 @@ export function renderDashboard(): string {
 
   <!-- DISCOVERIES -->
   <section class="section" id="tab-discoveries">
-    ${reviewCard("discoveries", "Discoveries review", "What the patterns in your data suggest — and experiments to test them.")}
+    ${reviewCard("discoveries", "Discoveries review", "What your patterns suggest, and how to test them.")}
     <div class="card">
       <h3>Report
         <button class="btn btn-ghost btn-sm" onclick="loadReport('week')" style="margin-left:8px;">Week</button>
@@ -460,7 +460,7 @@ export function renderDashboard(): string {
 
     <div class="card">
       <h3>Experiments</h3>
-      <div class="card-sub">Before/after, not proof.</div>
+      <div class="card-sub">Compare before and after a change.</div>
       <form class="profile-form" onsubmit="createExperiment(event)" style="margin-bottom:12px;">
         <input id="expTitle" type="text" placeholder="e.g. Consistent 10:30pm bedtime" style="flex:1; min-width:160px;" />
         <select id="expMetric"></select>
@@ -473,7 +473,7 @@ export function renderDashboard(): string {
 
   <!-- TRAINING -->
   <section class="section" id="tab-training">
-    ${reviewCard("training", "Training review", "Load, consistency and a prescription for the next 7 days.")}
+    ${reviewCard("training", "Training review", "Load, consistency, and your next 7 days.")}
     <div class="card">
       <h3>Action items</h3>
       <ul class="actions" id="trainingActions"><li class="sub">Loading…</li></ul>
@@ -482,26 +482,26 @@ export function renderDashboard(): string {
     <div class="fit-grid" id="fitnessMetrics"></div>
     <div class="card">
       <h3>Fitness, fatigue &amp; form</h3>
-      <div class="card-sub">Bars: daily load (0-21). Fitness = 42-day load (your base). Fatigue = 7-day load. Form = fitness − fatigue.</div>
+      <div class="card-sub">Bars: daily load. Green: fitness base. Red: fatigue. Blue: freshness.</div>
       <div class="chart-box"><canvas id="loadChart"></canvas></div>
       <div class="guide"><div class="g-mean">Fitness rising slowly while form hovers between −5 and +3 is productive training. Form below −5 for days = overreaching; above +5 for weeks = detraining.</div><div class="g-act">Build fitness ~5-10% a week; every 3-4 weeks take an easier week to let form recover.</div></div>
     </div>
     <div class="card">
       <h3>Weekly volume (last 8 weeks)</h3>
-      <div class="card-sub">Active day = ≥20 exercise minutes or a logged workout.</div>
+      <div class="card-sub">Active day: 20+ exercise minutes or a workout.</div>
       <div id="weeklyTable"></div>
     </div>
   </section>
 
   <!-- HEART & RECOVERY -->
   <section class="section" id="tab-heart">
-    ${reviewCard("recovery", "Recovery review", "HRV, resting HR and how you bounce back from hard days.")}
+    ${reviewCard("recovery", "Recovery review", "How well you bounce back.")}
     <div class="card"><h3>Resting heart rate &amp; HRV</h3><div class="chart-box"><canvas id="heartChart"></canvas></div><div data-guide="restingHeartRate,hrv"></div></div>
     <div class="card"><h3>Heart rate range (avg / min / max)</h3><div class="chart-box"><canvas id="hrRangeChart"></canvas></div><div data-guide="heartRateAvg,walkingHeartRateAvg"></div></div>
     <div class="card"><h3>VO2max trend</h3><div class="chart-box"><canvas id="vo2Chart"></canvas></div><div data-guide="vo2max"></div></div>
     <div class="card">
       <h3>Readiness, explained</h3>
-      <div class="card-sub">HRV, resting HR, and sleep vs. <em>your</em> own 30-day baseline — never compared across people.</div>
+      <div class="card-sub">HRV, resting heart rate and sleep vs <em>your</em> 30-day normal.</div>
       <div data-guide="readiness,strain,respiratoryRate,oxygenSaturation"></div>
     </div>
   </section>
@@ -512,7 +512,7 @@ export function renderDashboard(): string {
     <div class="card"><h3>Steps</h3><div class="chart-box"><canvas id="stepsChart"></canvas></div><div data-guide="steps"></div></div>
     <div class="card"><h3>Active energy &amp; exercise minutes</h3><div class="chart-box"><canvas id="energyChart"></canvas></div><div data-guide="activeEnergy,exerciseMinutes"></div></div>
     <div class="card"><h3>Stand minutes &amp; flights climbed</h3><div class="chart-box"><canvas id="standChart"></canvas></div><div data-guide="standHours,flightsClimbed"></div></div>
-    <div class="card"><h3>Walking speed &amp; gait quality</h3><div class="card-sub">Gait speed is one of the better-studied single predictors of healthy aging.</div><div class="chart-box"><canvas id="gaitChart"></canvas></div><div data-guide="walkingSpeed,walkingAsymmetryPct,walkingDoubleSupportPct"></div></div>
+    <div class="card"><h3>Walking speed &amp; gait quality</h3><div class="card-sub">Walking speed is a strong marker of healthy ageing.</div><div class="chart-box"><canvas id="gaitChart"></canvas></div><div data-guide="walkingSpeed,walkingAsymmetryPct,walkingDoubleSupportPct"></div></div>
     <div class="card"><h3>Workouts</h3><div class="chart-box"><canvas id="workoutChart"></canvas></div><div data-guide="workoutMinutes"></div></div>
     <div class="card">
       <h3>Recent sessions</h3>
@@ -520,7 +520,7 @@ export function renderDashboard(): string {
     </div>
     <div class="card">
       <h3>Activity Rings</h3>
-      <div class="card-sub">Move/Exercise/Stand goals from your export's Activity Summary, vs. today's actual.</div>
+      <div class="card-sub">Today vs your ring goals.</div>
       <div id="activityRings" class="sub">No Activity Ring data in the imported data yet.</div>
     </div>
   </section>
@@ -529,17 +529,17 @@ export function renderDashboard(): string {
   <section class="section" id="tab-sleep">
     ${reviewCard("sleep", "Sleep review")}
     <div class="card"><h3>Sleep duration</h3><div class="chart-box"><canvas id="sleepChart"></canvas></div><div data-guide="sleepHours,sleepEfficiency"></div></div>
-    <div class="card"><h3>Sleep stages</h3><div class="card-sub">Core, deep, REM and awake time, where your export has stage-level detail.</div><div class="chart-box"><canvas id="sleepStagesChart"></canvas></div><div data-guide="sleepDeepHours,sleepRemHours"></div></div>
+    <div class="card"><h3>Sleep stages</h3><div class="card-sub">Core, deep, REM and awake time.</div><div class="chart-box"><canvas id="sleepStagesChart"></canvas></div><div data-guide="sleepDeepHours,sleepRemHours"></div></div>
     <div class="card"><h3>Weight</h3><div class="chart-box"><canvas id="weightChart"></canvas></div><div data-guide="weightKg,bodyFatPct"></div></div>
   </section>
 
   <!-- BIOLOGICAL AGE -->
   <section class="section" id="tab-age">
-    ${reviewCard("body", "Body & bio-age review", "Which marker is ageing you most, and what moves it.")}
+    ${reviewCard("body", "Body & bio-age review", "Your oldest marker, and how to improve it.")}
     <div class="card"><h3>Biological vs chronological age</h3><div class="chart-box"><canvas id="ageChart"></canvas></div><div data-guide="biologicalAge"></div></div>
     <div class="card">
       <h3>What's driving it</h3>
-      <div class="card-sub">Closer to the left (younger) is better.</div>
+      <div class="card-sub">Shorter bars are younger.</div>
       <div class="markers-list" id="markersList"></div>
     </div>
   </section>
@@ -548,7 +548,7 @@ export function renderDashboard(): string {
   <section class="section" id="tab-more">
     <div class="card">
       <h3>Everything else your export contained</h3>
-      <div class="card-sub">Captured, but without a dedicated chart yet.</div>
+      <div class="card-sub">Everything else your export recorded.</div>
       <div id="extraList"></div>
     </div>
   </section>
@@ -557,7 +557,7 @@ export function renderDashboard(): string {
   <section class="section" id="tab-settings">
     <div class="card" id="profileCard">
       <h3>Profile</h3>
-      <div class="card-sub">Needed once to compute biological age.</div>
+      <div class="card-sub">Needed once, for biological age.</div>
       <form class="profile-form" onsubmit="saveProfile(event)">
         <input id="birthDate" type="date" required />
         <select id="sex"><option value="male">Male</option><option value="female">Female</option></select>
@@ -567,7 +567,7 @@ export function renderDashboard(): string {
     </div>
     <div class="card">
       <h3>Goals &amp; notes</h3>
-      <div class="card-sub">Separate from sensor data. Never fed into any score.</div>
+      <div class="card-sub">Your context for the AI. Never used in scores.</div>
       <form onsubmit="saveKnowledge(event)" style="display:flex; flex-direction:column; gap:8px; margin-bottom:14px;">
         <textarea id="knowledgeGoals" placeholder="Goals (e.g. run a 10k by June, improve sleep consistency)" rows="2" style="background:var(--panel2); border:1px solid var(--line); border-radius:4px; color:var(--ink); padding:8px; font-family:inherit;"></textarea>
         <textarea id="knowledgePreferences" placeholder="Preferences (e.g. prefer morning workouts, strength 3x/week)" rows="2" style="background:var(--panel2); border:1px solid var(--line); border-radius:4px; color:var(--ink); padding:8px; font-family:inherit;"></textarea>
@@ -588,7 +588,7 @@ export function renderDashboard(): string {
     </div>
     <div class="card">
       <h3>Import Apple Health export</h3>
-      <p class="card-sub">iPhone: Health app → profile picture → Export All Health Data → share the .zip here. Parsing happens entirely in this browser; only the small daily summaries are sent to your Worker.</p>
+      <p class="card-sub">Health app → profile picture → Export All Health Data. The file is read in your browser; only daily summaries are uploaded.</p>
       <div class="import-row">
         <input id="importFile" type="file" accept=".zip" />
         <button class="btn btn-sm" id="importBtn" onclick="importExportZip()">Import</button>
@@ -598,18 +598,18 @@ export function renderDashboard(): string {
     </div>
     <div class="card">
       <h3>Data coverage</h3>
-      <div class="card-sub">Missing days are shown honestly, never filled in.</div>
+      <div class="card-sub">Missing days stay missing, never guessed.</div>
       <div id="coverageSummary" class="sub">Loading…</div>
       <div id="coverageList"></div>
     </div>
     <div class="card">
       <h3>Personal baselines (30-day)</h3>
-      <div class="card-sub">What's normal for <em>you</em>, not a population average.</div>
+      <div class="card-sub">What's normal for <em>you</em>.</div>
       <div id="baselineList"></div>
     </div>
     <div class="card">
       <h3>Export your data</h3>
-      <p class="card-sub">Every stored day, every column discovered from your actual data — CSV, straight to your downloads.</p>
+      <p class="card-sub">Every day and every metric, as a CSV.</p>
       <button class="btn btn-sm" onclick="exportCsv()" id="exportBtn">Download CSV</button>
       <p id="exportStatus" class="sub"></p>
     </div>
@@ -1151,7 +1151,7 @@ function fillGuides() {
 function renderActionItems(elId, items, limit) {
   var el = document.getElementById(elId);
   if (!el) return;
-  if (!items || items.length === 0) { el.innerHTML = '<li class="sub">Nothing flagged — keep the current plan.</li>'; return; }
+  if (!items || items.length === 0) { el.innerHTML = '<li class="sub">Nothing flagged. Keep going.</li>'; return; }
   el.innerHTML = items.slice(0, limit || items.length).map(function (a) {
     return '<li><span class="prio ' + a.priority + '">' + a.priority + '</span><div><div class="a-text">' + a.text + '</div><div class="a-why">' + a.area + ' · ' + a.why + '</div></div></li>';
   }).join('');
@@ -1204,7 +1204,7 @@ async function loadReview(domain, force) {
   reviewLoadedOnce[domain] = true;
   btn.disabled = true;
   var slow = setTimeout(function () {
-    if (body.querySelector('.skeleton') && !body.querySelector('.ai-loading')) body.insertAdjacentHTML('beforeend', '<div class="ai-loading">Writing your review from your latest data. The first run takes about 30 seconds.</div>');
+    if (body.querySelector('.skeleton') && !body.querySelector('.ai-loading')) body.insertAdjacentHTML('beforeend', '<div class="ai-loading">Writing your review. First run takes about 30 seconds.</div>');
   }, 2500);
   if (force) body.innerHTML = '<div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:90%"></div><div class="skeleton" style="width:55%"></div>';
   try {
@@ -1218,7 +1218,7 @@ async function loadReview(domain, force) {
     if (ins.concerns && ins.concerns.length) {
       html += '<div class="ai-section-title">Keep an eye on</div><ul class="ai-list concerns">' + ins.concerns.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
     }
-    html += '<div class="ai-meta">' + (res.cached ? 'Cached · generated ' + timeAgo(res.generatedAt) : 'Freshly generated') + '</div>';
+    html += '<div class="ai-meta">' + (res.stale ? 'Couldn\\'t refresh just now. Showing the review from ' + timeAgo(res.generatedAt) + '.' : res.cached ? 'Updated ' + timeAgo(res.generatedAt) : 'Just updated') + '</div>';
     body.innerHTML = html;
   } catch (err) {
     body.innerHTML = '<p class="sub">Couldn\\'t load this review (' + err.message + ').</p>';

@@ -147,12 +147,12 @@ export function computeHealthScore(
     word: readiness === null ? "No data" : word(readiness),
     detail:
       readiness === null
-        ? "Needs a few days of overnight heart data."
+        ? "Needs a few nights of heart data."
         : readiness >= 70
-          ? "Your heart data says you've bounced back — ready for a hard day."
+          ? "Fully recovered. Ready for a hard day."
           : readiness >= 45
-            ? "Partly recovered. Fine to train, just not all-out."
-            : "Your body is still recovering. Keep today easy.",
+            ? "Partly recovered. Train, but not all-out."
+            : "Still recovering. Keep today easy.",
   });
 
   // Activity: weekly exercise minutes vs 150 (60%) + average steps vs 8k (40%).
@@ -170,31 +170,31 @@ export function computeHealthScore(
     detail:
       activity === null
         ? "No movement data this week."
-        : `${Math.round(weekMin)} of 150 exercise minutes this week, ${steps7 !== null ? fmtInt(steps7) : "—"} steps a day on average.`,
+        : `${Math.round(weekMin)}/150 exercise minutes, ${steps7 !== null ? fmtInt(steps7) : "—"} steps a day.`,
   });
 
   // Fitness: VO2max category for age (70%) + consistency over 28 days (30%).
   const vo2 = mean(nums(days.slice(-30), "vo2max"));
   const active28 = fitness.metrics.find((m) => m.key === "consistency")?.value ?? null;
   let fitnessScore: number | null = null;
-  let fitnessDetail = "Needs VO2max readings (from outdoor walks or runs with your Watch).";
+  let fitnessDetail = "Needs VO2max readings from outdoor walks or runs.";
   if (vo2 !== null && profile) {
     const age = chronologicalAge(profile.birthDate, days[days.length - 1].date);
     const cat = vo2Category(vo2, age, profile.sex);
     const catScore = { poor: 25, fair: 50, good: 70, excellent: 85, superior: 100 }[cat];
     fitnessScore = clamp(catScore * 0.7 + Math.min(1, (active28 ?? 0) / 16) * 30);
-    fitnessDetail = `Cardio fitness is "${cat}" for your age (VO2max ${vo2.toFixed(1)}), and you were active ${active28 ?? 0} of the last 28 days.`;
+    fitnessDetail = `VO2max ${vo2.toFixed(1)} is "${cat}" for your age. Active ${active28 ?? 0} of 28 days.`;
   }
   parts.push({ key: "fitness", label: "Fitness", score: fitnessScore, word: fitnessScore === null ? "No data" : word(fitnessScore), detail: fitnessDetail });
 
   // Sleep: average of last 7 logged nights vs target (needs 3+ nights).
   const sleepVals = nums(last7, "sleepHours");
   let sleep: number | null = null;
-  let sleepDetail = "Not enough sleep tracked this week — wear your Watch to bed to score this.";
+  let sleepDetail = "Not enough sleep tracked. Wear your Watch to bed.";
   if (sleepVals.length >= 3) {
     const avg = mean(sleepVals)!;
     sleep = clamp(100 - Math.max(0, sleepTarget - avg) * 30 - Math.max(0, avg - 9.5) * 15);
-    sleepDetail = `${avg.toFixed(1)} hours a night on average vs your ${sleepTarget}h goal.`;
+    sleepDetail = `${avg.toFixed(1)}h a night vs your ${sleepTarget}h goal.`;
   }
   parts.push({ key: "sleep", label: "Sleep", score: sleep, word: sleep === null ? "No data" : word(sleep), detail: sleepDetail });
 
@@ -204,9 +204,9 @@ export function computeHealthScore(
   const strongest = parts.filter((p) => p.score !== null).sort((a, b) => (b.score as number) - (a.score as number))[0];
   const summary =
     overall === null
-      ? "Import your Apple Health data to see your score."
+      ? "Import your Apple Health data to get a score."
       : weakest && strongest && weakest !== strongest
-        ? `${strongest.label} is your strongest area; ${weakest.label.toLowerCase()} has the most room to improve.`
+        ? `Strongest: ${strongest.label.toLowerCase()}. Most room to grow: ${weakest.label.toLowerCase()}.`
         : `Based on ${scored.length} area${scored.length === 1 ? "" : "s"} with enough data.`;
 
   return { overall, word: overall === null ? "No data" : word(overall), summary, parts };
@@ -261,7 +261,7 @@ export function computeHighlights(days: DailyMetrics[], trends: Trends, fitness:
     out.push({
       tone: good ? "win" : "watch",
       title: `${c.name} ${up ? "up" : "down"} ${Math.abs(pct).toFixed(0)}% this week`,
-      detail: `${fmtV(prev!)}${c.unit} → ${fmtV(curr!)}${c.unit} vs the week before.${good ? "" : c.higherIsBetter ? " Worth turning around." : " Keep an eye on it."}`,
+      detail: `${fmtV(prev!)}${c.unit} → ${fmtV(curr!)}${c.unit} vs last week.`,
     });
   }
 
@@ -282,9 +282,9 @@ export function computeHighlights(days: DailyMetrics[], trends: Trends, fitness:
 
   // Streaks.
   const stepStreak = streak(days, (d) => (d.steps ?? 0) >= 8000);
-  if (stepStreak >= 3) out.push({ tone: "win", title: `${stepStreak}-day streak of 8,000+ steps`, detail: "Daily walking is one of the strongest habits for long-term health. Keep it going today." });
+  if (stepStreak >= 3) out.push({ tone: "win", title: `${stepStreak}-day streak of 8,000+ steps`, detail: "Keep it going today." });
   const exStreak = streak(days, (d) => typeof d.exerciseMinutesGoal === "number" && (d.exerciseMinutes ?? 0) >= d.exerciseMinutesGoal);
-  if (exStreak >= 3) out.push({ tone: "win", title: `${exStreak} days in a row closing your Exercise ring`, detail: "Consistency beats intensity — this is exactly how fitness builds." });
+  if (exStreak >= 3) out.push({ tone: "win", title: `${exStreak} days in a row closing your Exercise ring`, detail: "This is how fitness builds." });
 
   // Ring closure rate.
   const ringDays = last7.filter((d) => typeof d.activeEnergyGoal === "number");
@@ -293,7 +293,7 @@ export function computeHighlights(days: DailyMetrics[], trends: Trends, fitness:
     out.push({
       tone: moveClosed >= 5 ? "win" : moveClosed <= 2 ? "watch" : "info",
       title: `Move ring closed ${moveClosed} of ${ringDays.length} days`,
-      detail: moveClosed >= 5 ? "Strong week for daily movement." : "A 15-minute walk in the evening usually closes the gap.",
+      detail: moveClosed >= 5 ? "Strong week." : "An evening 15-minute walk usually closes it.",
     });
   }
 
@@ -310,17 +310,17 @@ export function computeHighlights(days: DailyMetrics[], trends: Trends, fitness:
   if (mp !== null && Math.abs(mp) >= 10) {
     out.push({
       tone: mp > 0 ? "win" : "watch",
-      title: `Last 4 weeks: ${mp > 0 ? "more" : "less"} walking than the 4 before`,
-      detail: `${fmtInt(m0!)} → ${fmtInt(m1!)} steps a day (${mp > 0 ? "+" : ""}${mp.toFixed(0)}%).`,
+      title: `${mp > 0 ? "More" : "Less"} walking than the month before`,
+      detail: `${fmtInt(m0!)} → ${fmtInt(m1!)} steps a day, last 4 weeks vs the 4 before.`,
     });
   }
 
   // Training-model flags worth surfacing to non-experts.
   const fit = fitness.metrics.find((m) => m.key === "fitness");
-  if (fit && fit.status === "watch") out.push({ tone: "watch", title: "Your training base is slipping", detail: fit.action });
+  if (fit && fit.status === "watch") out.push({ tone: "watch", title: "Fitness base is slipping", detail: fit.action });
   const vo2t = fitness.metrics.find((m) => m.key === "vo2Trend");
-  if (vo2t && vo2t.status === "bad") out.push({ tone: "watch", title: "Cardio fitness (VO2max) is trending down", detail: vo2t.action });
-  if (vo2t && vo2t.status === "good") out.push({ tone: "win", title: "Cardio fitness (VO2max) is climbing", detail: vo2t.action });
+  if (vo2t && vo2t.status === "bad") out.push({ tone: "watch", title: "VO2max is falling", detail: vo2t.action });
+  if (vo2t && vo2t.status === "good") out.push({ tone: "win", title: "VO2max is rising", detail: vo2t.action });
 
   // Weekday pattern.
   const pattern = computeWeekdayPattern(days);
@@ -332,8 +332,8 @@ export function computeHighlights(days: DailyMetrics[], trends: Trends, fitness:
     if ((hi.avgSteps as number) > (lo.avgSteps as number) * 1.3) {
       out.push({
         tone: "info",
-        title: `${WEEKDAY_NAMES[WEEKDAYS.indexOf(hi.weekday)]}s are your most active day, ${WEEKDAY_NAMES[WEEKDAYS.indexOf(lo.weekday)]}s the least`,
-        detail: `${fmtInt(hi.avgSteps as number)} vs ${fmtInt(lo.avgSteps as number)} steps on average over 12 weeks. Plan a walk or session on ${WEEKDAY_NAMES[WEEKDAYS.indexOf(lo.weekday)]}s.`,
+        title: `${WEEKDAY_NAMES[WEEKDAYS.indexOf(hi.weekday)]}s are your best day, ${WEEKDAY_NAMES[WEEKDAYS.indexOf(lo.weekday)]}s your worst`,
+        detail: `${fmtInt(hi.avgSteps as number)} vs ${fmtInt(lo.avgSteps as number)} steps. Plan a walk on ${WEEKDAY_NAMES[WEEKDAYS.indexOf(lo.weekday)]}s.`,
       });
     }
   }

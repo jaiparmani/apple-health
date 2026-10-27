@@ -239,23 +239,23 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
   const acwr = acute !== null && chronic !== null && chronic > 0.5 ? acute / chronic : null;
   {
     let status: MetricStatus = "unknown";
-    let action = "Need ~4 weeks of activity data to compute this.";
+    let action = "Needs about 4 weeks of data.";
     if (acwr !== null) {
       if (acwr > 1.5) {
         status = "bad";
-        action = `This week's load is ${Math.round((acwr - 1) * 100)}% above your 4-week norm — the zone most linked to overuse injury. Hold volume flat or cut 20% for the next 5-7 days.`;
-        actionItems.push({ priority: "high", area: "training", text: "Cut training volume ~20% this week", why: `Acute:chronic load ratio is ${acwr.toFixed(2)} (>1.5 spike zone).` });
+        action = `${Math.round((acwr - 1) * 100)}% above your normal. Injury risk is up. Cut volume 20% this week.`;
+        actionItems.push({ priority: "high", area: "training", text: "Cut training volume 20% this week", why: `This week's load is ${acwr.toFixed(2)}× your normal (above 1.5 is a spike).` });
       } else if (acwr > 1.3) {
         status = "watch";
-        action = "Ramping fast. Fine for a planned build week, but don't add more — keep the next 3 days easy-to-moderate.";
-        actionItems.push({ priority: "medium", area: "training", text: "No new intensity for 3 days", why: `Load ratio ${acwr.toFixed(2)} is above the 0.8-1.3 sweet spot.` });
+        action = "Ramping fast. Keep the next 3 days easy to moderate.";
+        actionItems.push({ priority: "medium", area: "training", text: "No new intensity for 3 days", why: `Load is ${acwr.toFixed(2)}× your normal (sweet spot: 0.8-1.3).` });
       } else if (acwr >= 0.8) {
         status = "good";
-        action = "Sweet spot. You can progress total weekly volume by up to ~10% next week.";
+        action = "Sweet spot. You can add up to 10% volume next week.";
       } else {
         status = "watch";
-        action = "Training less than your recent norm — fitness will start to decay. Add one extra session or 20-30 min to an existing one this week.";
-        actionItems.push({ priority: "medium", area: "training", text: "Add one session this week", why: `Load ratio ${acwr.toFixed(2)} is below 0.8 (detraining).` });
+        action = "Below your normal. Add one session this week to stop fitness slipping.";
+        actionItems.push({ priority: "medium", area: "training", text: "Add one session this week", why: `Load is ${acwr.toFixed(2)}× your normal (below 0.8 loses fitness).` });
       }
     }
     metrics.push({
@@ -265,7 +265,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
       unit: "",
       display: acwr === null ? "—" : acwr.toFixed(2),
       status,
-      meaning: "Last 7 days of training load divided by your 28-day average. 0.8-1.3 is the productive range; above 1.5 is a spike.",
+      meaning: "This week's load vs your 4-week average. 0.8-1.3 builds fitness; above 1.5 risks injury.",
       action,
     });
   }
@@ -281,15 +281,15 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
     unit: "",
     display: fitness === null ? "—" : fitness.toFixed(1) + (fitnessChange !== null ? ` (${fitnessChange >= 0 ? "+" : ""}${fitnessChange.toFixed(1)} / 4wk)` : ""),
     status: fitnessChange === null ? "unknown" : fitnessChange > 0.3 ? "good" : fitnessChange < -0.5 ? "watch" : "ok",
-    meaning: "42-day weighted average of daily load — your long-term training base. It rises slowly with consistency and decays when you stop.",
+    meaning: "Your long-term training base: 6 weeks of load. Builds slowly, fades when you stop.",
     action:
       fitnessChange === null
-        ? "Keep logging; needs 4+ weeks of history."
+        ? "Needs 4+ weeks of data."
         : fitnessChange < -0.5
-          ? "Base is eroding. Consistency beats intensity here: aim for 4+ active days a week before adding hard sessions."
+          ? "Slipping. Aim for 4 active days a week before adding intensity."
           : fitnessChange > 0.3
-            ? "Base is building. Keep the routine; schedule an easier week every 3-4 weeks to absorb it."
-            : "Base is holding steady. To grow it, add ~10% weekly volume, not more intensity.",
+            ? "Building. Keep going; take an easy week every 3-4 weeks."
+            : "Steady. Add 10% weekly volume to grow it.",
   });
 
   const form = lastPoint?.form ?? null;
@@ -299,17 +299,17 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
     if (form !== null) {
       if (form < -5) {
         status = "bad";
-        action = "Deeply fatigued relative to your base. Take a rest or very easy day before the next hard session.";
-        actionItems.push({ priority: "high", area: "recovery", text: "Rest or easy day today", why: `Form (TSB) is ${form.toFixed(1)} — fatigue well above fitness.` });
+        action = "Very tired. Rest or go easy before your next hard session.";
+        actionItems.push({ priority: "high", area: "recovery", text: "Rest or easy day today", why: `Freshness is ${form.toFixed(1)}: fatigue is well above fitness.` });
       } else if (form < -2) {
         status = "watch";
-        action = "Productive fatigue — normal mid-block. Keep hard days hard and easy days genuinely easy.";
+        action = "Normal training fatigue. Keep easy days truly easy.";
       } else if (form <= 3) {
         status = "good";
-        action = "Balanced. Good day for a quality session if readiness agrees.";
+        action = "Balanced. A good day for a quality session.";
       } else {
         status = "ok";
-        action = "Fresh — fatigue is low relative to fitness. Ideal for a test, race or PR attempt; if it stays here for weeks you're under-training.";
+        action = "Fresh. Great for a race or PR. Stay here for weeks and you're undertraining.";
       }
     }
     metrics.push({
@@ -319,7 +319,7 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
       unit: "",
       display: form === null ? "—" : (form > 0 ? "+" : "") + form.toFixed(1),
       status,
-      meaning: "Fitness minus fatigue (7-day load). Negative = carrying fatigue; positive = fresh.",
+      meaning: "Fitness base minus recent fatigue. Negative means tired, positive means fresh.",
       action,
     });
   }
@@ -333,16 +333,16 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
     unit: "",
     display: mono === null ? "—" : mono.toFixed(2),
     status: mono === null ? "unknown" : mono > 2 ? "watch" : "good",
-    meaning: "Average daily load ÷ its day-to-day variation over 7 days. High (>2) means every day looks the same — linked to staleness and illness.",
+    meaning: "How similar your days are. Above 2 means every day is the same, which leads to burnout.",
     action:
       mono === null
         ? "Needs 7 days of data."
         : mono > 2
-          ? "Vary it: make 1-2 days clearly hard and 1-2 clearly easy or off, instead of medium every day."
-          : "Good hard/easy variation. Keep it.",
+          ? "Make 1-2 days hard and 1-2 easy, not every day medium."
+          : "Good mix of hard and easy days.",
   });
   if (mono !== null && mono > 2) {
-    actionItems.push({ priority: "low", area: "training", text: "Polarise the week: 1-2 hard days, 1-2 off days", why: `Monotony ${mono.toFixed(2)} (>2).` });
+    actionItems.push({ priority: "low", area: "training", text: "Mix it up: 1-2 hard days, 1-2 off days", why: `Every day looks the same (variety score ${mono.toFixed(2)}).` });
   }
 
   // ---- Weekly activity minutes vs WHO 150 ----
@@ -354,20 +354,20 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
     unit: "min",
     display: `${Math.round(weekMinutes)} / ${WHO_WEEKLY_MINUTES}`,
     status: weekMinutes >= 300 ? "good" : weekMinutes >= WHO_WEEKLY_MINUTES ? "good" : weekMinutes >= 90 ? "watch" : "bad",
-    meaning: "Apple Exercise-ring minutes over the last 7 days, vs the WHO minimum of 150 min/week of moderate activity (300 for extra benefit).",
+    meaning: "Exercise-ring minutes in the last 7 days. The WHO minimum is 150; 300 adds more benefit.",
     action:
       weekMinutes >= WHO_WEEKLY_MINUTES
         ? weekMinutes >= 300
-          ? "Above the extended target. Prioritise recovery quality over adding more minutes."
-          : `Minimum met. ${Math.round(300 - weekMinutes)} more minutes this week reaches the 300-min tier where most of the additional longevity benefit sits.`
-        : `${Math.round(WHO_WEEKLY_MINUTES - weekMinutes)} min short. That's ~${Math.ceil((WHO_WEEKLY_MINUTES - weekMinutes) / 30)} brisk 30-min walks or rides.`,
+          ? "Above 300. Focus on recovery, not more minutes."
+          : `Target met. ${Math.round(300 - weekMinutes)} more minutes reaches the 300 tier.`
+        : `${Math.round(WHO_WEEKLY_MINUTES - weekMinutes)} minutes short: ${Math.ceil((WHO_WEEKLY_MINUTES - weekMinutes) / 30)} brisk 30-minute walks.`,
   });
   if (weekMinutes < WHO_WEEKLY_MINUTES) {
     actionItems.push({
       priority: weekMinutes < 90 ? "high" : "medium",
       area: "activity",
       text: `Get ${Math.round(WHO_WEEKLY_MINUTES - weekMinutes)} more exercise minutes this week`,
-      why: `${Math.round(weekMinutes)} of the WHO-recommended 150 min in the last 7 days.`,
+      why: `${Math.round(weekMinutes)} of 150 minutes in the last 7 days.`,
     });
   }
 
@@ -380,13 +380,13 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
     unit: "days",
     display: `${activeDays28} / 28`,
     status: activeDays28 >= 16 ? "good" : activeDays28 >= 10 ? "ok" : activeDays28 >= 6 ? "watch" : "bad",
-    meaning: `Days in the last 4 weeks with ≥${ACTIVE_DAY_MINUTES} exercise minutes or a logged workout. Consistency is the strongest driver of long-term fitness.`,
+    meaning: `Days with ${ACTIVE_DAY_MINUTES}+ exercise minutes or a workout. Consistency builds fitness most.`,
     action:
       activeDays28 >= 16
-        ? "Excellent rhythm (4+ days/week). Protect at least 1 full rest day a week."
+        ? "4+ days a week. Keep one full rest day."
         : activeDays28 >= 10
-          ? "~3 days/week. Adding a 4th short session is the cheapest fitness gain available."
-          : "Under 3 days/week. Lock in fixed calendar slots (e.g. Mon/Wed/Sat) — schedule beats motivation.",
+          ? "About 3 days a week. A 4th short session is your easiest gain."
+          : "Under 3 days a week. Book fixed slots, e.g. Mon/Wed/Sat.",
   });
   if (activeDays28 < 10) {
     actionItems.push({ priority: "high", area: "training", text: "Schedule 3 fixed training slots for next week", why: `Only ${activeDays28} active days in the last 28.` });
@@ -402,16 +402,16 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
     unit: "days",
     display: String(daysSinceRest),
     status: daysSinceRest >= 6 ? "bad" : daysSinceRest >= 4 ? "watch" : "good",
-    meaning: "Consecutive days with moderate-or-higher load (strain ≥ 8). Adaptation happens during recovery, not during the session.",
+    meaning: "Days in a row with moderate or hard load. You get fitter while recovering.",
     action:
       daysSinceRest >= 6
-        ? "Take an easy/off day today."
+        ? "Take an easy day today."
         : daysSinceRest >= 4
-          ? "Plan an easy day within the next 48 hours."
-          : "Recovery cadence is fine.",
+          ? "Plan an easy day in the next 2 days."
+          : "Recovery rhythm is fine.",
   });
   if (daysSinceRest >= 6) {
-    actionItems.push({ priority: "high", area: "recovery", text: "Take a rest day today", why: `${daysSinceRest} consecutive moderate+ load days.` });
+    actionItems.push({ priority: "high", area: "recovery", text: "Take a rest day today", why: `${daysSinceRest} hard-ish days in a row.` });
   }
 
   // ---- VO2max: category + 90-day trend ----
@@ -429,16 +429,16 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
     unit: "ml/kg/min",
     display: vo2Recent === null ? "—" : `${vo2Recent.toFixed(1)}${vo2Cat ? " · " + vo2Cat : ""}`,
     status: vo2Cat === null ? "unknown" : vo2Cat === "superior" || vo2Cat === "excellent" ? "good" : vo2Cat === "good" ? "ok" : vo2Cat === "fair" ? "watch" : "bad",
-    meaning: "VO2max vs ACSM norms for your age and sex. It's one of the strongest single predictors of all-cause mortality — moving up one category matters more than almost any other metric here.",
+    meaning: "VO2max graded for your age and sex. One of the strongest predictors of lifespan.",
     action:
       vo2Recent === null
-        ? "Apple Watch estimates VO2max from outdoor walks/runs with GPS + HR. Do a 20+ min outdoor brisk walk or run weekly to get readings."
+        ? "Do a 20-minute brisk outdoor walk or run weekly to get readings."
         : vo2Cat === "superior" || vo2Cat === "excellent"
-          ? "Maintain with 1 interval session + 2-3 easy aerobic sessions a week."
-          : "Biggest lever: 1x/week intervals (e.g. 4×4 min hard, 3 min easy) plus 2-3 Zone-2 sessions (conversational pace, 30-45 min). Expect +3-5 ml/kg/min over 8-12 weeks.",
+          ? "Keep 1 interval and 2-3 easy cardio sessions a week."
+          : "Weekly 4×4-minute intervals plus 2-3 easy 30-45 minute sessions. Expect +3-5 in 3 months.",
   });
   if (vo2Cat && (vo2Cat === "poor" || vo2Cat === "fair")) {
-    actionItems.push({ priority: "medium", area: "training", text: "Add one 4×4 interval session per week", why: `VO2max ${vo2Recent!.toFixed(1)} is '${vo2Cat}' for your age.` });
+    actionItems.push({ priority: "medium", area: "training", text: "Add one 4×4 interval session per week", why: `VO2max ${vo2Recent!.toFixed(1)} is "${vo2Cat}" for your age.` });
   }
   if (vo2Slope !== null) {
     const per30 = vo2Slope * 30;
@@ -449,13 +449,13 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
       unit: "/30d",
       display: (per30 >= 0 ? "+" : "") + per30.toFixed(2) + " /mo",
       status: per30 > 0.1 ? "good" : per30 < -0.2 ? "bad" : "ok",
-      meaning: "Linear trend of VO2max over the last 90 days, per month.",
+      meaning: "How your VO2max moved over 90 days, per month.",
       action:
         per30 < -0.2
-          ? "Declining. Usually means fewer sustained aerobic sessions — re-add 2 sessions of 30+ min at a steady effort."
+          ? "Falling. Add 2 steady 30-minute cardio sessions a week."
           : per30 > 0.1
-            ? "Climbing — your current training is working. Don't change much."
-            : "Flat. A new stimulus (intervals or longer easy sessions) is needed to move it.",
+            ? "Rising. Your training works; keep it."
+            : "Flat. Add intervals or longer easy sessions to move it.",
     });
   }
 
@@ -474,16 +474,16 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
       unit: "%",
       display: `${hrv7.toFixed(0)} ms (${pct >= 0 ? "+" : ""}${pct.toFixed(0)}%)`,
       status,
-      meaning: "7-day average HRV vs your own prior 60 days. A sustained drop below your normal band signals accumulated stress (training, sleep, illness, alcohol).",
+      meaning: "This week's HRV vs your last 60 days. A lasting drop means stress is piling up.",
       action:
         status === "bad"
-          ? "Well below your normal band. Swap hard sessions for easy ones until it recovers; check sleep, alcohol and illness."
+          ? "Well below normal. Train easy until it recovers."
           : status === "watch"
-            ? "Slightly suppressed. Fine to train, but keep intensity moderate and prioritise sleep tonight."
-            : "Within or above your normal band — your nervous system is absorbing current load. Green light for planned training.",
+            ? "Slightly low. Train moderately; sleep early tonight."
+            : "Normal. Train as planned.",
     });
     if (status === "bad") {
-      actionItems.push({ priority: "high", area: "recovery", text: "Keep training easy until HRV recovers", why: `7-day HRV ${hrv7.toFixed(0)} ms is ${Math.abs(pct).toFixed(0)}% below your 60-day baseline.` });
+      actionItems.push({ priority: "high", area: "recovery", text: "Keep training easy until HRV recovers", why: `HRV ${hrv7.toFixed(0)} ms, ${Math.abs(pct).toFixed(0)}% below your normal.` });
     }
   }
 
@@ -500,18 +500,18 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
       unit: "bpm",
       display: `${rhr7.toFixed(0)} bpm (${diff >= 0 ? "+" : ""}${diff.toFixed(1)})`,
       status,
-      meaning: "7-day resting HR vs your prior 60 days. Long-term, falling RHR = improving aerobic fitness; a short-term rise of 3-5+ bpm is an early sign of fatigue, illness or dehydration.",
+      meaning: "This week vs your last 60 days. Falling means fitter; a 3-5 bpm jump flags fatigue or illness.",
       action:
         diff >= 5
-          ? "Elevated 5+ bpm. Treat as a recovery flag: easy days only, extra sleep and fluids; if you feel ill, rest fully."
+          ? "Up 5+ bpm. Easy days, extra sleep and fluids. Rest if you feel ill."
           : diff >= 3
-            ? "Creeping up. Keep the next session moderate and watch it tomorrow."
+            ? "Creeping up. Keep the next session moderate."
             : diff <= -2
-              ? "Falling — a classic sign of improving aerobic fitness."
+              ? "Falling. A classic sign of better fitness."
               : "Stable.",
     });
     if (diff >= 5) {
-      actionItems.push({ priority: "high", area: "recovery", text: "Recovery day: easy movement, fluids, early night", why: `Resting HR is up ${diff.toFixed(1)} bpm vs baseline.` });
+      actionItems.push({ priority: "high", area: "recovery", text: "Recovery day: easy movement, fluids, early night", why: `Resting heart rate is up ${diff.toFixed(1)} bpm on your normal.` });
     }
   }
 
@@ -527,14 +527,14 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
       unit: "hr",
       display: `${debt.toFixed(1)} hr`,
       status: debt >= 5 ? "bad" : debt >= 2.5 ? "watch" : "good",
-      meaning: `Total hours short of your ${sleepTargetHours}h target across the last ${sleepVals.length} logged nights. Sleep debt blunts training adaptation, HRV and appetite control.`,
+      meaning: `Hours short of your ${sleepTargetHours}h goal over ${sleepVals.length} nights. Debt blunts recovery and fitness gains.`,
       action:
         debt >= 2.5
-          ? `Pull bedtime ${Math.min(60, Math.round((debt / 7) * 60 + 15))} min earlier for the next 4 nights; skip hard sessions after a <6h night.`
-          : `On target (avg ${avgSleep.toFixed(1)}h). Keep the same bed/wake window, including weekends.`,
+          ? `Go to bed ${Math.min(60, Math.round((debt / 7) * 60 + 15))} minutes earlier for 4 nights.`
+          : `On target at ${avgSleep.toFixed(1)}h. Keep your bedtime steady.`,
     });
     if (debt >= 2.5) {
-      actionItems.push({ priority: debt >= 5 ? "high" : "medium", area: "sleep", text: "Bedtime 30-45 min earlier for 4 nights", why: `${debt.toFixed(1)}h sleep debt over the last week.` });
+      actionItems.push({ priority: debt >= 5 ? "high" : "medium", area: "sleep", text: "Bedtime 30-45 min earlier for 4 nights", why: `${debt.toFixed(1)} hours of sleep debt this week.` });
     }
   }
 
@@ -548,14 +548,14 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
       unit: "",
       display: Math.round(steps7).toLocaleString("en-US"),
       status: steps7 >= 8000 ? "good" : steps7 >= 6000 ? "ok" : steps7 >= 4000 ? "watch" : "bad",
-      meaning: "Background daily movement outside training. Mortality-risk benefits rise steeply up to ~7-8k steps/day and flatten after ~10k.",
+      meaning: "Everyday movement. Benefits climb to ~8,000 a day, then level off.",
       action:
         steps7 >= 8000
-          ? "In the high-benefit zone. Maintain."
-          : `Add ~${Math.round((8000 - steps7) / 100) * 100} steps/day — a 10-min walk after two meals covers most of it (and helps glucose).`,
+          ? "In the high-benefit zone."
+          : `Add ~${Math.round((8000 - steps7) / 100) * 100} a day: walk 10 minutes after two meals.`,
     });
     if (steps7 < 6000) {
-      actionItems.push({ priority: "medium", area: "activity", text: "10-min walk after lunch and dinner", why: `Averaging ${Math.round(steps7).toLocaleString("en-US")} steps/day (<6k).` });
+      actionItems.push({ priority: "medium", area: "activity", text: "Walk 10 minutes after lunch and dinner", why: `${Math.round(steps7).toLocaleString("en-US")} steps a day on average.` });
     }
   }
 
@@ -569,8 +569,8 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
       unit: "hr",
       display: `${stand7.toFixed(1)} / 12`,
       status: stand7 >= 10 ? "good" : stand7 >= 8 ? "ok" : "watch",
-      meaning: "Hours per day with at least 1 minute of standing. Breaking up long sitting spells matters independently of workouts.",
-      action: stand7 >= 10 ? "Good. Keep breaking up sitting." : "Set a 50-minute stand/walk reminder during work hours.",
+      meaning: "Hours with a minute of standing. Breaking up sitting matters, even if you exercise.",
+      action: stand7 >= 10 ? "Good." : "Set a 50-minute stand reminder at work.",
     });
   }
 
@@ -584,11 +584,11 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
       unit: "m/s",
       display: `${gait.toFixed(2)} m/s`,
       status: gait >= 1.3 ? "good" : gait >= 1.1 ? "ok" : gait >= 1.0 ? "watch" : "bad",
-      meaning: "Your everyday walking pace, measured passively by iPhone. Gait speed is a well-replicated marker of physiological age; >1.3 m/s is strong.",
+      meaning: "Your everyday pace. A strong marker of physical age. Above 1.3 m/s is strong.",
       action:
         gait >= 1.3
-          ? "Strong. Maintain leg strength (2x/week squats/lunges) to keep it there."
-          : "Add 2x/week lower-body strength (squats, step-ups, lunges) and some brisk-pace walking — both raise habitual pace.",
+          ? "Strong. Train legs twice a week to keep it."
+          : "Train legs twice a week and walk briskly more often.",
     });
   }
   const asym = mean(nums(days.slice(-30), (d) => d.walkingAsymmetryPct));
@@ -600,8 +600,8 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
       unit: "%",
       display: `${(asym * 100).toFixed(1)}%`,
       status: asym <= 0.03 ? "good" : asym <= 0.06 ? "watch" : "bad",
-      meaning: "How uneven your left vs right step timing is. Under ~3% is typical; persistent rises often trace to a niggle, injury or one-sided weakness.",
-      action: asym <= 0.03 ? "Normal. Nothing to do." : "Elevated. Check for a niggle; add single-leg work (split squats, single-leg RDLs) to even sides out.",
+      meaning: "How uneven your left and right steps are. Under 3% is normal.",
+      action: asym <= 0.03 ? "Normal." : "Uneven. Check for a niggle; add single-leg exercises.",
     });
   }
 
@@ -616,8 +616,8 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
       unit: "",
       display: bmi.toFixed(1),
       status: bmi < 18.5 ? "watch" : bmi < 25 ? "good" : bmi < 30 ? "watch" : "bad",
-      meaning: "Weight relative to height. A crude screen — it can't tell muscle from fat, so read it alongside body-fat % and waist.",
-      action: bmi < 18.5 ? "Underweight range: prioritise protein (1.6 g/kg) and progressive strength training." : bmi < 25 ? "Healthy range. Track body-fat % for a better picture." : "Above 25: if body-fat % is also high, a 300-500 kcal/day deficit with high protein and strength training preserves muscle while losing fat.",
+      meaning: "Weight for your height. Crude: it can't tell muscle from fat.",
+      action: bmi < 18.5 ? "Underweight. Eat more protein and lift." : bmi < 25 ? "Healthy range." : "Above 25. If body fat is high too: small deficit, high protein, lift.",
     });
   }
   const wPoints: [number, number][] = [];
@@ -635,8 +635,8 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
       unit: "kg/wk",
       display: `${perWeek >= 0 ? "+" : ""}${perWeek.toFixed(2)} kg/wk`,
       status: Math.abs(pctPerWeek) > 1 ? "watch" : "ok",
-      meaning: "60-day linear weight trend. Faster than ~1% of body weight per week (either direction) usually means losing muscle or gaining fat.",
-      action: Math.abs(pctPerWeek) > 1 ? "Changing fast. Slow it: adjust intake by ~250 kcal/day and keep protein high." : "Rate of change is in a sustainable range.",
+      meaning: "Weight change per week over 60 days. Over 1% a week is too fast.",
+      action: Math.abs(pctPerWeek) > 1 ? "Too fast. Adjust food by ~250 kcal a day." : "A sustainable pace.",
     });
   }
 
@@ -647,8 +647,8 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
     actionItems.unshift({
       priority: "medium",
       area: "training",
-      text: "Green light: quality session today",
-      why: `Form ${form >= 0 ? "+" : ""}${form.toFixed(1)}, no recovery flags${todayRec.hrv ? `, HRV ${todayRec.hrv.toFixed(0)} ms` : ""}.`,
+      text: "Green light for a quality session today",
+      why: `Fresh (${form >= 0 ? "+" : ""}${form.toFixed(1)}), no recovery flags.`,
     });
   }
 
