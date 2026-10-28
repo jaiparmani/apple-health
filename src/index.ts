@@ -18,6 +18,7 @@ import { healthBriefMessage } from "./brief";
 import { buildReviewContext } from "./reviewContext";
 import { computeFitnessReport } from "./fitness";
 import { computeOverview } from "./overview";
+import { sanitizeManualWorkout, type ManualWorkout } from "./manualWorkouts";
 import { renderDashboard } from "./dashboard";
 
 const SERIES_PATH = "data/series.json";
@@ -29,6 +30,7 @@ const MAX_KNOWLEDGE_NOTES = 2000;
 const EXPERIMENTS_PATH = "data/experiments.json";
 const GOALS_PATH = "data/goals.json";
 const PLAN_PATH = "data/plan.json";
+const WORKOUTS_PATH = "data/manual-workouts.json";
 const MAX_GOALS = 10;
 const MAX_SERIES_DAYS = 4000; // ~11 years, enough headroom for a full Apple Health export backfill
 const MAX_HISTORY_ENTRIES = 4000;
@@ -833,6 +835,61 @@ async function handleDeleteExperiment(req: Request, env: Env): Promise<Response>
   return json({ ok: true });
 }
 
+// ---------------- manual workouts ----------------
+
+async function handleGetWorkouts(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const dateFilter = new URL(req.url).searchParams.get("date");
+  const { data } = await getJson<{ workouts: ManualWorkout[] }>(env, WORKOUTS_PATH);
+  let workouts = data?.workouts ?? [];
+  if (dateFilter) workouts = workouts.filter((w) => w.date === dateFilter);
+  workouts.sort((a, b) => b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  return json({ workouts });
+}
+
+async function handlePostWorkout(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "invalid json body" }, 400);
+  }
+  const sanitized = sanitizeManualWorkout(body);
+  if (!sanitized) return json({ error: "invalid workout: date (YYYY-MM-DD), type (string), and exercises are required" }, 400);
+
+  const { data: existing, sha } = await getJson<{ workouts: ManualWorkout[] }>(env, WORKOUTS_PATH);
+  const workouts = existing?.workouts ?? [];
+  const existingId = typeof (body as Record<string, unknown>).id === "string" ? (body as Record<string, unknown>).id as string : null;
+
+  const workout: ManualWorkout = {
+    ...sanitized,
+    id: existingId && workouts.some((w) => w.id === existingId) ? existingId : crypto.randomUUID(),
+    createdAt: existingId && workouts.some((w) => w.id === existingId)
+      ? workouts.find((w) => w.id === existingId)!.createdAt
+      : new Date().toISOString(),
+  };
+
+  const idx = workouts.findIndex((w) => w.id === workout.id);
+  if (idx >= 0) workouts[idx] = workout;
+  else workouts.push(workout);
+
+  await putJson(env, WORKOUTS_PATH, { workouts }, `workouts: ${idx >= 0 ? "update" : "add"} ${workout.date} ${workout.type}`, sha);
+  await bumpDataVersion(env);
+  return json({ ok: true, workout });
+}
+
+async function handleDeleteWorkout(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) return json({ error: "?id= is required" }, 400);
+  const { data: existing, sha } = await getJson<{ workouts: ManualWorkout[] }>(env, WORKOUTS_PATH);
+  const workouts = (existing?.workouts ?? []).filter((w) => w.id !== id);
+  await putJson(env, WORKOUTS_PATH, { workouts }, `workouts: delete ${id}`, sha);
+  await bumpDataVersion(env);
+  return json({ ok: true });
+}
+
 async function handlePutProfile(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   let body: Partial<UserProfile>;
@@ -896,6 +953,9 @@ export default {
       if (req.method === "POST" && url.pathname === "/api/experiments") return await handlePostExperiment(req, env);
       if (req.method === "POST" && url.pathname === "/api/experiments/adherence") return await handlePostExperimentAdherence(req, env);
       if (req.method === "DELETE" && url.pathname === "/api/experiments") return await handleDeleteExperiment(req, env);
+      if (req.method === "GET" && url.pathname === "/api/workouts") return await handleGetWorkouts(req, env);
+      if (req.method === "POST" && url.pathname === "/api/workouts") return await handlePostWorkout(req, env);
+      if (req.method === "DELETE" && url.pathname === "/api/workouts") return await handleDeleteWorkout(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
       if (req.method === "GET" && url.pathname === "/manifest.json") {
         return new Response(JSON.stringify({
