@@ -59,7 +59,8 @@ const BASE_VOICE =
   "Plain English: say \"resting heart rate\" not \"RHR\", \"freshness\" not \"TSB\", \"fitness base\" not \"CTL\" (HRV and VO2max are fine). " +
   "Round like a person: whole numbers for steps, bpm, minutes, kcal, ms; one decimal for hours, kg, VO2max. Dates as \"Mon 26 Oct\". " +
   "Read biologicalAgeInWords literally — positive gap means OLDER than actual age. " +
-  "Never advise less activity unless a recovery metric has status \"bad\".";
+  "Never advise less activity unless a recovery metric has status \"bad\". " +
+  "Never prescribe specific workouts or training plans. State what the body is ready for and ask about their routine.";
 
 const OUTPUT_SHAPE =
   'Reply with ONLY a JSON object: {"headline": string, "body": string, "concern": string | null}. ' +
@@ -76,21 +77,24 @@ export const REVIEW_DOMAINS: ReviewDomain[] = ["overview", "today", "weekly", "l
 const DOMAIN_FOCUS: Record<ReviewDomain, string> = {
   overview: "overall health trends across recovery, activity, and sleep — whatever in the snapshot matters most right now",
   today:
-    "TODAY only: should this person train hard, train moderately, or recover today, and why — combine readiness, form (TSB), " +
-    "HRV/resting-HR vs baseline, last night's sleep and recent load. The headline must be the call for today. Recommendations " +
-    "are a concrete plan for today (session type, duration/intensity, bedtime) — draw on the fitness.actionItems list",
+    "TODAY only: how recovered is this person and what does the data say about today — combine readiness, form (TSB), " +
+    "HRV/resting-HR vs baseline, last night's sleep and recent load. The headline must be the readiness call (recover / go hard / steady). " +
+    "Do NOT prescribe a specific workout or training plan. Instead, state the body's readiness and let them decide what to do. " +
+    "If recovery is low, say so plainly. If they are fresh, say they have capacity. Reference fitness.actionItems for context only",
   weekly:
-    "THE LAST 7 DAYS as a short weekly check-in from a coach: what went well, what slipped, and the 2-3 things to do " +
-    "differently next week. Use the highlights, the day-by-day week strip and this-week-vs-last-week numbers. The headline " +
-    "sums up the week in one sentence",
+    "THE LAST 7 DAYS as a short weekly check-in: what went well, what slipped, and what the data suggests to adjust. " +
+    "Do NOT prescribe specific workouts. Ask a question about their routine if the data suggests something worth exploring " +
+    "(e.g. 'Are your gym sessions feeling harder lately?' or 'How is the pickleball recovery?'). " +
+    "Use the highlights, the day-by-day week strip and this-week-vs-last-week numbers. The headline sums up the week",
   longterm:
     "LONG-TERM direction over the last 12 months: which monthly trends (steps, exercise, resting HR, HRV, VO2max, weight) " +
     "are genuinely improving or declining, seasonal or weekday patterns, and what that trajectory means if it continues. " +
-    "Recommendations are habits for the next 3 months",
+    "Suggest areas to explore, not specific training plans. Ask what changed if a trend shifted",
   training:
     "training: load (acute:chronic ratio, fitness/fatigue/form), consistency (active days, weekly minutes vs 150), workout " +
-    "frequency/types/volume per week, monotony, and whether load is outpacing recovery or there's room to push. Recommendations " +
-    "must be a concrete training prescription for the next 7 days (sessions, durations, intensities), tied to the person's goals if given",
+    "frequency/types/volume per week, monotony, and whether load is outpacing recovery or there's room to push. " +
+    "Do NOT write a training prescription. Instead, ask about their current routine — what types of sessions they do, " +
+    "how often, and whether the load pattern matches their intent. Surface what the numbers show and let them decide",
   recovery:
     "recovery and heart: HRV vs 60-day baseline, resting HR drift, readiness, walking HR, respiratory rate, and how recovery " +
     "responds to the days of high strain/load in the series. Flag patterns (e.g. HRV dips after hard days). Recommendations are " +
