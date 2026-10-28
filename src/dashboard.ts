@@ -143,6 +143,16 @@ export function renderDashboard(): string {
   .chart-empty svg { width:32px; height:32px; opacity:.3; }
   .chart-skeleton { height:280px; border-radius:8px; background:var(--panel2); overflow:hidden; position:relative; }
   .chart-skeleton::after { content:''; position:absolute; inset:0; background:linear-gradient(90deg,transparent,#202020,transparent); background-size:200% 100%; animation:shimmer 1.4s infinite; }
+  .workout-cards { display:flex; flex-direction:column; gap:8px; }
+  .wk-card { display:grid; grid-template-columns:42px 1fr auto; gap:12px; align-items:center; padding:13px 14px; background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--pulse); border-radius:0 8px 8px 0; transition:transform .1s; }
+  .wk-card:active { transform:scale(.98); }
+  .wk-icon { width:42px; height:42px; border-radius:50%; background:var(--panel2); display:flex; align-items:center; justify-content:center; font-size:20px; flex-shrink:0; }
+  .wk-info { min-width:0; }
+  .wk-name { font-weight:700; font-size:14px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .wk-meta { font-size:12px; color:var(--dim); display:flex; gap:10px; margin-top:2px; font-family:var(--mono); font-weight:600; }
+  .wk-date { font-size:12px; color:var(--faint); font-family:var(--mono); font-weight:600; text-align:right; white-space:nowrap; }
+  .wk-dur-bar { height:4px; background:var(--panel2); border-radius:2px; margin-top:6px; overflow:hidden; }
+  .wk-dur-fill { height:100%; border-radius:2px; transition:width .4s; }
   .simple-table { width:100%; font-size:13px; border-collapse:collapse; }
   .simple-table td { padding:7px 10px 7px 0; border-bottom:1px solid var(--line); color:var(--ink); font-family:var(--mono); font-weight:600; }
   .simple-table td:first-child { color:var(--dim); white-space:nowrap; font-family:var(--sans); font-weight:400; }
@@ -282,9 +292,22 @@ export function renderDashboard(): string {
   details.more[open] summary::before { content:"− "; }
   details.more > div { margin-top:6px; line-height:1.6; }
 
-  .scoreboard { display:grid; grid-template-columns:minmax(260px, 1fr) 1.3fr; gap:24px; align-items:center; }
-  .scoreboard > details { grid-column:1 / -1; }
-  .score-main { display:flex; gap:18px; align-items:center; }
+  .scoreboard { padding:24px; }
+  .multi-ring-layout { display:grid; grid-template-columns:auto 1fr; gap:24px; align-items:center; }
+  .multi-ring { position:relative; width:180px; height:180px; flex-shrink:0; }
+  .multi-ring svg { transform:rotate(-90deg); }
+  .multi-ring .ring-label { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .multi-ring .ring-label .n { font-size:44px; }
+  .score-arc { transition:stroke-dashoffset 1.2s cubic-bezier(.32,.72,0,1); }
+  .multi-ring-info { min-width:0; }
+  .ring-legend { display:flex; flex-direction:column; gap:6px; margin-top:12px; }
+  .ring-legend .rl-row { display:flex; align-items:center; gap:8px; font-size:13px; }
+  .ring-legend .rl-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .ring-legend .rl-name { flex:1; font-weight:600; color:var(--dim); }
+  .ring-legend .rl-score { font-family:var(--mono); font-weight:800; font-size:15px; }
+  .ring-legend .rl-word { font-size:11px; margin-left:4px; }
+  .scoreboard > details { margin-top:12px; }
+  @media (max-width:640px) { .multi-ring-layout { grid-template-columns:1fr; justify-items:center; text-align:center; } .multi-ring { width:160px; height:160px; } .ring-legend { align-items:center; } }
   .score-word { font-size:24px; font-weight:800; }
   .score-summary { color:var(--dim); font-size:14px; margin-top:2px; }
   .score-part { padding:9px 0; border-bottom:1px solid var(--line); }
@@ -403,9 +426,10 @@ export function renderDashboard(): string {
   .verdict .v-word { font-family:var(--mono); font-size:42px; font-weight:900; line-height:1.05; margin:0 0 4px; letter-spacing:-.02em; text-shadow:0 0 40px rgba(163,230,53,.15); }
   .verdict .v-line { font-size:15px; font-weight:600; line-height:1.45; }
   .verdict .v-why { font-size:12.5px; opacity:.75; margin-top:4px; }
-  .v-hard { background:rgba(52,211,153,.12); border-color:rgba(52,211,153,.4); color:#6ee7b7; }
-  .v-steady { background:rgba(251,191,36,.10); border-color:rgba(251,191,36,.4); color:#fcd34d; }
-  .v-recover { background:rgba(247,107,77,.12); border-color:rgba(247,107,77,.45); color:#fca594; }
+  @keyframes meshShift { 0% { background-position:0% 50%; } 50% { background-position:100% 50%; } 100% { background-position:0% 50%; } }
+  .v-hard { background:linear-gradient(135deg, rgba(52,211,153,.20) 0%, rgba(163,230,53,.14) 35%, rgba(52,211,153,.08) 70%, rgba(163,230,53,.18) 100%); background-size:200% 200%; animation:meshShift 8s ease infinite; border-color:rgba(52,211,153,.4); color:#6ee7b7; }
+  .v-steady { background:linear-gradient(135deg, rgba(251,191,36,.14) 0%, rgba(253,224,71,.10) 35%, rgba(251,191,36,.06) 70%, rgba(253,224,71,.14) 100%); background-size:200% 200%; animation:meshShift 8s ease infinite; border-color:rgba(251,191,36,.4); color:#fcd34d; }
+  .v-recover { background:linear-gradient(135deg, rgba(247,107,77,.16) 0%, rgba(252,165,148,.10) 35%, rgba(247,107,77,.06) 70%, rgba(252,165,148,.14) 100%); background-size:200% 200%; animation:meshShift 8s ease infinite; border-color:rgba(247,107,77,.45); color:#fca594; }
   .v-neutral { background:var(--panel); color:var(--ink); }
   .v-hard .v-line, .v-steady .v-line, .v-recover .v-line { color:var(--ink); }
   .brief-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
@@ -422,6 +446,13 @@ export function renderDashboard(): string {
   .sb-fill.high { background:var(--caution); }
   .sb-fill.over { background:var(--down); }
   .sb-target { position:absolute; top:0; bottom:0; width:2px; background:var(--dim); }
+  .sleep-arch { display:flex; height:28px; border-radius:6px; overflow:hidden; margin-bottom:4px; }
+  .sleep-arch .seg { height:100%; display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:700; font-family:var(--mono); color:var(--ink); transition:width .6s ease; min-width:0; overflow:hidden; }
+  .seg-core { background:#60a5fa; } .seg-deep { background:#3b82f6; } .seg-rem { background:#a78bfa; } .seg-awake { background:rgba(247,107,77,.7); }
+  .sleep-arch-legend { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  .sleep-arch-legend .sal { display:flex; align-items:center; gap:5px; font-size:11.5px; color:var(--dim); font-weight:600; }
+  .sleep-arch-legend .sal-dot { width:8px; height:8px; border-radius:2px; flex-shrink:0; }
+  .sleep-arch-legend .sal-val { font-family:var(--mono); font-weight:700; color:var(--ink); }
   .one-action { border-left:3px solid var(--pulse); border-radius:0 8px 8px 0; }
   .oa-label { font-size:11px; color:var(--dim); font-weight:700; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
   .oa-text { font-size:14px; font-weight:600; color:var(--ink); }
@@ -485,6 +516,28 @@ export function renderDashboard(): string {
   .ms-meaning { font-size:14px; line-height:1.6; color:var(--dim); }
   .ms-action { font-size:14.5px; line-height:1.55; margin-top:8px; }
   .ms-action::before { content:"\\2192  "; font-weight:700; color:var(--pulse); }
+  .ms-compare { display:inline-block; margin-left:8px; }
+  .ms-compare button { padding:5px 12px; border-radius:999px; background:var(--panel2); border:1px solid var(--line); color:var(--dim); cursor:pointer; font-size:11.5px; font-weight:700; transition:all .15s; }
+  .ms-compare button.active { background:var(--pulse); color:var(--void); border-color:var(--pulse); }
+  .ms-histogram { height:70px; margin:0 0 14px; display:flex; align-items:flex-end; gap:1px; }
+  .ms-hist-bar { flex:1; border-radius:2px 2px 0 0; background:var(--pulse); opacity:.2; transition:opacity .2s; min-width:0; }
+  .ms-hist-bar.current { opacity:1; }
+  .ms-hist-labels { display:flex; justify-content:space-between; font-size:10px; color:var(--faint); font-family:var(--mono); font-weight:600; margin-bottom:14px; }
+  .ms-handle { width:36px; height:4px; background:var(--faint); border-radius:2px; margin:0 auto 6px; opacity:.5; }
+  .metric-sheet.dragging { transition:none !important; }
+
+  /* ---- week recap ---- */
+  .recap-card { background:linear-gradient(135deg, rgba(163,230,53,.08) 0%, rgba(52,211,153,.06) 50%, rgba(96,165,250,.08) 100%); border:1px solid rgba(163,230,53,.25); border-radius:12px; padding:18px; margin-bottom:14px; }
+  .recap-header { display:flex; justify-content:space-between; align-items:baseline; margin-bottom:14px; }
+  .recap-header .recap-range { font-size:12px; color:var(--dim); font-family:var(--mono); font-weight:600; }
+  .recap-header .recap-tone { font-size:13px; font-weight:800; }
+  .recap-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+  .recap-stat { text-align:center; }
+  .recap-stat .rs-val { font-size:22px; font-weight:800; font-family:var(--mono); }
+  .recap-stat .rs-label { font-size:11px; color:var(--dim); font-weight:600; margin-top:2px; }
+  .recap-spark { display:flex; align-items:flex-end; gap:1px; height:24px; justify-content:center; margin-top:4px; }
+  .recap-spark .rs-bar { width:4px; border-radius:1px; background:var(--pulse); opacity:.6; }
+  @media (max-width:480px) { .recap-grid { grid-template-columns:repeat(2,1fr); } }
 
   /* ---- weekly story cards ---- */
   .story-scroll { display:flex; gap:12px; overflow-x:auto; padding:4px 0 12px; scroll-snap-type:x mandatory; scrollbar-width:none; }
@@ -515,6 +568,9 @@ export function renderDashboard(): string {
   .hm-cell { width:11px; height:11px; border-radius:2px; background:var(--panel2); }
   .hm-1 { background:rgba(180,255,57,.15); } .hm-2 { background:rgba(180,255,57,.35); }
   .hm-3 { background:rgba(180,255,57,.55); } .hm-4 { background:rgba(180,255,57,.85); }
+  .hm-metric-sel { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
+  .hm-metric-sel select { appearance:none; -webkit-appearance:none; background:var(--panel2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a8a8a'/%3E%3C/svg%3E") no-repeat right 10px center; border:1px solid var(--line); color:var(--ink); font-size:12px; font-weight:700; font-family:var(--mono); padding:6px 28px 6px 10px; border-radius:8px; cursor:pointer; }
+  .hm-metric-sel select:focus { outline:none; border-color:var(--pulse); }
   .hm-labels { display:flex; justify-content:space-between; font-size:10px; color:var(--faint); margin-bottom:4px; padding:0 2px; }
   .hm-legend { display:flex; align-items:center; gap:3px; font-size:10px; color:var(--faint); margin-top:4px; }
   .hm-legend span { width:11px; height:11px; border-radius:2px; display:inline-block; }
@@ -655,6 +711,7 @@ export function renderDashboard(): string {
       <div class="brief-item"><div class="brief-n" id="bSleepQ">—</div><div class="brief-u">quality</div></div>
       <div class="brief-item"><div class="brief-n" id="bDeepRem">—</div><div class="brief-u">deep+REM</div></div>
     </div>
+    <div id="sleepArch"></div>
 
     <div class="brief-row" id="bodyState">
       <div class="brief-item"><div class="brief-n" id="bHrv">—</div><div class="brief-d" id="bHrvD"></div><div class="brief-u">HRV</div></div>
@@ -731,8 +788,19 @@ export function renderDashboard(): string {
 
   <!-- YOU: RECORDS -->
   <section class="section" id="tab-records">
-    <h2 class="sec" style="margin-top:6px;">Activity heatmap<span>Every day at a glance</span></h2>
+    <h2 class="sec" style="margin-top:6px;">Heatmap<span>Every day at a glance</span></h2>
     <div class="card">
+      <div class="hm-metric-sel">
+        <select id="hmMetricSel" onchange="changeHmMetric(this.value)">
+          <option value="activity" selected>Activity</option>
+          <option value="steps">Steps</option>
+          <option value="exerciseMinutes">Exercise min</option>
+          <option value="sleepHours">Sleep hours</option>
+          <option value="hrv">HRV</option>
+          <option value="restingHeartRate">Resting HR</option>
+          <option value="activeEnergy">Active energy</option>
+        </select>
+      </div>
       <div class="hm-year-selector" id="hmYears"></div>
       <div class="hm-labels" id="hmLabels"></div>
       <div class="heatmap-wrap"><div class="heatmap" id="heatmap"></div></div>
@@ -846,29 +914,35 @@ export function renderDashboard(): string {
     <div class="highlights" id="highlights"></div>
     <button class="btn btn-ghost btn-sm" id="moreHighlights" style="display:none;margin:-4px 0 14px;" onclick="toggleHighlights()">Show all highlights</button>
     ${reviewCard("weekly", "Your week in review", "What worked, what slipped, what to change.")}
+    <div id="weekRecap"></div>
 
     <h2 class="sec">Key numbers<span>Latest values with 30-day trend</span></h2>
     <div class="grid" id="quickStats"></div>
     <div class="untracked" id="untracked"></div>
 
     <h2 class="sec" id="scoreSection">Health score<span>Four areas, scored against your own data</span></h2>
-    <div class="scoreboard card">
-      <div class="score-main">
-        <div class="ring-wrap">
-          <svg width="148" height="148" viewBox="0 0 148 148">
-            <circle cx="74" cy="74" r="64" fill="none" stroke="#1d1d1d" stroke-width="12" />
-            <circle id="scoreRing" cx="74" cy="74" r="64" fill="none" stroke="url(#ringGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="402" stroke-dashoffset="402" />
-            <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#b4ff39" /><stop offset="100%" stop-color="#34d399" /></linearGradient></defs>
+    <div class="scoreboard card" id="scoreboardCard">
+      <div class="multi-ring-layout">
+        <div class="multi-ring" id="multiRing">
+          <svg width="180" height="180" viewBox="0 0 180 180">
+            <circle cx="90" cy="90" r="72" fill="none" stroke="#1d1d1d" stroke-width="10" />
+            <circle cx="90" cy="90" r="58" fill="none" stroke="#1d1d1d" stroke-width="10" />
+            <circle cx="90" cy="90" r="44" fill="none" stroke="#1d1d1d" stroke-width="10" />
+            <circle cx="90" cy="90" r="30" fill="none" stroke="#1d1d1d" stroke-width="10" />
+            <circle id="sr0" cx="90" cy="90" r="72" fill="none" stroke="#34d399" stroke-width="10" stroke-linecap="round" stroke-dasharray="452.4" stroke-dashoffset="452.4" class="score-arc" />
+            <circle id="sr1" cx="90" cy="90" r="58" fill="none" stroke="#f76b4d" stroke-width="10" stroke-linecap="round" stroke-dasharray="364.4" stroke-dashoffset="364.4" class="score-arc" />
+            <circle id="sr2" cx="90" cy="90" r="44" fill="none" stroke="#60a5fa" stroke-width="10" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="276.5" class="score-arc" />
+            <circle id="sr3" cx="90" cy="90" r="30" fill="none" stroke="#a78bfa" stroke-width="10" stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="188.5" class="score-arc" />
           </svg>
           <div class="ring-label"><div class="n" id="scoreNum">—</div><div class="u">health score</div></div>
         </div>
-        <div>
+        <div class="multi-ring-info">
           <div class="score-word" id="scoreWord">—</div>
           <div class="score-summary" id="scoreSummary">Calculating…</div>
+          <div class="ring-legend" id="ringLegend"></div>
         </div>
       </div>
-      <div class="score-parts" id="scoreParts"></div>
-      <details class="more"><summary>How is this calculated?</summary><div>The average of four 0-100 scores. <b>Recovery</b>: today's heart data vs your normal. <b>Activity</b>: exercise minutes vs 150 a week, steps vs 8,000. <b>Fitness</b>: VO2max for your age, plus active days. <b>Sleep</b>: hours vs your goal. Areas without data are skipped, not guessed.</div></details>
+      <details class="more"><summary>How is this calculated?</summary><div>The average of four 0-100 scores. <b>Recovery</b>: today\\'s heart data vs your normal. <b>Activity</b>: exercise minutes vs 150 a week, steps vs 8,000. <b>Fitness</b>: VO2max for your age, plus active days. <b>Sleep</b>: hours vs your goal. Areas without data are skipped, not guessed.</div></details>
     </div>
   </section>
 
@@ -1019,6 +1093,7 @@ export function renderDashboard(): string {
   <footer>Estimates only, not medical advice. Data lives in your own GitHub repo.</footer>
 
   <div class="metric-sheet" id="metricSheet">
+    <div class="ms-handle"></div>
     <div class="ms-head">
       <button class="ms-back" onclick="closeMetric()">&larr;</button>
       <span class="ms-title" id="msTitle"></span>
@@ -1215,20 +1290,28 @@ var BASELINES = null;
 var charts = {};
 var C = { pulse:'#a3e635', up:'#34d399', down:'#f76b4d', caution:'#fbbf24', blue:'#60a5fa', purple:'#a78bfa', dim:'#8a8a8a', grid:'#1e1e1e', faint:'#555555' };
 
-function countUp(el, target, duration, decimals) {
-  if (!el || el.dataset.counted) return;
+function countUp(el, target, duration, decimals, from, force) {
+  if (!el || (!force && el.dataset.counted)) return;
   el.dataset.counted = '1';
   duration = duration || 600;
   decimals = decimals || 0;
+  from = from || 0;
   var start = performance.now();
   function step(now) {
     var t = Math.min((now - start) / duration, 1);
     var ease = 1 - Math.pow(1 - t, 3);
-    el.textContent = (target * ease).toFixed(decimals);
+    el.textContent = (from + (target - from) * ease).toFixed(decimals);
     if (t < 1) requestAnimationFrame(step);
     else el.textContent = target.toFixed(decimals);
   }
   requestAnimationFrame(step);
+}
+
+function morphNumber(el, newValue, decimals) {
+  if (!el) return;
+  var cur = parseFloat(el.textContent) || 0;
+  if (Math.abs(cur - newValue) < 0.01) return;
+  countUp(el, newValue, 400, decimals, cur, true);
 }
 
 function staggerReveal(container) {
@@ -1593,9 +1676,41 @@ function renderSleepBrief(today, prev) {
   var h = today ? today.sleepHours : null;
   var q = today && today.sleepEfficiency !== undefined ? Math.round(today.sleepEfficiency * 100) : null;
   var deep = today ? (today.sleepDeepHours || 0) + (today.sleepRemHours || 0) : null;
-  document.getElementById('bSleepH').textContent = h !== null ? h.toFixed(1) : '—';
-  document.getElementById('bSleepQ').textContent = q !== null ? q + '%' : '—';
-  document.getElementById('bDeepRem').textContent = deep !== null && deep > 0 ? deep.toFixed(1) + 'h' : '—';
+  var elH = document.getElementById('bSleepH');
+  var elQ = document.getElementById('bSleepQ');
+  var elD = document.getElementById('bDeepRem');
+  if (h !== null) { elH.textContent = '0'; countUp(elH, h, 600, 1); } else elH.textContent = '—';
+  if (q !== null) { elQ.textContent = '0'; countUp(elQ, q, 600, 0); } else elQ.textContent = '—';
+  if (deep !== null && deep > 0) { elD.textContent = '0'; countUp(elD, deep, 600, 1); } else elD.textContent = '—';
+}
+
+function renderSleepArch(today) {
+  var el = document.getElementById('sleepArch');
+  if (!el || !today) return;
+  var stages = [
+    { key: 'sleepCoreHours', label: 'Core', cls: 'seg-core', color: '#60a5fa' },
+    { key: 'sleepDeepHours', label: 'Deep', cls: 'seg-deep', color: '#3b82f6' },
+    { key: 'sleepRemHours', label: 'REM', cls: 'seg-rem', color: '#a78bfa' },
+    { key: 'sleepAwakeHours', label: 'Awake', cls: 'seg-awake', color: 'rgba(247,107,77,.7)' },
+  ];
+  var total = 0;
+  stages.forEach(function (s) { total += today[s.key] || 0; });
+  if (total <= 0) { el.innerHTML = ''; return; }
+  var bar = '<div class="sleep-arch">';
+  stages.forEach(function (s) {
+    var v = today[s.key] || 0;
+    var pct = Math.round(v / total * 100);
+    if (pct < 1) return;
+    bar += '<div class="seg ' + s.cls + '" style="width:' + pct + '%">' + (pct >= 8 ? pct + '%' : '') + '</div>';
+  });
+  bar += '</div><div class="sleep-arch-legend">';
+  stages.forEach(function (s) {
+    var v = today[s.key] || 0;
+    if (v <= 0) return;
+    bar += '<div class="sal"><div class="sal-dot" style="background:' + s.color + '"></div>' + s.label + ' <span class="sal-val">' + v.toFixed(1) + 'h</span></div>';
+  });
+  bar += '</div>';
+  el.innerHTML = bar;
 }
 
 function renderBodyState(today, baselines) {
@@ -1677,19 +1792,29 @@ function toggleHighlights() { highlightsOpen = !highlightsOpen; renderHighlights
 
 function renderScore(score) {
   TODAY.score = score.overall; TODAY.scoreWord = score.word;
-  var ring = document.getElementById('scoreRing');
   var n = score.overall;
-  document.getElementById('scoreNum').textContent = n === null ? '—' : n;
+  var numEl = document.getElementById('scoreNum');
+  numEl.textContent = n === null ? '—' : String(n);
   document.getElementById('scoreWord').textContent = score.word;
   document.getElementById('scoreWord').style.color = scoreColor(n);
   document.getElementById('scoreSummary').textContent = score.summary;
-  ring.setAttribute('stroke-dashoffset', String(402 * (1 - Math.max(0.03, (n || 0) / 100))));
-  document.getElementById('scoreParts').innerHTML = score.parts.map(function (p) {
-    return '<div class="score-part"><div class="sp-top"><span class="sp-name">' + p.label + ' ' + pill(scoreStatus(p.score), p.word) + '</span>' +
-      '<span class="sp-num" style="color:' + scoreColor(p.score) + '">' + (p.score === null ? '—' : p.score) + '</span></div>' +
-      '<div class="sp-bar"><div style="width:' + (p.score || 0) + '%;background:' + scoreColor(p.score) + '"></div></div>' +
-      '<div class="sp-detail">' + p.detail + '</div></div>';
-  }).join('');
+  if (n !== null) countUp(numEl, n, 800, 0);
+  var ringColors = [C.up, C.down, C.blue, C.purple];
+  var radii = [72, 58, 44, 30];
+  score.parts.forEach(function (p, i) {
+    var el = document.getElementById('sr' + i);
+    if (!el) return;
+    var circ = 2 * Math.PI * radii[i];
+    var pct = Math.max(0.03, (p.score || 0) / 100);
+    el.setAttribute('stroke', ringColors[i % ringColors.length]);
+    requestAnimationFrame(function () { el.setAttribute('stroke-dashoffset', String(circ * (1 - pct))); });
+  });
+  var legendEl = document.getElementById('ringLegend');
+  if (legendEl) {
+    legendEl.innerHTML = score.parts.map(function (p, i) {
+      return '<div class="rl-row"><div class="rl-dot" style="background:' + ringColors[i] + '"></div><span class="rl-name">' + p.label + '</span>' + pill(scoreStatus(p.score), p.word) + '<span class="rl-score" style="color:' + scoreColor(p.score) + '">' + (p.score === null ? '—' : p.score) + '</span></div>';
+    }).join('');
+  }
 }
 
 function renderWeekStrip(week) {
@@ -1831,6 +1956,55 @@ var KEY_NUMBERS = [
   { key: 'sleepHours', label: 'Sleep', unit: 'hr', dp: 1, up: true },
   { key: 'weightKg', label: 'Weight', unit: 'kg', dp: 1, up: null },
 ];
+
+function renderWeekRecap(trends) {
+  var el = document.getElementById('weekRecap');
+  if (!el || !trends || !GUIDE_DAYS.length) return;
+  var l7 = trends.last7;
+  if (!l7) return;
+
+  var now = new Date();
+  var weekStart = new Date(now); weekStart.setDate(now.getDate() - 6);
+  var fmt = function (d) { return MONTHS[d.getMonth()] + ' ' + d.getDate(); };
+  var range = fmt(weekStart) + ' – ' + fmt(now);
+
+  var last7Days = GUIDE_DAYS.slice(-7);
+  var avg = function (k) { var vals = last7Days.map(function (d) { return d[k]; }).filter(function (v) { return v !== undefined && v !== null; }); return vals.length ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null; };
+  var sum = function (k) { var vals = last7Days.map(function (d) { return d[k] || 0; }); return vals.reduce(function (a, b) { return a + b; }, 0); };
+
+  var avgSleep = avg('sleepHours');
+  var avgSteps = avg('steps');
+  var avgHrv = avg('hrv');
+  var totalExercise = sum('exerciseMinutes');
+  var workoutCount = last7Days.filter(function (d) { return (d.exerciseMinutes || 0) >= 20 || (d.workoutMinutes || 0) > 0; }).length;
+
+  var tone = 'Steady Week';
+  var toneColor = 'var(--caution)';
+  if (avgHrv && avgSteps) {
+    if (avgHrv > 45 && avgSteps > 8000 && workoutCount >= 4) { tone = 'Strong Week'; toneColor = 'var(--up)'; }
+    else if (workoutCount <= 2 || (avgSleep && avgSleep < 6)) { tone = 'Recovery Week'; toneColor = 'var(--down)'; }
+  }
+
+  var spark = function (k) {
+    var vals = last7Days.map(function (d) { return d[k] || 0; });
+    var mx = Math.max.apply(null, vals) || 1;
+    return '<div class="recap-spark">' + vals.map(function (v) { return '<div class="rs-bar" style="height:' + Math.max(2, (v / mx) * 22) + 'px"></div>'; }).join('') + '</div>';
+  };
+
+  var stats = [
+    { val: avgSleep !== null ? avgSleep.toFixed(1) + 'h' : '—', label: 'Avg sleep', sparkKey: 'sleepHours' },
+    { val: avgSteps !== null ? Math.round(avgSteps).toLocaleString() : '—', label: 'Avg steps', sparkKey: 'steps' },
+    { val: avgHrv !== null ? Math.round(avgHrv) + 'ms' : '—', label: 'Avg HRV', sparkKey: 'hrv' },
+    { val: Math.round(totalExercise) + 'm', label: 'Exercise', sparkKey: 'exerciseMinutes' },
+    { val: workoutCount + 'd', label: 'Active days', sparkKey: null },
+  ];
+
+  el.innerHTML = '<div class="recap-card">' +
+    '<div class="recap-header"><span class="recap-range">' + range + '</span><span class="recap-tone" style="color:' + toneColor + '">' + tone + '</span></div>' +
+    '<div class="recap-grid">' + stats.map(function (s) {
+      return '<div class="recap-stat"><div class="rs-val">' + s.val + '</div><div class="rs-label">' + s.label + '</div>' + (s.sparkKey ? spark(s.sparkKey) : '') + '</div>';
+    }).join('') + '</div></div>';
+}
 
 function renderQuickStats(today, trends) {
   var untracked = [];
@@ -2158,6 +2332,45 @@ function rollingAvg(series, window) {
 }
 
 var METRIC_RANGE = '30';
+var METRIC_COMPARE = false;
+
+function toggleCompare(key) {
+  METRIC_COMPARE = !METRIC_COMPARE;
+  var btn = document.querySelector('.ms-compare button');
+  if (btn) btn.classList.toggle('active', METRIC_COMPARE);
+  var days = METRIC_RANGE === 'all' ? null : Number(METRIC_RANGE);
+  renderMetricChart(key, days);
+}
+
+function renderHistogram(key, currentValue) {
+  if (currentValue === null || currentValue === undefined) return '';
+  var all = [];
+  GUIDE_DAYS.forEach(function (d) { if (typeof d[key] === 'number') all.push(d[key]); });
+  if (all.length < 10) return '';
+  var min = Math.min.apply(null, all);
+  var max = Math.max.apply(null, all);
+  if (max === min) return '';
+  var bins = 20;
+  var step = (max - min) / bins;
+  var counts = new Array(bins).fill(0);
+  var currentBin = -1;
+  all.forEach(function (v) {
+    var b = Math.min(bins - 1, Math.floor((v - min) / step));
+    counts[b]++;
+  });
+  currentBin = Math.min(bins - 1, Math.floor((currentValue - min) / step));
+  var maxCount = Math.max.apply(null, counts);
+  var html = '<div class="ms-histogram">';
+  for (var i = 0; i < bins; i++) {
+    var h = maxCount > 0 ? Math.max(2, Math.round(counts[i] / maxCount * 100)) : 2;
+    html += '<div class="ms-hist-bar' + (i === currentBin ? ' current' : '') + '" style="height:' + h + '%"></div>';
+  }
+  html += '</div>';
+  var f = METRIC_FORMAT[key];
+  var dp = f && f.dp !== undefined ? f.dp : 0;
+  html += '<div class="ms-hist-labels"><span>' + min.toFixed(dp) + '</span><span>You are here</span><span>' + max.toFixed(dp) + '</span></div>';
+  return html;
+}
 
 function openMetric(key) {
   var guide = METRIC_GUIDE[key];
@@ -2187,10 +2400,14 @@ function openMetric(key) {
   if (best) html += '<div class="ms-best">Best ever: <b>' + fmtMetricVal(key, best.value) + '</b> ' + unit + ' on ' + niceDate(best.date) + '</div>';
   html += '</div>';
 
+  html += renderHistogram(key, v);
+
   html += '<div class="ms-ranges">';
   ['7', '30', '90', '365', 'all'].forEach(function (r) {
     html += '<button class="' + (r === METRIC_RANGE ? 'active' : '') + '" onclick="changeMetricRange(\\'' + key + '\\',\\'' + r + '\\')">' + (r === 'all' ? 'All' : r === '365' ? '1Y' : r + 'D') + '</button>';
   });
+  METRIC_COMPARE = false;
+  html += '<span class="ms-compare"><button onclick="toggleCompare(\\'' + key + '\\')">vs prev</button></span>';
   html += '</div>';
   html += '<div class="ms-chart"><canvas id="msChart"></canvas></div>';
 
@@ -2260,6 +2477,42 @@ window.addEventListener('popstate', function (e) {
   if (e.state && e.state.metric) openMetric(e.state.metric);
 });
 
+(function initPullToDismiss() {
+  var sheet, startY, startScroll, dragging;
+  document.addEventListener('touchstart', function (e) {
+    sheet = document.getElementById('metricSheet');
+    if (!sheet || !sheet.classList.contains('open')) return;
+    if (sheet.scrollTop > 5) return;
+    startY = e.touches[0].clientY;
+    startScroll = sheet.scrollTop;
+    dragging = false;
+  }, { passive: true });
+  document.addEventListener('touchmove', function (e) {
+    if (startY === undefined || !sheet || !sheet.classList.contains('open')) return;
+    var dy = e.touches[0].clientY - startY;
+    if (dy > 10 && sheet.scrollTop <= 0) {
+      if (!dragging) { dragging = true; sheet.classList.add('dragging'); }
+      var offset = dy > 100 ? 100 + (dy - 100) * 0.4 : dy;
+      sheet.style.transform = 'translateY(' + offset + 'px)';
+      sheet.style.opacity = String(Math.max(0.4, 1 - offset / 400));
+      e.preventDefault();
+    }
+  }, { passive: false });
+  document.addEventListener('touchend', function () {
+    if (!dragging || !sheet) { startY = undefined; return; }
+    sheet.classList.remove('dragging');
+    var dy = parseFloat(sheet.style.transform.replace('translateY(', '')) || 0;
+    if (dy > 120) {
+      closeMetric();
+    } else {
+      sheet.style.transform = '';
+      sheet.style.opacity = '';
+    }
+    startY = undefined;
+    dragging = false;
+  });
+})();
+
 function changeMetricRange(key, range) {
   METRIC_RANGE = range;
   var days = range === 'all' ? null : Number(range);
@@ -2267,6 +2520,14 @@ function changeMetricRange(key, range) {
   document.querySelectorAll('.ms-ranges button').forEach(function (b) {
     b.classList.toggle('active', b.textContent === (range === 'all' ? 'All' : range === '365' ? '1Y' : range + 'D'));
   });
+  var series = metricSeries(key, days);
+  if (series.length) {
+    var latest = series[series.length - 1];
+    var f = METRIC_FORMAT[key];
+    var dp = f && f.dp !== undefined ? f.dp : 0;
+    var big = document.querySelector('.ms-big');
+    if (big && latest.value !== null) morphNumber(big, latest.value, dp);
+  }
 }
 
 function renderMetricChart(key, rangeDays) {
@@ -2321,6 +2582,24 @@ function renderMetricChart(key, rangeDays) {
   if (band && !useWeekly && !useMonthly) {
     datasets.push({ label: 'p75', data: labels.map(function () { return band.p75; }), borderColor: 'transparent', pointRadius: 0, fill: '+1', backgroundColor: 'rgba(163,230,53,.08)' });
     datasets.push({ label: 'p25', data: labels.map(function () { return band.p25; }), borderColor: 'transparent', pointRadius: 0, fill: false });
+  }
+
+  if (METRIC_COMPARE && rangeDays) {
+    var prevSeries = metricSeries(key, rangeDays * 2);
+    var prevLen = prevSeries.length - series.length;
+    if (prevLen > 0) {
+      var prevSlice = prevSeries.slice(0, prevLen);
+      var prevValues;
+      if (useWeekly) {
+        var pw = {}; prevSlice.forEach(function (pt) { if (pt.value === null) return; var d = new Date(pt.date + 'T00:00:00Z'); var dow = (d.getUTCDay() + 6) % 7; var mon = new Date(d.getTime() - dow * 86400000).toISOString().slice(0, 10); if (!pw[mon]) pw[mon] = []; pw[mon].push(pt.value); });
+        var pws = Object.keys(pw).sort().slice(-labels.length);
+        prevValues = pws.map(function (w) { var arr = pw[w]; return arr.reduce(function (a, b) { return a + b; }, 0) / arr.length; });
+      } else {
+        prevValues = prevSlice.slice(-labels.length).map(function (pt) { return pt.value; });
+      }
+      while (prevValues.length < labels.length) prevValues.unshift(null);
+      datasets.splice(1, 0, { label: 'Previous ' + rangeDays + 'd', data: prevValues, borderColor: C.dim, borderDash: [5, 5], pointRadius: 0, borderWidth: 1.2, tension: .3, spanGaps: true, fill: false });
+    }
   }
 
   if (metricChartInstance) { metricChartInstance.destroy(); metricChartInstance = null; }
@@ -2619,12 +2898,20 @@ function buildCharts(days, history) {
   if (workoutDays.length === 0) {
     listEl.textContent = 'No workout sessions in the imported data yet.';
   } else {
-    listEl.innerHTML = '<table class="simple-table"><tbody>' + workoutDays.map(function (d) {
-      var parts = [niceDate(d.date), workoutName(d.workoutType) || 'Workout', d.workoutMinutes + ' min'];
-      if (d.workoutEnergy) parts.push(Math.round(d.workoutEnergy) + ' kcal');
-      if (d.workoutDistanceKm) parts.push(d.workoutDistanceKm.toFixed(1) + ' km');
-      return '<tr>' + parts.map(function (p) { return '<td>' + p + '</td>'; }).join('') + '</tr>';
-    }).join('') + '</tbody></table>';
+    var maxMin = Math.max.apply(null, workoutDays.map(function (d) { return d.workoutMinutes || 0; }).concat([1]));
+    var wkIcons = { running: '\\u{1F3C3}', cycling: '\\u{1F6B4}', walking: '\\u{1F6B6}', swimming: '\\u{1F3CA}', yoga: '\\u{1F9D8}', hiking: '\\u26F0\\uFE0F', dance: '\\u{1F483}', tennis: '\\u{1F3BE}', pickleball: '\\u{1F3D3}', soccer: '\\u26BD', basketball: '\\u{1F3C0}', elliptical: '\\u{1F3CB}' };
+    var wkColors = { running: C.up, cycling: C.blue, walking: C.pulse, swimming: C.blue, yoga: C.purple, hiking: C.up, pickleball: C.caution, tennis: C.caution };
+    listEl.innerHTML = '<div class="workout-cards">' + workoutDays.map(function (d) {
+      var name = workoutName(d.workoutType) || 'Workout';
+      var key = name.toLowerCase();
+      var icon = wkIcons[key] || '\\u{1F4AA}';
+      var color = wkColors[key] || C.pulse;
+      var meta = [d.workoutMinutes + ' min'];
+      if (d.workoutEnergy) meta.push(Math.round(d.workoutEnergy) + ' kcal');
+      if (d.workoutDistanceKm) meta.push(d.workoutDistanceKm.toFixed(1) + ' km');
+      var pct = Math.round((d.workoutMinutes || 0) / maxMin * 100);
+      return '<div class="wk-card" style="border-left-color:' + color + '"><div class="wk-icon">' + icon + '</div><div class="wk-info"><div class="wk-name">' + name + '</div><div class="wk-meta">' + meta.join(' \\u00B7 ') + '</div><div class="wk-dur-bar"><div class="wk-dur-fill" style="width:' + pct + '%;background:' + color + '"></div></div></div><div class="wk-date">' + niceDate(d.date) + '</div></div>';
+    }).join('') + '</div>';
   }
 
   upsertChart('sleepChart', { type: 'bar', data: { labels: labels, datasets: [
@@ -2889,12 +3176,59 @@ function renderYearInReview() {
 
 // ---------------- heatmap, then-vs-now, milestones ----------------
 var hmYear = null;
+var hmMetric = 'activity';
+
+var HM_COLORS = {
+  activity: [180,255,57],
+  steps: [180,255,57],
+  exerciseMinutes: [52,211,153],
+  sleepHours: [96,165,250],
+  hrv: [167,139,250],
+  restingHeartRate: [247,107,77],
+  activeEnergy: [251,191,36]
+};
+
+function hmLevel(day, metric) {
+  if (!day) return { level: 0, tip: '' };
+  if (metric === 'activity') {
+    var mins = (day.exerciseMinutes || 0) + (day.workoutMinutes || 0);
+    var steps = day.steps || 0;
+    var level = 0;
+    if (steps >= 10000 || mins >= 45) level = 4;
+    else if (steps >= 8000 || mins >= 30) level = 3;
+    else if (steps >= 5000 || mins >= 15) level = 2;
+    else if (steps > 0 || mins > 0) level = 1;
+    return { level: level, tip: (day.steps ? Math.round(day.steps).toLocaleString() + ' steps' : '') + (day.exerciseMinutes ? ', ' + day.exerciseMinutes + ' min' : '') };
+  }
+  var v = day[metric];
+  if (v === undefined || v === null) return { level: 0, tip: 'no data' };
+  var vals = GUIDE_DAYS.map(function (dd) { return dd[metric]; }).filter(function (x) { return x !== undefined && x !== null; }).sort(function (a, b) { return a - b; });
+  if (!vals.length) return { level: 0, tip: String(v) };
+  var p25 = vals[Math.floor(vals.length * 0.25)];
+  var p50 = vals[Math.floor(vals.length * 0.50)];
+  var p75 = vals[Math.floor(vals.length * 0.75)];
+  var flip = metric === 'restingHeartRate';
+  var lev = 0;
+  if (flip) {
+    if (v <= p25) lev = 4; else if (v <= p50) lev = 3; else if (v <= p75) lev = 2; else lev = 1;
+  } else {
+    if (v >= p75) lev = 4; else if (v >= p50) lev = 3; else if (v >= p25) lev = 2; else lev = 1;
+  }
+  var unit = metric === 'sleepHours' ? 'h' : metric === 'exerciseMinutes' ? ' min' : metric === 'hrv' ? ' ms' : metric === 'restingHeartRate' ? ' bpm' : metric === 'activeEnergy' ? ' kcal' : '';
+  return { level: lev, tip: (typeof v === 'number' ? v.toFixed(metric === 'sleepHours' ? 1 : 0) : v) + unit };
+}
 
 function renderHeatmap(year) {
   hmYear = year;
   var el = document.getElementById('heatmap');
   var labelsEl = document.getElementById('hmLabels');
+  var legendEl = document.querySelector('.hm-legend');
   if (!el || !GUIDE_DAYS.length) return;
+
+  var rgb = HM_COLORS[hmMetric] || HM_COLORS.activity;
+  var style = document.getElementById('hmDynStyle');
+  if (!style) { style = document.createElement('style'); style.id = 'hmDynStyle'; document.head.appendChild(style); }
+  style.textContent = '.hm-1{background:rgba(' + rgb.join(',') + ',.15)}.hm-2{background:rgba(' + rgb.join(',') + ',.35)}.hm-3{background:rgba(' + rgb.join(',') + ',.55)}.hm-4{background:rgba(' + rgb.join(',') + ',.85)}';
 
   var byDate = {};
   GUIDE_DAYS.forEach(function (d) { byDate[d.date] = d; });
@@ -2910,16 +3244,9 @@ function renderHeatmap(year) {
   while (d <= endDate) {
     var iso = d.toISOString().slice(0, 10);
     var day = byDate[iso];
-    var level = 0;
-    if (day) {
-      var mins = (day.exerciseMinutes || 0) + (day.workoutMinutes || 0);
-      var steps = day.steps || 0;
-      if (steps >= 10000 || mins >= 45) level = 4;
-      else if (steps >= 8000 || mins >= 30) level = 3;
-      else if (steps >= 5000 || mins >= 15) level = 2;
-      else if (steps > 0 || mins > 0) level = 1;
-    }
-    cells.push('<div class="hm-cell' + (level ? ' hm-' + level : '') + '" title="' + iso + (day ? ': ' + (day.steps ? Math.round(day.steps).toLocaleString() + ' steps' : '') + (day.exerciseMinutes ? ', ' + day.exerciseMinutes + ' min exercise' : '') : ': no data') + '"></div>');
+    var info = hmLevel(day, hmMetric);
+    var onclick = hmMetric !== 'activity' ? ' onclick="openMetric(\\'' + hmMetric + '\\')"' : '';
+    cells.push('<div class="hm-cell' + (info.level ? ' hm-' + info.level : '') + '" title="' + iso + ': ' + (info.tip || 'no data') + '"' + onclick + ' style="cursor:pointer"></div>');
     d.setUTCDate(d.getUTCDate() + 1);
   }
   el.innerHTML = cells.join('');
@@ -2928,8 +3255,17 @@ function renderHeatmap(year) {
   for (var m = 0; m < 12; m++) monthLabels.push(MONTHS[m]);
   labelsEl.innerHTML = monthLabels.map(function (m) { return '<span>' + m + '</span>'; }).join('');
 
+  if (legendEl) {
+    legendEl.innerHTML = 'Less <span class="hm-cell"></span><span class="hm-cell hm-1"></span><span class="hm-cell hm-2"></span><span class="hm-cell hm-3"></span><span class="hm-cell hm-4"></span> More';
+  }
+
   var btns = document.querySelectorAll('#hmYears button');
   btns.forEach(function (b) { b.classList.toggle('active', Number(b.textContent) === year); });
+}
+
+function changeHmMetric(metric) {
+  hmMetric = metric;
+  if (hmYear) renderHeatmap(hmYear);
 }
 
 function initHeatmap() {
@@ -3051,11 +3387,13 @@ async function boot() {
   TODAY.strain = trends.todayStrain === undefined ? null : trends.todayStrain;
   renderVerdict();
   renderSleepBrief(today, days.length >= 2 ? days[days.length - 2] : null);
+  renderSleepArch(today);
   renderBodyState(today, null);
   renderStrainBudget();
   renderWhatMoved(today, days.length >= 2 ? days[days.length - 2] : null);
   renderMarkers(latestAnalytics);
   renderQuickStats(today, trends);
+  renderWeekRecap(trends);
   renderTrainingLoad(trends);
   renderBests(trends.bests);
   renderExtraMetrics(days);
