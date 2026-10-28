@@ -431,6 +431,36 @@ export function renderDashboard(): string {
   .ms-action { font-size:14.5px; line-height:1.55; margin-top:8px; }
   .ms-action::before { content:"\\2192  "; font-weight:700; color:var(--pulse); }
 
+  /* ---- year heatmap ---- */
+  .heatmap-wrap { overflow-x:auto; margin-bottom:8px; }
+  .heatmap-wrap::-webkit-scrollbar { display:none; }
+  .heatmap { display:grid; grid-template-rows:repeat(7,1fr); grid-auto-flow:column; gap:2px; min-width:max-content; }
+  .hm-cell { width:11px; height:11px; border-radius:2px; background:var(--panel2); }
+  .hm-1 { background:rgba(180,255,57,.15); } .hm-2 { background:rgba(180,255,57,.35); }
+  .hm-3 { background:rgba(180,255,57,.55); } .hm-4 { background:rgba(180,255,57,.85); }
+  .hm-labels { display:flex; justify-content:space-between; font-size:10px; color:var(--faint); margin-bottom:4px; padding:0 2px; }
+  .hm-legend { display:flex; align-items:center; gap:3px; font-size:10px; color:var(--faint); margin-top:4px; }
+  .hm-legend span { width:11px; height:11px; border-radius:2px; display:inline-block; }
+  .hm-year-selector { display:flex; gap:6px; overflow-x:auto; margin-bottom:10px; scrollbar-width:none; }
+  .hm-year-selector::-webkit-scrollbar { display:none; }
+  .hm-year-selector button { padding:5px 12px; border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--dim); cursor:pointer; font-size:12px; font-weight:600; white-space:nowrap; }
+  .hm-year-selector button.active { color:var(--void); background:var(--pulse); border-color:var(--pulse); }
+
+  /* ---- then vs now ---- */
+  .tvn-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:10px; margin-bottom:14px; }
+  .tvn-card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; }
+  .tvn-card .tvn-metric { font-weight:700; font-size:14px; }
+  .tvn-card .tvn-then { color:var(--dim); font-size:13px; margin-top:4px; }
+  .tvn-card .tvn-now { font-family:var(--mono); font-size:20px; font-weight:800; margin-top:2px; }
+  .tvn-card .tvn-change { font-family:var(--mono); font-size:13px; font-weight:700; margin-top:2px; }
+
+  /* ---- milestones ---- */
+  .milestones { display:flex; flex-direction:column; gap:10px; }
+  .milestone { display:grid; grid-template-columns:auto 1fr; gap:14px; align-items:center; padding:12px 14px; background:var(--panel); border:1px solid var(--line); border-radius:8px; }
+  .milestone .ms-icon { width:36px; height:36px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:800; background:rgba(180,255,57,.12); color:var(--pulse); flex-shrink:0; }
+  .milestone .ms-text { font-weight:700; font-size:14px; }
+  .milestone .ms-when { color:var(--dim); font-size:12.5px; margin-top:2px; }
+
   /* ---- all metrics grid ---- */
   .am-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:0; border-top:1px solid var(--line); }
   .am-tile { padding:14px 14px 14px 12px; border-bottom:1px solid var(--line); border-left:3px solid var(--line); cursor:pointer; transition:border-color .15s; }
@@ -556,8 +586,22 @@ export function renderDashboard(): string {
 
   <!-- YOU: RECORDS -->
   <section class="section" id="tab-records">
-    <h2 class="sec" style="margin-top:6px;">Personal bests<span>Your all-time records</span></h2>
+    <h2 class="sec" style="margin-top:6px;">Activity heatmap<span>Every day at a glance</span></h2>
+    <div class="card">
+      <div class="hm-year-selector" id="hmYears"></div>
+      <div class="hm-labels" id="hmLabels"></div>
+      <div class="heatmap-wrap"><div class="heatmap" id="heatmap"></div></div>
+      <div class="hm-legend">Less <span class="hm-cell"></span><span class="hm-cell hm-1"></span><span class="hm-cell hm-2"></span><span class="hm-cell hm-3"></span><span class="hm-cell hm-4"></span> More</div>
+    </div>
+
+    <h2 class="sec">Then vs now<span>How your key metrics changed over the years</span></h2>
+    <div class="tvn-grid" id="thenVsNow"></div>
+
+    <h2 class="sec">Personal bests<span>Your all-time records</span></h2>
     <div class="card"><div class="bests" id="bestsGrid"></div></div>
+
+    <h2 class="sec">Milestones<span>What you have accomplished</span></h2>
+    <div class="milestones" id="milestones"></div>
   </section>
 
   <!-- AI ANALYST -->
@@ -2112,6 +2156,141 @@ function buildCharts(days, history) {
   ]}});
 }
 
+// ---------------- heatmap, then-vs-now, milestones ----------------
+var hmYear = null;
+
+function renderHeatmap(year) {
+  hmYear = year;
+  var el = document.getElementById('heatmap');
+  var labelsEl = document.getElementById('hmLabels');
+  if (!el || !GUIDE_DAYS.length) return;
+
+  var byDate = {};
+  GUIDE_DAYS.forEach(function (d) { byDate[d.date] = d; });
+
+  var startDate = new Date(Date.UTC(year, 0, 1));
+  var startDow = (startDate.getUTCDay() + 6) % 7;
+  var endDate = new Date(Date.UTC(year, 11, 31));
+  var cells = [];
+
+  for (var i = 0; i < startDow; i++) cells.push('<div class="hm-cell" style="visibility:hidden"></div>');
+
+  var d = new Date(startDate);
+  while (d <= endDate) {
+    var iso = d.toISOString().slice(0, 10);
+    var day = byDate[iso];
+    var level = 0;
+    if (day) {
+      var mins = (day.exerciseMinutes || 0) + (day.workoutMinutes || 0);
+      var steps = day.steps || 0;
+      if (steps >= 10000 || mins >= 45) level = 4;
+      else if (steps >= 8000 || mins >= 30) level = 3;
+      else if (steps >= 5000 || mins >= 15) level = 2;
+      else if (steps > 0 || mins > 0) level = 1;
+    }
+    cells.push('<div class="hm-cell' + (level ? ' hm-' + level : '') + '" title="' + iso + (day ? ': ' + (day.steps ? Math.round(day.steps).toLocaleString() + ' steps' : '') + (day.exerciseMinutes ? ', ' + day.exerciseMinutes + ' min exercise' : '') : ': no data') + '"></div>');
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  el.innerHTML = cells.join('');
+
+  var monthLabels = [];
+  for (var m = 0; m < 12; m++) monthLabels.push(MONTHS[m]);
+  labelsEl.innerHTML = monthLabels.map(function (m) { return '<span>' + m + '</span>'; }).join('');
+
+  var btns = document.querySelectorAll('#hmYears button');
+  btns.forEach(function (b) { b.classList.toggle('active', Number(b.textContent) === year); });
+}
+
+function initHeatmap() {
+  if (!GUIDE_DAYS.length) return;
+  var years = {};
+  GUIDE_DAYS.forEach(function (d) { years[d.date.slice(0, 4)] = true; });
+  var sorted = Object.keys(years).sort().reverse();
+  var el = document.getElementById('hmYears');
+  el.innerHTML = sorted.map(function (y) {
+    return '<button onclick="renderHeatmap(' + y + ')">' + y + '</button>';
+  }).join('');
+  renderHeatmap(Number(sorted[0]));
+}
+
+function renderThenVsNow() {
+  var el = document.getElementById('thenVsNow');
+  if (!el || GUIDE_DAYS.length < 60) { el.innerHTML = '<div class="sub">Need more history for comparisons.</div>'; return; }
+
+  var keys = [
+    { key: 'steps', label: 'Daily steps' },
+    { key: 'restingHeartRate', label: 'Resting HR' },
+    { key: 'hrv', label: 'HRV' },
+    { key: 'vo2max', label: 'VO2max' },
+    { key: 'exerciseMinutes', label: 'Exercise / day' },
+    { key: 'walkingSpeed', label: 'Walking speed' },
+    { key: 'sleepHours', label: 'Sleep' },
+  ];
+
+  var html = '';
+  keys.forEach(function (def) {
+    var tvn = metricThenVsNow(def.key);
+    if (!tvn.length) return;
+    var f = METRIC_FORMAT[def.key];
+    var unit = metricUnit(def.key);
+    var now = tvn[0].now;
+    var oldest = tvn[tvn.length - 1];
+    var better = f ? f.better : null;
+    var delta = now - oldest.then;
+    var pct = oldest.then !== 0 ? (delta / Math.abs(oldest.then)) * 100 : 0;
+    var dirCls = Math.abs(pct) < 3 ? 'flat' : (better === 'up' ? (delta > 0 ? 'up' : 'down') : better === 'down' ? (delta < 0 ? 'up' : 'down') : 'flat');
+    var color = dirCls === 'up' ? 'var(--up)' : dirCls === 'down' ? 'var(--down)' : 'var(--dim)';
+
+    html += '<div class="tvn-card" style="cursor:pointer" onclick="openMetric(\\'' + def.key + '\\')">';
+    html += '<div class="tvn-metric">' + def.label + '</div>';
+    html += '<div class="tvn-then">' + oldest.label + ': ' + fmtMetricVal(def.key, oldest.then) + ' ' + unit + '</div>';
+    html += '<div class="tvn-now">' + fmtMetricVal(def.key, now) + ' <span style="font-size:13px;color:var(--dim);font-family:var(--sans);font-weight:600">' + unit + ' now</span></div>';
+    html += '<div class="tvn-change" style="color:' + color + '">' + (pct >= 0 ? '+' : '') + pct.toFixed(0) + '%</div>';
+    html += '</div>';
+  });
+
+  el.innerHTML = html || '<div class="sub">Not enough history for then-vs-now comparisons yet.</div>';
+}
+
+function renderMilestones() {
+  var el = document.getElementById('milestones');
+  if (!el || !GUIDE_DAYS.length) return;
+
+  var milestones = [];
+  var totalDays = GUIDE_DAYS.length;
+  var firstDate = GUIDE_DAYS[0].date;
+  var lastDate = GUIDE_DAYS[GUIDE_DAYS.length - 1].date;
+
+  milestones.push({ icon: '1', text: totalDays.toLocaleString() + ' days of health data', when: firstDate + ' to ' + lastDate });
+
+  var totalSteps = 0, totalExMin = 0, totalWorkouts = 0;
+  var streak = 0, maxStreak = 0, streakEnd = '';
+  GUIDE_DAYS.forEach(function (d) {
+    totalSteps += d.steps || 0;
+    totalExMin += d.exerciseMinutes || 0;
+    if (d.workoutCount) totalWorkouts += d.workoutCount;
+    if ((d.exerciseMinutes || 0) >= 20 || (d.workoutMinutes || 0) >= 15) {
+      streak++;
+      if (streak > maxStreak) { maxStreak = streak; streakEnd = d.date; }
+    } else { streak = 0; }
+  });
+
+  if (totalSteps > 0) milestones.push({ icon: '\\u{1F463}', text: Math.round(totalSteps / 1000000) + 'M steps walked', when: 'About ' + Math.round(totalSteps * 0.0008 / 1000) + 'k km' });
+  if (totalExMin > 0) milestones.push({ icon: '\\u{26A1}', text: Math.round(totalExMin / 60).toLocaleString() + ' hours of exercise', when: 'About ' + Math.round(totalExMin / totalDays) + ' min per day average' });
+  if (totalWorkouts > 0) milestones.push({ icon: '\\u{1F3CB}', text: totalWorkouts.toLocaleString() + ' workouts logged', when: 'About ' + (totalWorkouts / (totalDays / 7)).toFixed(1) + ' per week' });
+  if (maxStreak >= 3) milestones.push({ icon: '\\u{1F525}', text: maxStreak + '-day active streak', when: 'Ended ' + niceDate(streakEnd) });
+
+  var best = metricBest('vo2max');
+  if (best) milestones.push({ icon: 'V', text: 'Peak VO2max: ' + fmtMetricVal('vo2max', best.value), when: niceDate(best.date) });
+
+  var bestSteps = metricBest('steps');
+  if (bestSteps) milestones.push({ icon: '\\u{1F3C6}', text: 'Most steps in a day: ' + Math.round(bestSteps.value).toLocaleString(), when: niceDate(bestSteps.date) });
+
+  el.innerHTML = milestones.map(function (m) {
+    return '<div class="milestone"><div class="ms-icon">' + m.icon + '</div><div><div class="ms-text">' + m.text + '</div><div class="ms-when">' + m.when + '</div></div></div>';
+  }).join('');
+}
+
 async function boot() {
   document.getElementById('gateError').textContent = '';
   var series, analytics, trends;
@@ -2148,6 +2327,9 @@ async function boot() {
   renderExtraMetrics(days);
   renderActivityRings(today);
   renderAllMetrics();
+  initHeatmap();
+  renderThenVsNow();
+  renderMilestones();
   buildCharts(days.slice(-180), history.slice(-180));
 
   var savedTab = null;
