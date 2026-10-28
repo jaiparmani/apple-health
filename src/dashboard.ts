@@ -24,6 +24,11 @@ export function renderDashboard(): string {
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Health</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#0a0a0a">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Health">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/fflate@0.8.2/umd/index.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -526,6 +531,28 @@ export function renderDashboard(): string {
   .season-bar { flex:1; background:var(--pulse); border-radius:3px 3px 0 0; min-width:12px; position:relative; transition:height .3s; }
   .season-bar .sbl { position:absolute; bottom:-16px; left:50%; transform:translateX(-50%); font-size:9px; color:var(--faint); white-space:nowrap; }
 
+  /* step 6: check-in & PWA */
+  .checkin-fab { position:fixed; bottom:76px; right:16px; width:48px; height:48px; border-radius:50%; background:var(--pulse); color:#fff; border:none; font-size:22px; cursor:pointer; z-index:30; box-shadow:0 2px 10px rgba(0,0,0,.3); display:none; }
+  .checkin-fab.show { display:flex; align-items:center; justify-content:center; }
+  .checkin-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:60; display:none; align-items:flex-end; justify-content:center; }
+  .checkin-overlay.open { display:flex; }
+  .checkin-sheet { background:var(--panel); border-radius:16px 16px 0 0; padding:20px 16px 30px; width:100%; max-width:440px; max-height:80vh; overflow-y:auto; }
+  .checkin-sheet h3 { margin:0 0 14px; font-size:16px; }
+  .ci-q { margin-bottom:16px; }
+  .ci-q label { display:block; font-size:13px; color:var(--dim); font-weight:600; margin-bottom:6px; }
+  .ci-opts { display:flex; gap:6px; flex-wrap:wrap; }
+  .ci-opt { padding:8px 16px; border-radius:20px; border:1px solid var(--line); background:var(--void); color:var(--txt); font-size:14px; cursor:pointer; transition:all .15s; }
+  .ci-opt:hover, .ci-opt.sel { background:var(--pulse); color:#fff; border-color:var(--pulse); }
+  .ci-actions { display:flex; gap:8px; margin-top:16px; }
+  .ci-actions button { flex:1; padding:10px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; }
+  .ci-actions .ci-save { background:var(--pulse); color:#fff; }
+  .ci-actions .ci-cancel { background:var(--void); color:var(--dim); border:1px solid var(--line); }
+  .install-banner { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin:10px 0; display:none; align-items:center; gap:10px; }
+  .install-banner.show { display:flex; }
+  .install-banner .ib-text { flex:1; font-size:13px; }
+  .install-banner button { background:var(--pulse); color:#fff; border:none; border-radius:6px; padding:6px 14px; font-size:13px; cursor:pointer; }
+  @media (min-width:561px) { .checkin-fab { bottom:24px; right:24px; } }
+
   footer { color:var(--faint); font-size:11.5px; text-align:left; padding:28px 0 10px; border-top:1px solid var(--line); margin-top:10px; }
 
   @media (max-width:560px) {
@@ -931,6 +958,39 @@ export function renderDashboard(): string {
       <span id="msPill"></span>
     </div>
     <div class="ms-body" id="msBody"></div>
+  </div>
+
+  <button class="checkin-fab" id="checkinFab" onclick="openCheckin()">+</button>
+  <div class="checkin-overlay" id="checkinOverlay">
+    <div class="checkin-sheet">
+      <h3>Evening check-in</h3>
+      <div class="ci-q"><label>How do you feel?</label>
+        <div class="ci-opts" id="ciMood">
+          <span class="ci-opt" data-v="great" onclick="ciSel(this)">Great</span>
+          <span class="ci-opt" data-v="good" onclick="ciSel(this)">Good</span>
+          <span class="ci-opt" data-v="ok" onclick="ciSel(this)">OK</span>
+          <span class="ci-opt" data-v="tired" onclick="ciSel(this)">Tired</span>
+          <span class="ci-opt" data-v="bad" onclick="ciSel(this)">Bad</span>
+        </div>
+      </div>
+      <div class="ci-q"><label>Energy level</label>
+        <div class="ci-opts" id="ciEnergy">
+          <span class="ci-opt" data-v="high" onclick="ciSel(this)">High</span>
+          <span class="ci-opt" data-v="moderate" onclick="ciSel(this)">Moderate</span>
+          <span class="ci-opt" data-v="low" onclick="ciSel(this)">Low</span>
+        </div>
+      </div>
+      <div class="ci-actions">
+        <button class="ci-cancel" onclick="closeCheckin()">Cancel</button>
+        <button class="ci-save" onclick="saveCheckin()">Save</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="install-banner" id="installBanner">
+    <div class="ib-text">Add to home screen for quick access.</div>
+    <button onclick="installApp()">Install</button>
+    <button onclick="dismissInstall()" style="background:transparent;color:var(--dim);padding:6px 8px;">&times;</button>
   </div>
 </div>
 
@@ -3245,6 +3305,60 @@ async function importExportZip() {
   }
 }
 
+// --------------- evening check-in ---------------
+function openCheckin() {
+  document.getElementById('checkinOverlay').classList.add('open');
+}
+function closeCheckin() {
+  document.getElementById('checkinOverlay').classList.remove('open');
+  document.querySelectorAll('.ci-opt').forEach(function (o) { o.classList.remove('sel'); });
+}
+function ciSel(el) {
+  el.parentElement.querySelectorAll('.ci-opt').forEach(function (o) { o.classList.remove('sel'); });
+  el.classList.add('sel');
+}
+function saveCheckin() {
+  var mood = document.querySelector('#ciMood .ci-opt.sel');
+  var energy = document.querySelector('#ciEnergy .ci-opt.sel');
+  if (!mood || !energy) return;
+  var entry = { date: new Date().toISOString().slice(0, 10), time: new Date().toISOString().slice(11, 16), mood: mood.dataset.v, energy: energy.dataset.v };
+  try {
+    var arr = JSON.parse(localStorage.getItem('checkins') || '[]');
+    arr.push(entry);
+    if (arr.length > 90) arr = arr.slice(-90);
+    localStorage.setItem('checkins', JSON.stringify(arr));
+  } catch (e) {}
+  closeCheckin();
+}
+function showCheckinFab() {
+  var h = new Date().getHours();
+  var fab = document.getElementById('checkinFab');
+  if (fab && h >= 18) fab.classList.add('show');
+}
+
+// --------------- PWA install ---------------
+var deferredInstallPrompt = null;
+window.addEventListener('beforeinstallprompt', function (e) {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  try { if (!localStorage.getItem('installDismissed')) document.getElementById('installBanner').classList.add('show'); } catch (e) {}
+});
+function installApp() {
+  if (!deferredInstallPrompt) return;
+  deferredInstallPrompt.prompt();
+  deferredInstallPrompt.userChoice.then(function () { deferredInstallPrompt = null; document.getElementById('installBanner').classList.remove('show'); });
+}
+function dismissInstall() {
+  document.getElementById('installBanner').classList.remove('show');
+  try { localStorage.setItem('installDismissed', '1'); } catch (e) {}
+}
+
+// --------------- service worker ---------------
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(function () {});
+}
+
+showCheckinFab();
 if (getToken()) { boot().catch(function () {}); }
 </script>
 </body>

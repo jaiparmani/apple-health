@@ -897,6 +897,25 @@ export default {
       if (req.method === "POST" && url.pathname === "/api/experiments/adherence") return await handlePostExperimentAdherence(req, env);
       if (req.method === "DELETE" && url.pathname === "/api/experiments") return await handleDeleteExperiment(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
+      if (req.method === "GET" && url.pathname === "/manifest.json") {
+        return new Response(JSON.stringify({
+          name: "Health Dashboard",
+          short_name: "Health",
+          start_url: "/",
+          display: "standalone",
+          background_color: "#0a0a0a",
+          theme_color: "#0a0a0a",
+          icons: [{ src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⌁</text></svg>", sizes: "any", type: "image/svg+xml" }]
+        }), { headers: { "Content-Type": "application/manifest+json" } });
+      }
+      if (req.method === "GET" && url.pathname === "/sw.js") {
+        return new Response(
+          "self.addEventListener('install',e=>self.skipWaiting());" +
+          "self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));" +
+          "self.addEventListener('fetch',e=>{});",
+          { headers: { "Content-Type": "application/javascript" } }
+        );
+      }
       if (req.method === "GET" && url.pathname === "/") {
         return new Response(renderDashboard(), { headers: { "Content-Type": "text/html; charset=utf-8" } });
       }
