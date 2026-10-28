@@ -1,3 +1,11 @@
 {
-  "experiments": []
+  "experiments": [
+    {
+      "id": "e8fedcab-a751-4194-abb6-a090040d063f",
+      "title": "Walking 10more minutes",
+      "metric": "hrv",
+      "startDate": "2026-10-28",
+      "adherenceDates": []
+    }
+  ]
 }
