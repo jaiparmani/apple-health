@@ -205,6 +205,9 @@ export function renderDashboard(): string {
   .best { padding:12px 14px 12px 0; border-bottom:1px solid var(--line); }
   .best .label { color:var(--dim); font-size:11.5px; font-weight:600; }
   .best .value { font-family:var(--mono); font-size:20px; font-weight:800; margin-top:4px; color:var(--pulse); }
+  .new-badge { display:inline-block; margin-left:6px; padding:1px 6px; border-radius:999px; background:var(--gold); color:#1a1200; font-size:9.5px; font-weight:800; letter-spacing:.04em; vertical-align:middle; animation:newPop .5s var(--ease-spring) both; }
+  @keyframes newPop { 0% { transform:scale(0) rotate(-10deg); opacity:0; } 60% { transform:scale(1.2) rotate(4deg); opacity:1; } 100% { transform:scale(1) rotate(0); } }
+  .triple-crown { display:inline-flex; align-items:center; gap:4px; margin-top:8px; padding:4px 10px; border-radius:999px; background:rgba(212,168,83,.12); border:1px solid rgba(212,168,83,.35); color:var(--gold); font-size:12px; font-weight:700; }
   .best .date { color:var(--faint); font-size:11px; margin-top:2px; font-family:var(--mono); }
 
   .extra-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(220px,1fr)); gap:0; border-top:1px solid var(--line); }
@@ -479,6 +482,11 @@ export function renderDashboard(): string {
   .v-neutral { background:var(--panel); color:var(--ink); }
   .v-hard .v-line, .v-steady .v-line, .v-recover .v-line { color:var(--ink); }
   .brief-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+  .compact-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border-radius:8px; overflow:hidden; margin-bottom:12px; }
+  .compact-grid .cg-cell { background:var(--panel); padding:8px 10px; }
+  .compact-grid .cg-label { font-size:10.5px; color:var(--dim); }
+  .compact-grid .cg-val { font-family:var(--mono); font-size:14px; font-weight:700; margin-top:2px; }
+  @media (max-width:480px) { .compact-grid { grid-template-columns:repeat(2,1fr); } }
   .brief-item { background:rgba(18,18,18,.5); backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:12px 10px; text-align:center; transition:transform .25s var(--ease-spring); }
   .brief-item:hover { transform:scale(1.02); }
   .brief-n { font-family:var(--mono); font-size:24px; font-weight:900; }
@@ -745,7 +753,7 @@ export function renderDashboard(): string {
   <!-- TODAY -->
   <section class="section active" id="tab-overview">
     <div class="greet">
-      <div class="greet-hi" id="greeting">Hello</div>
+      <div class="greet-hi"><span id="greeting">Hello</span><span id="greetStreak"></span></div>
       <div class="greet-sub" id="greetingSub">Loading your data…</div>
     </div>
 
@@ -772,6 +780,9 @@ export function renderDashboard(): string {
       <div class="sb-label">Strain <span id="sbUsed">0</span> / <span id="sbMax">21</span></div>
       <div class="sb-track"><div class="sb-fill" id="sbFill"></div><div class="sb-target" id="sbTarget"></div></div>
     </div>
+
+    <button class="btn-ghost btn-sm" id="allVitalsBtn" onclick="toggleAllVitals()" style="margin-bottom:12px">Show all vitals</button>
+    <div class="compact-grid" id="allVitals" style="display:none"></div>
 
     <div class="card session-card" id="todaySession"><h3>Up next</h3><div class="sub">Loading your plan…</div></div>
 
@@ -1506,7 +1517,7 @@ function upsertChart(id, config) {
       emptyEl = document.createElement('div');
       emptyEl.id = id + 'Empty';
       emptyEl.className = 'chart-empty';
-      emptyEl.textContent = 'No data for this yet — import your Apple Health export to populate it.';
+      emptyEl.textContent = 'This chart is waiting for its big debut — import your Apple Health export to populate it.';
       el.parentElement.insertBefore(emptyEl, el);
     }
     return;
@@ -1599,10 +1610,13 @@ function renderBests(bests) {
     ['Fastest gait speed', bests.fastestWalkingSpeed, 'm/s', 2],
     ['Longest exercise', bests.longestExerciseMinutes, 'min', 0],
   ];
+  var latestDate = GUIDE_DAYS.length ? GUIDE_DAYS[GUIDE_DAYS.length - 1].date : null;
+  var recentCutoff = latestDate ? new Date(new Date(latestDate).getTime() - 7 * 86400000) : null;
   document.getElementById('bestsGrid').innerHTML = defs.map(function (d) {
     var name = d[0], b = d[1], unit = d[2], dp = d[3];
     if (!b) return '<div class="best"><div class="label">' + name + '</div><div class="value">—</div></div>';
-    return '<div class="best"><div class="label">' + name + '</div><div class="value">' + fmt(b.value, dp) + (unit ? ' ' + unit : '') + '</div><div class="date">' + b.date + '</div></div>';
+    var isNew = recentCutoff && new Date(b.date) >= recentCutoff;
+    return '<div class="best"><div class="label">' + name + (isNew ? '<span class="new-badge">NEW</span>' : '') + '</div><div class="value">' + fmt(b.value, dp) + (unit ? ' ' + unit : '') + '</div><div class="date">' + b.date + '</div></div>';
   }).join('');
 }
 
@@ -1646,9 +1660,11 @@ function renderActivityRings(today) {
       row: '<div class="ar-row"><span class="ar-dot" style="background:' + r.color + '"></span><span class="ar-name">' + r.label + '</span><span class="ar-num">' + fmt(r.actual, 0) + '<span class="ar-goal">/ ' + fmt(r.goal, 0) + ' ' + r.unit + '</span></span><span class="ar-pct" style="color:' + r.color + '">' + Math.round(pct * 100) + '%</span></div>'
     };
   });
+  var allClosed = rings.every(function (r) { return r.goal !== undefined && r.actual !== undefined && r.actual >= r.goal; });
   el.innerHTML = '<div class="ar-wrap"><svg class="ar-svg" viewBox="0 0 ' + svgSize + ' ' + svgSize + '" width="120" height="120" style="transform:rotate(-90deg)">' +
     svgRings.map(function (r) { return r.svg; }).join('') + '</svg><div class="ar-labels">' +
-    svgRings.map(function (r) { return r.row; }).join('') + '</div></div>';
+    svgRings.map(function (r) { return r.row; }).join('') +
+    (allClosed ? '<div class="triple-crown">\\u{1F451} Triple crown</div>' : '') + '</div></div>';
   requestAnimationFrame(function () {
     el.querySelectorAll('circle[data-target]').forEach(function (c) { c.style.strokeDashoffset = c.dataset.target; });
   });
@@ -1699,13 +1715,27 @@ function workoutName(t) {
   return w.charAt(0).toUpperCase() + w.slice(1);
 }
 
+function currentStreak(days) {
+  var streak = 0;
+  for (var i = days.length - 1; i >= 0; i--) {
+    var d = days[i];
+    if ((d.exerciseMinutes || 0) >= 20 || (d.workoutMinutes || 0) >= 15) streak++;
+    else break;
+  }
+  return streak;
+}
+
 function renderGreeting(days) {
   var h = new Date().getHours();
-  document.getElementById('greeting').textContent = h < 5 ? 'Late night check-in' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  var greet = h < 5 ? 'Burning the midnight oil' : h >= 5 && h < 7 ? 'Early bird gets the gains' : h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening';
+  document.getElementById('greeting').textContent = greet;
   var lastDate = days.length ? days[days.length - 1].date : null;
   document.getElementById('greetingSub').textContent = lastDate
     ? 'Here is where you stand. Data synced up to ' + niceDate(lastDate) + '.'
     : 'No data yet. Import your Apple Health export in Settings.';
+  var streak = currentStreak(days);
+  document.getElementById('greetStreak').innerHTML = streak >= 3
+    ? '<span class="streak-pill">\\u{1F525} ' + streak + '-day streak</span>' : '';
 }
 
 // ---------------- Today: verdict + dials ----------------
@@ -2059,8 +2089,8 @@ function renderWeekRecap(trends) {
   var tone = 'Steady Week';
   var toneColor = 'var(--caution)';
   if (avgHrv && avgSteps) {
-    if (avgHrv > 45 && avgSteps > 8000 && workoutCount >= 4) { tone = 'Strong Week'; toneColor = 'var(--up)'; }
-    else if (workoutCount <= 2 || (avgSleep && avgSleep < 6)) { tone = 'Recovery Week'; toneColor = 'var(--down)'; }
+    if (avgHrv > 45 && avgSteps > 8000 && workoutCount >= 4) { tone = '\\u{1F451} Crown Week'; toneColor = 'var(--gold)'; }
+    else if (workoutCount <= 2 || (avgSleep && avgSleep < 6)) { tone = 'Recharging'; toneColor = 'var(--down)'; }
   }
 
   var spark = function (k) {
@@ -2077,11 +2107,16 @@ function renderWeekRecap(trends) {
     { val: workoutCount + 'd', label: 'Active days', sparkKey: null },
   ];
 
+  var dayRows = last7Days.map(function (d) {
+    return '<tr><td>' + niceDate(d.date) + '</td><td>' + (d.steps ? Math.round(d.steps).toLocaleString() : '—') + '</td><td>' + (d.sleepHours ? d.sleepHours.toFixed(1) + 'h' : '—') + '</td><td>' + (d.exerciseMinutes || '—') + 'm</td></tr>';
+  }).join('');
+
   el.innerHTML = '<div class="recap-card">' +
     '<div class="recap-header"><span class="recap-range">' + range + '</span><span class="recap-tone" style="color:' + toneColor + '">' + tone + '</span></div>' +
     '<div class="recap-grid">' + stats.map(function (s) {
       return '<div class="recap-stat"><div class="rs-val">' + s.val + '</div><div class="rs-label">' + s.label + '</div>' + (s.sparkKey ? spark(s.sparkKey) : '') + '</div>';
-    }).join('') + '</div></div>';
+    }).join('') + '</div>' +
+    '<details class="more"><summary>Day by day</summary><div><table class="simple-table"><tbody>' + dayRows + '</tbody></table></div></details></div>';
 }
 
 function renderQuickStats(today, trends) {
@@ -2710,6 +2745,30 @@ function renderMetricChart(key, rangeDays) {
 }
 
 // "All metrics" grid: every metric with data, one tile each.
+var allVitalsOpen = false;
+function toggleAllVitals() {
+  allVitalsOpen = !allVitalsOpen;
+  var grid = document.getElementById('allVitals');
+  var btn = document.getElementById('allVitalsBtn');
+  grid.style.display = allVitalsOpen ? '' : 'none';
+  btn.textContent = allVitalsOpen ? 'Hide all vitals' : 'Show all vitals';
+  if (allVitalsOpen) renderAllVitals();
+}
+
+function renderAllVitals() {
+  var el = document.getElementById('allVitals');
+  if (!el || !GUIDE_DAYS.length) return;
+  var keys = Object.keys(METRIC_GUIDE).filter(function (k) {
+    var r = latestReading(k, 30);
+    return !!r;
+  });
+  el.innerHTML = keys.map(function (k) {
+    var r = latestReading(k, 30);
+    var g = METRIC_GUIDE[k];
+    return '<div class="cg-cell"><div class="cg-label">' + (g ? g.label : k) + '</div><div class="cg-val">' + fmtMetricVal(k, r.value) + '</div></div>';
+  }).join('');
+}
+
 function renderAllMetrics() {
   var el = document.getElementById('allMetricsGrid');
   if (!el || !GUIDE_DAYS.length) return;
