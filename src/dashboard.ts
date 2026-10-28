@@ -91,8 +91,8 @@ export function renderDashboard(): string {
   #gate input { width:100%; padding:11px 12px; margin:16px 0 10px; border-radius:6px; border:1px solid var(--line); background:var(--panel2); color:var(--ink); font-size:14px; font-family:var(--sans); text-align:left; }
   #gate input:focus { outline:none; border-color:var(--pulse); }
   button { font:inherit; }
-  .btn { padding:11px 18px; border-radius:6px; border:none; background:var(--pulse); color:var(--void); font-weight:700; cursor:pointer; font-size:13.5px; transition:transform .1s, opacity .15s; box-shadow:0 0 20px rgba(163,230,53,.15); }
-  .btn:hover { opacity:.9; } .btn:active { transform:scale(.97); }
+  .btn { padding:11px 18px; border-radius:6px; border:none; background:var(--pulse); color:var(--void); font-weight:700; cursor:pointer; font-size:13.5px; transition:transform .2s var(--ease-spring), opacity .15s; box-shadow:0 0 20px rgba(163,230,53,.15); }
+  .btn:hover { opacity:.9; } .btn:active { transform:scale(.95); }
   .btn:disabled { opacity:.35; cursor:default; }
   .btn-ghost { background:var(--panel2); color:var(--ink); border:1px solid var(--line); font-weight:600; }
   .btn-ghost:hover { border-color:var(--pulse); }
@@ -539,14 +539,15 @@ export function renderDashboard(): string {
   }
 
   /* ---- metric detail sheet ---- */
-  .metric-sheet { position:fixed; inset:0; z-index:50; background:var(--void); overflow-y:auto; -webkit-overflow-scrolling:touch; display:none; transform:translateY(100%); transition:transform .3s cubic-bezier(.32,.72,0,1), opacity .3s; opacity:0; }
+  .metric-sheet { position:fixed; inset:0; z-index:50; background:var(--void); overflow-y:auto; -webkit-overflow-scrolling:touch; display:none; transform:translateY(100%); transition:transform .4s var(--ease-spring), opacity .3s; opacity:0; }
   .metric-sheet.open { transform:translateY(0); opacity:1; }
-  .ms-head { position:sticky; top:0; z-index:2; background:rgba(0,0,0,.94); backdrop-filter:blur(10px); padding:16px 20px 12px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; }
-  .ms-back { background:none; border:none; color:var(--ink); font-size:22px; cursor:pointer; padding:0 4px; line-height:1; }
+  .ms-head { position:sticky; top:0; z-index:2; background:rgba(0,0,0,.85); backdrop-filter:blur(20px) saturate(1.3); padding:16px 20px 12px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; }
+  .ms-back { background:none; border:none; color:var(--ink); font-size:22px; cursor:pointer; padding:0 4px; line-height:1; transition:transform .15s var(--ease-spring); }
+  .ms-back:active { transform:scale(.85); }
   .ms-title { font-size:17px; font-weight:800; flex:1; }
   .ms-body { max-width:640px; margin:0 auto; padding:20px 20px 80px; }
   .ms-hero { text-align:center; padding:20px 0 18px; border-bottom:1px solid var(--line); margin-bottom:18px; }
-  .ms-big { font-family:var(--mono); font-size:56px; font-weight:800; line-height:1; letter-spacing:-.02em; }
+  .ms-big { font-family:var(--mono); font-size:56px; font-weight:800; line-height:1; letter-spacing:-.02em; text-shadow:0 0 30px rgba(255,255,255,.12); }
   .ms-unit { font-size:16px; color:var(--dim); font-weight:600; margin-left:4px; font-family:var(--sans); }
   .ms-normal { font-size:13.5px; color:var(--dim); margin-top:8px; }
   .ms-best { font-size:13px; color:var(--faint); margin-top:4px; }
@@ -579,7 +580,8 @@ export function renderDashboard(): string {
   .ms-hist-bar { flex:1; border-radius:2px 2px 0 0; background:var(--pulse); opacity:.2; transition:opacity .2s; min-width:0; }
   .ms-hist-bar.current { opacity:1; }
   .ms-hist-labels { display:flex; justify-content:space-between; font-size:10px; color:var(--faint); font-family:var(--mono); font-weight:600; margin-bottom:14px; }
-  .ms-handle { width:36px; height:4px; background:var(--faint); border-radius:2px; margin:0 auto 6px; opacity:.5; }
+  .ms-handle { width:40px; height:4px; background:var(--faint); border-radius:2px; margin:0 auto 6px; opacity:.5; animation:handlePulse 2s ease-in-out 3; }
+  @keyframes handlePulse { 0%,100% { opacity:.5; } 50% { opacity:.9; } }
   .metric-sheet.dragging { transition:none !important; }
 
   /* ---- week recap ---- */
@@ -695,19 +697,24 @@ export function renderDashboard(): string {
   .season-bar .sbl { position:absolute; bottom:-16px; left:50%; transform:translateX(-50%); font-size:9px; color:var(--faint); white-space:nowrap; }
 
   /* step 6: check-in & PWA */
-  .checkin-fab { position:fixed; bottom:76px; right:16px; width:48px; height:48px; border-radius:50%; background:var(--pulse); color:#fff; border:none; font-size:22px; cursor:pointer; z-index:30; box-shadow:0 2px 10px rgba(0,0,0,.3); display:none; }
-  .checkin-fab.show { display:flex; align-items:center; justify-content:center; }
-  .checkin-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:60; display:none; align-items:flex-end; justify-content:center; }
+  @keyframes fabSpringIn { from { transform:scale(0) rotate(-180deg); opacity:0; } to { transform:scale(1) rotate(0); opacity:1; } }
+  .checkin-fab { position:fixed; bottom:76px; right:16px; width:48px; height:48px; border-radius:50%; background:var(--pulse); color:#fff; border:none; font-size:22px; cursor:pointer; z-index:30; box-shadow:0 2px 10px rgba(0,0,0,.3); display:none; transition:transform .2s var(--ease-spring); }
+  .checkin-fab.show { display:flex; align-items:center; justify-content:center; animation:fabSpringIn .45s var(--ease-spring) both; }
+  .checkin-fab:active { transform:scale(.9); }
+  .checkin-overlay { position:fixed; inset:0; background:rgba(0,0,0,.6); backdrop-filter:blur(4px); z-index:60; display:none; align-items:flex-end; justify-content:center; }
   .checkin-overlay.open { display:flex; }
-  .checkin-sheet { background:var(--panel); border-radius:16px 16px 0 0; padding:20px 16px 30px; width:100%; max-width:440px; max-height:80vh; overflow-y:auto; }
+  .checkin-sheet { background:var(--panel-glass); backdrop-filter:blur(20px) saturate(1.2); border:1px solid rgba(255,255,255,.08); border-radius:20px 20px 0 0; padding:20px 16px 30px; width:100%; max-width:440px; max-height:80vh; overflow-y:auto; box-shadow:var(--depth-3); animation:fadeSlideUp .3s var(--ease-spring) both; }
   .checkin-sheet h3 { margin:0 0 14px; font-size:16px; }
   .ci-q { margin-bottom:16px; }
   .ci-q label { display:block; font-size:13px; color:var(--dim); font-weight:600; margin-bottom:6px; }
   .ci-opts { display:flex; gap:6px; flex-wrap:wrap; }
   .ci-opt { padding:8px 16px; border-radius:20px; border:1px solid var(--line); background:var(--void); color:var(--txt); font-size:14px; cursor:pointer; transition:all .15s; }
-  .ci-opt:hover, .ci-opt.sel { background:var(--pulse); color:#fff; border-color:var(--pulse); }
+  .ci-opt:hover { background:linear-gradient(135deg, var(--pulse), var(--gold)); color:#fff; border-color:var(--pulse); }
+  .ci-opt.sel { background:var(--pulse); color:#fff; border-color:var(--pulse); }
+  .ci-opt:active { transform:scale(.95); }
   .ci-actions { display:flex; gap:8px; margin-top:16px; }
-  .ci-actions button { flex:1; padding:10px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; }
+  .ci-actions button { flex:1; padding:10px; border-radius:8px; font-size:14px; font-weight:600; cursor:pointer; border:none; transition:transform .15s var(--ease-spring); }
+  .ci-actions button:active { transform:scale(.95); }
   .ci-actions .ci-save { background:var(--pulse); color:#fff; }
   .ci-actions .ci-cancel { background:var(--void); color:var(--dim); border:1px solid var(--line); }
   .install-banner { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 14px; margin:10px 0; display:none; align-items:center; gap:10px; }
