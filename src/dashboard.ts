@@ -496,6 +496,36 @@ export function renderDashboard(): string {
   .am-tile .am-val .unit { font-size:12px; color:var(--dim); font-weight:600; margin-left:3px; font-family:var(--sans); }
   .am-tile .am-act { font-size:12.5px; color:var(--dim); margin-top:4px; line-height:1.45; }
 
+  /* step 5: strain-recovery, workout types, day explorer, seasonal */
+  .sr-chart { position:relative; width:100%; height:260px; }
+  .sr-dot { position:absolute; border-radius:50%; opacity:.7; transition:opacity .15s; cursor:pointer; }
+  .sr-dot:hover { opacity:1; }
+  .sr-axis-x { position:absolute; bottom:-18px; width:100%; text-align:center; font-size:11px; color:var(--dim); }
+  .sr-axis-y { position:absolute; left:-4px; top:-18px; font-size:11px; color:var(--dim); }
+  .sr-tooltip { position:fixed; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:8px 10px; font-size:12px; z-index:40; pointer-events:none; display:none; box-shadow:0 2px 8px rgba(0,0,0,.15); }
+  .wt-bars { display:flex; flex-direction:column; gap:6px; }
+  .wt-row { display:flex; align-items:center; gap:8px; }
+  .wt-label { flex:0 0 100px; font-size:12px; color:var(--dim); text-align:right; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .wt-bar-wrap { flex:1; height:22px; background:var(--void); border-radius:4px; overflow:hidden; position:relative; }
+  .wt-bar { height:100%; border-radius:4px; background:var(--pulse); transition:width .4s ease; }
+  .wt-count { flex:0 0 50px; font-size:12px; color:var(--faint); font-family:var(--mono); }
+  .de-picker { display:flex; gap:8px; align-items:center; margin-bottom:12px; flex-wrap:wrap; }
+  .de-picker input[type="date"] { font-family:var(--mono); font-size:14px; background:var(--void); color:var(--txt); border:1px solid var(--line); border-radius:6px; padding:6px 10px; }
+  .de-picker button { background:var(--void); color:var(--dim); border:1px solid var(--line); border-radius:6px; padding:5px 12px; font-size:12px; cursor:pointer; }
+  .de-picker button:hover { color:var(--txt); border-color:var(--pulse); }
+  .de-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(180px,1fr)); gap:8px; }
+  .de-item { background:var(--void); border-radius:6px; padding:10px 12px; cursor:pointer; }
+  .de-item:hover { border:1px solid var(--pulse); padding:9px 11px; }
+  .de-item .de-key { font-size:11px; color:var(--dim); font-weight:600; text-transform:uppercase; }
+  .de-item .de-val { font-family:var(--mono); font-size:20px; font-weight:800; margin-top:2px; }
+  .de-item .de-unit { font-size:11px; color:var(--dim); margin-left:2px; font-family:var(--sans); }
+  .season-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:12px; }
+  .season-card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; }
+  .season-card h4 { margin:0 0 8px; font-size:13px; color:var(--dim); font-weight:600; }
+  .season-bars { display:flex; align-items:flex-end; gap:2px; height:80px; }
+  .season-bar { flex:1; background:var(--pulse); border-radius:3px 3px 0 0; min-width:12px; position:relative; transition:height .3s; }
+  .season-bar .sbl { position:absolute; bottom:-16px; left:50%; transform:translateX(-50%); font-size:9px; color:var(--faint); white-space:nowrap; }
+
   footer { color:var(--faint); font-size:11.5px; text-align:left; padding:28px 0 10px; border-top:1px solid var(--line); margin-top:10px; }
 
   @media (max-width:560px) {
@@ -604,6 +634,36 @@ export function renderDashboard(): string {
   <section class="section" id="tab-allmetrics">
     <h2 class="sec" style="margin-top:6px;">All metrics<span>Every metric with data, at a glance</span></h2>
     <div class="am-grid" id="allMetricsGrid"></div>
+  </section>
+
+  <!-- TRENDS: INSIGHTS (strain, workout types, seasonal) -->
+  <section class="section" id="tab-insights">
+    <h2 class="sec" style="margin-top:6px;">Strain vs recovery<span>Exercise load vs your recovery signals</span></h2>
+    <div class="card">
+      <div class="sr-chart" id="srChart"></div>
+      <div class="sr-tooltip" id="srTooltip"></div>
+      <div class="card-sub" style="margin-top:8px;">Dot size = exercise minutes. X = strain (exercise + active energy). Y = recovery (HRV percentile).</div>
+    </div>
+
+    <h2 class="sec">Workouts by type<span>What you do most</span></h2>
+    <div class="card">
+      <div class="wt-bars" id="wtBars"></div>
+    </div>
+
+    <h2 class="sec">Seasonal patterns<span>How your metrics shift across months</span></h2>
+    <div class="season-grid" id="seasonGrid"></div>
+  </section>
+
+  <!-- TRENDS: DAY EXPLORER -->
+  <section class="section" id="tab-dayexplorer">
+    <h2 class="sec" style="margin-top:6px;">Day explorer<span>Pick any day and see every metric</span></h2>
+    <div class="de-picker">
+      <input type="date" id="deDate" />
+      <button onclick="deNav(-1)">&larr; Prev</button>
+      <button onclick="deNav(1)">Next &rarr;</button>
+      <button onclick="deToday()">Today</button>
+    </div>
+    <div class="de-grid" id="deGrid"></div>
   </section>
 
   <!-- YOU: RECORDS -->
@@ -923,7 +983,7 @@ var TAB_REVIEWS = { overview: ['today', 'weekly'], longview: ['longterm'], train
 var VIEWS = {
   today: [['overview', 'Today']],
   plan: [['plan', 'Week and goals'], ['training', 'Training load']],
-  trends: [['heart', 'Heart'], ['activity', 'Activity'], ['sleep', 'Sleep and body'], ['longview', 'Long view'], ['allmetrics', 'All metrics']],
+  trends: [['heart', 'Heart'], ['activity', 'Activity'], ['sleep', 'Sleep and body'], ['longview', 'Long view'], ['insights', 'Insights'], ['dayexplorer', 'Day explorer'], ['allmetrics', 'All metrics']],
   coach: [['ai', 'Ask and reviews'], ['discoveries', 'Discoveries'], ['story', 'Weekly story']],
   you: [['age', 'Biological age'], ['records', 'Records'], ['more', 'More data'], ['settings', 'Settings']],
 };
@@ -2187,6 +2247,162 @@ function buildCharts(days, history) {
   ]}});
 }
 
+// ---------------- strain vs recovery, workout types, day explorer, seasonal ----------------
+function renderStrainRecovery() {
+  var el = document.getElementById('srChart');
+  if (!el || GUIDE_DAYS.length < 14) { if (el) el.innerHTML = '<div class="sub">Not enough data.</div>'; return; }
+
+  var last90 = GUIDE_DAYS.slice(-90);
+  var hrvVals = last90.map(function (d) { return d.hrv; }).filter(function (v) { return typeof v === 'number'; });
+  if (hrvVals.length < 5) { el.innerHTML = '<div class="sub">Need more HRV data.</div>'; return; }
+  hrvVals.sort(function (a, b) { return a - b; });
+
+  var points = [];
+  last90.forEach(function (d) {
+    var strain = (d.exerciseMinutes || 0) + (d.activeEnergy || 0) / 50;
+    if (typeof d.hrv !== 'number') return;
+    var pctRank = hrvVals.indexOf(d.hrv) / Math.max(1, hrvVals.length - 1) * 100;
+    points.push({ date: d.date, strain: strain, recovery: pctRank, exMin: d.exerciseMinutes || 0 });
+  });
+  if (points.length < 5) { el.innerHTML = '<div class="sub">Not enough overlap data.</div>'; return; }
+
+  var maxStrain = Math.max.apply(null, points.map(function (p) { return p.strain; })) || 1;
+  var w = el.offsetWidth || 300;
+  var h = 260;
+
+  var html = '<div class="sr-axis-x">Strain (exercise + energy) &rarr;</div><div class="sr-axis-y">&uarr; Recovery (HRV)</div>';
+  points.forEach(function (p, i) {
+    var x = (p.strain / maxStrain) * (w - 30) + 10;
+    var y = h - (p.recovery / 100) * (h - 20) - 10;
+    var size = Math.max(6, Math.min(22, p.exMin / 3));
+    var color = p.recovery >= 60 ? 'var(--up)' : p.recovery >= 35 ? 'var(--caution)' : 'var(--down)';
+    html += '<div class="sr-dot" style="left:' + x + 'px;top:' + y + 'px;width:' + size + 'px;height:' + size + 'px;background:' + color + ';" data-sr="' + i + '" onmouseenter="showSrTip(event,' + i + ')" onmouseleave="hideSrTip()"></div>';
+  });
+  el.innerHTML = html;
+  el._points = points;
+}
+
+function showSrTip(ev, i) {
+  var el = document.getElementById('srChart');
+  var tip = document.getElementById('srTooltip');
+  if (!el || !tip || !el._points) return;
+  var p = el._points[i];
+  tip.innerHTML = '<strong>' + niceDate(p.date) + '</strong><br>Strain: ' + Math.round(p.strain) + '<br>Recovery: ' + Math.round(p.recovery) + '%<br>Exercise: ' + p.exMin + ' min';
+  tip.style.display = 'block';
+  tip.style.left = Math.min(ev.clientX + 12, window.innerWidth - 180) + 'px';
+  tip.style.top = (ev.clientY - 60) + 'px';
+}
+
+function hideSrTip() {
+  var tip = document.getElementById('srTooltip');
+  if (tip) tip.style.display = 'none';
+}
+
+function renderWorkoutTypes() {
+  var el = document.getElementById('wtBars');
+  if (!el) return;
+
+  var counts = {};
+  GUIDE_DAYS.forEach(function (d) {
+    if (d.workouts && Array.isArray(d.workouts)) {
+      d.workouts.forEach(function (w) {
+        var t = w.type || 'Unknown';
+        counts[t] = (counts[t] || 0) + 1;
+      });
+    } else if (d.workoutCount) {
+      counts['Exercise'] = (counts['Exercise'] || 0) + d.workoutCount;
+    }
+  });
+
+  var sorted = Object.keys(counts).map(function (k) { return { type: k, count: counts[k] }; });
+  sorted.sort(function (a, b) { return b.count - a.count; });
+  if (sorted.length === 0) { el.innerHTML = '<div class="sub">No workout data found.</div>'; return; }
+
+  var max = sorted[0].count;
+  var colors = ['var(--pulse)', 'var(--up)', 'var(--caution)', 'var(--down)', 'var(--dim)'];
+  el.innerHTML = sorted.slice(0, 10).map(function (item, i) {
+    var pct = Math.max(3, Math.round(item.count / max * 100));
+    var c = colors[i % colors.length];
+    return '<div class="wt-row"><div class="wt-label">' + item.type + '</div><div class="wt-bar-wrap"><div class="wt-bar" style="width:' + pct + '%;background:' + c + '"></div></div><div class="wt-count">' + item.count + '</div></div>';
+  }).join('');
+}
+
+function renderSeasonalPatterns() {
+  var el = document.getElementById('seasonGrid');
+  if (!el || GUIDE_DAYS.length < 90) { if (el) el.innerHTML = '<div class="sub">Need more data for seasonal patterns.</div>'; return; }
+
+  var metrics = [
+    { key: 'steps', label: 'Steps' },
+    { key: 'exerciseMinutes', label: 'Exercise min' },
+    { key: 'restingHeartRate', label: 'Resting HR' },
+    { key: 'sleepHours', label: 'Sleep hours' }
+  ];
+  var months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+  el.innerHTML = metrics.map(function (m) {
+    var sums = new Array(12).fill(0);
+    var cnts = new Array(12).fill(0);
+    GUIDE_DAYS.forEach(function (d) {
+      if (typeof d[m.key] !== 'number') return;
+      var mo = parseInt(d.date.slice(5, 7), 10) - 1;
+      sums[mo] += d[m.key];
+      cnts[mo]++;
+    });
+    var avgs = sums.map(function (s, i) { return cnts[i] ? s / cnts[i] : 0; });
+    var maxVal = Math.max.apply(null, avgs) || 1;
+
+    return '<div class="season-card"><h4>' + m.label + '</h4><div class="season-bars">' +
+      avgs.map(function (v, i) {
+        var pct = Math.max(2, Math.round(v / maxVal * 100));
+        return '<div class="season-bar" style="height:' + pct + '%" title="' + months[i] + ': ' + (m.key === 'steps' ? compact(Math.round(v)) : v.toFixed(1)) + '"><div class="sbl">' + months[i].charAt(0) + '</div></div>';
+      }).join('') +
+      '</div></div>';
+  }).join('');
+}
+
+function renderDayExplorer(dateStr) {
+  var el = document.getElementById('deGrid');
+  var input = document.getElementById('deDate');
+  if (!el || !input) return;
+
+  if (!dateStr) {
+    dateStr = GUIDE_DAYS.length ? GUIDE_DAYS[GUIDE_DAYS.length - 1].date : new Date().toISOString().slice(0, 10);
+  }
+  input.value = dateStr;
+
+  var day = null;
+  for (var i = 0; i < GUIDE_DAYS.length; i++) {
+    if (GUIDE_DAYS[i].date === dateStr) { day = GUIDE_DAYS[i]; break; }
+  }
+  if (!day) { el.innerHTML = '<div class="sub">No data for ' + niceDate(dateStr) + '.</div>'; return; }
+
+  var items = [];
+  var keys = Object.keys(day).filter(function (k) { return k !== 'date' && k !== 'workouts' && typeof day[k] === 'number'; });
+  keys.forEach(function (k) {
+    var fmt = METRIC_FORMAT[k];
+    var label = fmt ? (METRIC_GUIDE[k] ? METRIC_GUIDE[k].meaning.split('.')[0].split(',')[0] : k) : k;
+    if (label.length > 30) label = k;
+    var val = day[k];
+    var unit = fmt ? (fmt.unit || '') : '';
+    var display = fmt && fmt.dp !== undefined ? val.toFixed(fmt.dp) : (val > 999 ? compact(val) : String(Math.round(val * 100) / 100));
+    var click = METRIC_FORMAT[k] ? ' onclick="openMetric(\\'' + k + '\\')"' : '';
+    items.push('<div class="de-item"' + click + '><div class="de-key">' + k.replace(/([A-Z])/g, ' $1').trim() + '</div><div class="de-val">' + display + '<span class="de-unit">' + unit + '</span></div></div>');
+  });
+  el.innerHTML = items.join('');
+}
+
+function deNav(dir) {
+  var input = document.getElementById('deDate');
+  if (!input || !input.value) return;
+  var d = new Date(input.value + 'T12:00:00');
+  d.setDate(d.getDate() + dir);
+  renderDayExplorer(d.toISOString().slice(0, 10));
+}
+
+function deToday() {
+  if (GUIDE_DAYS.length) renderDayExplorer(GUIDE_DAYS[GUIDE_DAYS.length - 1].date);
+}
+
 // ---------------- weekly story cards & year in review ----------------
 function renderWeeklyStory() {
   var el = document.getElementById('storyScroll');
@@ -2451,6 +2667,12 @@ async function boot() {
   renderMilestones();
   renderWeeklyStory();
   renderYearInReview();
+  renderStrainRecovery();
+  renderWorkoutTypes();
+  renderSeasonalPatterns();
+  renderDayExplorer();
+  var deInput = document.getElementById('deDate');
+  if (deInput) deInput.addEventListener('change', function () { renderDayExplorer(deInput.value); });
   buildCharts(days.slice(-180), history.slice(-180));
 
   var savedTab = null;
