@@ -431,6 +431,28 @@ export function renderDashboard(): string {
   .ms-action { font-size:14.5px; line-height:1.55; margin-top:8px; }
   .ms-action::before { content:"\\2192  "; font-weight:700; color:var(--pulse); }
 
+  /* ---- weekly story cards ---- */
+  .story-scroll { display:flex; gap:12px; overflow-x:auto; padding:4px 0 12px; scroll-snap-type:x mandatory; scrollbar-width:none; }
+  .story-scroll::-webkit-scrollbar { display:none; }
+  .story-card { min-width:280px; max-width:320px; flex-shrink:0; scroll-snap-align:start; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .story-card .sc-week { font-size:12px; color:var(--dim); font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+  .story-card .sc-title { font-size:18px; font-weight:800; margin:4px 0 8px; }
+  .story-card .sc-stats { display:flex; gap:14px; margin-bottom:8px; }
+  .story-card .sc-stat { text-align:center; }
+  .story-card .sc-stat .sc-n { font-family:var(--mono); font-size:20px; font-weight:800; }
+  .story-card .sc-stat .sc-u { font-size:10.5px; color:var(--dim); }
+  .story-card .sc-note { font-size:13px; color:var(--dim); line-height:1.5; }
+  .story-nav { display:flex; gap:6px; margin-top:4px; }
+  .story-nav .sn-dot { width:8px; height:8px; border-radius:50%; background:var(--line); }
+  .story-nav .sn-dot.active { background:var(--pulse); }
+
+  /* ---- year in review ---- */
+  .yir-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); gap:10px; margin-bottom:14px; }
+  .yir { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:14px; text-align:center; }
+  .yir .yir-label { font-size:12px; color:var(--dim); font-weight:600; }
+  .yir .yir-val { font-family:var(--mono); font-size:28px; font-weight:800; margin:4px 0; color:var(--pulse); }
+  .yir .yir-sub { font-size:12px; color:var(--faint); }
+
   /* ---- year heatmap ---- */
   .heatmap-wrap { overflow-x:auto; margin-bottom:8px; }
   .heatmap-wrap::-webkit-scrollbar { display:none; }
@@ -602,6 +624,15 @@ export function renderDashboard(): string {
 
     <h2 class="sec">Milestones<span>What you have accomplished</span></h2>
     <div class="milestones" id="milestones"></div>
+  </section>
+
+  <!-- WEEKLY STORY -->
+  <section class="section" id="tab-story">
+    <h2 class="sec" style="margin-top:6px;">Your weeks<span>Swipe through recent weeks</span></h2>
+    <div class="story-scroll" id="storyScroll"></div>
+
+    <h2 class="sec">Year in review<span id="yirYear"></span></h2>
+    <div class="yir-grid" id="yirGrid"></div>
   </section>
 
   <!-- AI ANALYST -->
@@ -893,7 +924,7 @@ var VIEWS = {
   today: [['overview', 'Today']],
   plan: [['plan', 'Week and goals'], ['training', 'Training load']],
   trends: [['heart', 'Heart'], ['activity', 'Activity'], ['sleep', 'Sleep and body'], ['longview', 'Long view'], ['allmetrics', 'All metrics']],
-  coach: [['ai', 'Ask and reviews'], ['discoveries', 'Discoveries']],
+  coach: [['ai', 'Ask and reviews'], ['discoveries', 'Discoveries'], ['story', 'Weekly story']],
   you: [['age', 'Biological age'], ['records', 'Records'], ['more', 'More data'], ['settings', 'Settings']],
 };
 function viewOf(sectionId) {
@@ -2156,6 +2187,94 @@ function buildCharts(days, history) {
   ]}});
 }
 
+// ---------------- weekly story cards & year in review ----------------
+function renderWeeklyStory() {
+  var el = document.getElementById('storyScroll');
+  if (!el || GUIDE_DAYS.length < 7) { if (el) el.innerHTML = '<div class="sub">Not enough data yet.</div>'; return; }
+
+  var weeks = [];
+  var i = GUIDE_DAYS.length - 1;
+  while (i >= 6 && weeks.length < 12) {
+    var end = i;
+    var start = Math.max(0, i - 6);
+    var slice = GUIDE_DAYS.slice(start, end + 1);
+    weeks.push(slice);
+    i -= 7;
+  }
+
+  el.innerHTML = weeks.map(function (wk, idx) {
+    var steps = 0, exMin = 0, workouts = 0, sleepSum = 0, sleepCount = 0;
+    wk.forEach(function (d) {
+      steps += d.steps || 0;
+      exMin += d.exerciseMinutes || 0;
+      if (d.workoutCount) workouts += d.workoutCount;
+      if (typeof d.sleepHours === 'number') { sleepSum += d.sleepHours; sleepCount++; }
+    });
+    var avgSteps = Math.round(steps / wk.length);
+    var avgSleep = sleepCount ? (sleepSum / sleepCount).toFixed(1) : null;
+
+    var title = 'Steady week';
+    if (exMin >= 200) title = 'Powerhouse week';
+    else if (exMin >= 150) title = 'On target';
+    else if (exMin >= 100) title = 'Building';
+    else if (exMin < 60) title = 'Easy week';
+
+    var weekLabel = niceDate(wk[0].date) + ' \\u2013 ' + niceDate(wk[wk.length - 1].date);
+    var note = '';
+    if (avgSteps >= 10000) note = 'Averaged 10k+ steps a day.';
+    else if (avgSteps >= 8000) note = 'Solid step count.';
+    else if (avgSteps < 5000) note = 'Low movement. More walks help.';
+
+    return '<div class="story-card">' +
+      '<div class="sc-week">' + (idx === 0 ? 'This week' : idx === 1 ? 'Last week' : weekLabel) + '</div>' +
+      '<div class="sc-title">' + title + '</div>' +
+      '<div class="sc-stats">' +
+        '<div class="sc-stat"><div class="sc-n">' + compact(avgSteps) + '</div><div class="sc-u">steps/day</div></div>' +
+        '<div class="sc-stat"><div class="sc-n">' + exMin + '</div><div class="sc-u">exercise min</div></div>' +
+        '<div class="sc-stat"><div class="sc-n">' + workouts + '</div><div class="sc-u">workouts</div></div>' +
+        (avgSleep ? '<div class="sc-stat"><div class="sc-n">' + avgSleep + '</div><div class="sc-u">h sleep</div></div>' : '') +
+      '</div>' +
+      (note ? '<div class="sc-note">' + note + '</div>' : '') +
+      '</div>';
+  }).join('');
+}
+
+function renderYearInReview() {
+  var el = document.getElementById('yirGrid');
+  var yearEl = document.getElementById('yirYear');
+  if (!el || GUIDE_DAYS.length < 30) { if (el) el.innerHTML = '<div class="sub">Not enough data yet.</div>'; return; }
+
+  var lastYear = Number(GUIDE_DAYS[GUIDE_DAYS.length - 1].date.slice(0, 4));
+  var yearDays = GUIDE_DAYS.filter(function (d) { return d.date.slice(0, 4) === String(lastYear); });
+  if (yearDays.length < 14) { el.innerHTML = '<div class="sub">Not enough data this year.</div>'; return; }
+  yearEl.textContent = String(lastYear);
+
+  var steps = 0, exMin = 0, workouts = 0, activeDays = 0;
+  var sleepSum = 0, sleepN = 0;
+  var bestSteps = 0, bestStepsDate = '';
+  yearDays.forEach(function (d) {
+    steps += d.steps || 0;
+    exMin += d.exerciseMinutes || 0;
+    if (d.workoutCount) workouts += d.workoutCount;
+    if ((d.exerciseMinutes || 0) >= 20 || (d.workoutMinutes || 0) >= 15) activeDays++;
+    if (typeof d.sleepHours === 'number') { sleepSum += d.sleepHours; sleepN++; }
+    if ((d.steps || 0) > bestSteps) { bestSteps = d.steps || 0; bestStepsDate = d.date; }
+  });
+
+  var cards = [
+    { label: 'Total steps', val: (steps / 1000000).toFixed(1) + 'M', sub: '~' + Math.round(steps * 0.0008) + ' km walked' },
+    { label: 'Exercise', val: Math.round(exMin / 60) + 'h', sub: Math.round(exMin / yearDays.length) + ' min/day avg' },
+    { label: 'Workouts', val: String(workouts), sub: (workouts / (yearDays.length / 7)).toFixed(1) + '/week' },
+    { label: 'Active days', val: String(activeDays), sub: Math.round(activeDays / yearDays.length * 100) + '% of days' },
+  ];
+  if (sleepN > 10) cards.push({ label: 'Avg sleep', val: (sleepSum / sleepN).toFixed(1) + 'h', sub: sleepN + ' nights tracked' });
+  cards.push({ label: 'Best step day', val: compact(bestSteps), sub: niceDate(bestStepsDate) });
+
+  el.innerHTML = cards.map(function (c) {
+    return '<div class="yir"><div class="yir-label">' + c.label + '</div><div class="yir-val">' + c.val + '</div><div class="yir-sub">' + c.sub + '</div></div>';
+  }).join('');
+}
+
 // ---------------- heatmap, then-vs-now, milestones ----------------
 var hmYear = null;
 
@@ -2330,6 +2449,8 @@ async function boot() {
   initHeatmap();
   renderThenVsNow();
   renderMilestones();
+  renderWeeklyStory();
+  renderYearInReview();
   buildCharts(days.slice(-180), history.slice(-180));
 
   var savedTab = null;
