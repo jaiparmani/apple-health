@@ -103,9 +103,10 @@ export function renderDashboard(): string {
   /* ---- shell ---- */
   #app { display:none; max-width:900px; margin:0 auto; padding:0 20px 60px; }
   #app.app-revealing { animation:appReveal .6s var(--ease-smooth) both; }
-  header.top { position:sticky; top:0; z-index:20; background:rgba(0,0,0,.92); backdrop-filter:blur(10px); padding:18px 20px 10px; margin:0 -20px 20px; border-bottom:1px solid var(--line); }
+  header.top { position:sticky; top:0; z-index:20; background:rgba(0,0,0,.92); backdrop-filter:blur(20px) saturate(1.4); padding:18px 20px 10px; margin:0 -20px 20px; border-bottom:1px solid var(--line); }
+  header.top::after { content:''; position:absolute; left:0; right:0; bottom:-1px; height:1px; background:linear-gradient(90deg, transparent, var(--pulse), transparent); opacity:.5; }
   header.top .row { display:flex; align-items:baseline; justify-content:space-between; max-width:900px; margin:0 auto; }
-  header.top h1 { font-size:18px; margin:0; font-weight:800; letter-spacing:-.01em; }
+  header.top h1 { font-size:18px; margin:0; font-weight:800; letter-spacing:-.01em; background:linear-gradient(135deg, var(--ink), var(--gold)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
   header.top .sub { font-family:var(--mono); font-weight:600; font-size:13px; }
   .tabs { display:flex; gap:6px; overflow-x:auto; margin-top:14px; padding-bottom:2px; max-width:900px; margin-left:auto; margin-right:auto; scrollbar-width:none; }
   .tabs::-webkit-scrollbar { display:none; }
@@ -326,7 +327,11 @@ export function renderDashboard(): string {
   .scoreboard:hover { animation:borderGlow 2.4s ease-in-out infinite; }
   .multi-ring-layout { display:grid; grid-template-columns:auto 1fr; gap:24px; align-items:center; }
   .multi-ring { position:relative; width:180px; height:180px; flex-shrink:0; }
-  .multi-ring svg { transform:rotate(-90deg); }
+  .multi-ring::before { content:''; position:absolute; inset:-20px; border-radius:50%; background:radial-gradient(circle, rgba(163,230,53,.08), transparent 70%); pointer-events:none; }
+  .multi-ring svg { transform:rotate(-90deg); position:relative; }
+  @keyframes trackPulse { 0%,100% { opacity:1; } 50% { opacity:.6; } }
+  .multi-ring svg circle[stroke="#1d1d1d"] { animation:trackPulse 4s ease-in-out infinite; }
+  .ring-label .n.score-gold { color:var(--gold); text-shadow:0 0 20px var(--gold-glow); }
   .multi-ring .ring-label { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
   .multi-ring .ring-label .n { font-size:44px; }
   .score-arc { transition:stroke-dashoffset 1.5s var(--ease-spring); }
@@ -455,6 +460,10 @@ export function renderDashboard(): string {
 
   /* ---- Today: verdict + dials ---- */
   .verdict { border-radius:16px; padding:24px 28px; margin-bottom:12px; border:1px solid var(--line); box-shadow:var(--depth-2); position:relative; overflow:hidden; }
+  .verdict::after { position:absolute; right:10px; bottom:-10px; font-size:90px; opacity:.12; line-height:1; pointer-events:none; }
+  .v-hard::after { content:'\\26A1'; }
+  .v-steady::after { content:'\\1F3C3'; }
+  .v-recover::after { content:'\\1F634'; }
   .verdict .v-word {
     font-family:var(--mono); font-size:42px; font-weight:900; line-height:1.05; margin:0 0 4px; letter-spacing:-.02em;
     background:linear-gradient(135deg, currentColor, currentColor 60%, rgba(255,255,255,.6));
@@ -511,11 +520,12 @@ export function renderDashboard(): string {
     /* backdrop-filter makes the header a containing block for position:fixed
        children, which would pin the bottom bar to the header instead. */
     header.top { backdrop-filter:none; background:#000; }
-    .tabs.primary { position:fixed; left:0; right:0; bottom:0; z-index:30; margin:0; padding:6px 4px calc(6px + env(safe-area-inset-bottom)); background:rgba(0,0,0,.94); backdrop-filter:blur(12px); border-top:1px solid var(--line); justify-content:space-around; gap:0; }
-    .tabs.primary .tab { flex-direction:column; gap:3px; border:none; background:none; padding:4px 6px; font-size:10.5px; border-radius:8px; color:var(--faint); }
-    .tabs.primary .tab svg { width:22px; height:22px; }
-    .tabs.primary .tab.active { background:none; color:var(--pulse); }
-    .tabs.primary .tab.active svg { filter:drop-shadow(0 0 4px var(--pulse)); }
+    .tabs.primary { position:fixed; left:0; right:0; bottom:0; z-index:30; margin:0; padding:6px 4px calc(6px + env(safe-area-inset-bottom)); background:rgba(0,0,0,.94); backdrop-filter:blur(20px) saturate(1.3); border-top:1px solid var(--line); justify-content:space-around; gap:0; }
+    .tabs.primary .tab { flex-direction:column; gap:3px; border:none; background:none; padding:4px 6px; font-size:10.5px; border-radius:8px; color:var(--faint); position:relative; transform:none; }
+    .tabs.primary .tab svg { width:22px; height:22px; transition:transform .2s var(--ease-spring); }
+    .tabs.primary .tab.active { background:none; color:var(--pulse); transform:none; }
+    .tabs.primary .tab.active svg { filter:drop-shadow(0 0 4px var(--pulse)); transform:scale(1.12); }
+    .tabs.primary .tab.active::after { content:''; position:absolute; bottom:1px; width:4px; height:4px; border-radius:50%; background:var(--pulse); animation:trendBounce 1.6s ease-in-out infinite; }
     .verdict .v-word { font-size:34px; }
     .brief-n { font-size:20px; }
   }
@@ -603,9 +613,10 @@ export function renderDashboard(): string {
   .heatmap-wrap { overflow-x:auto; margin-bottom:8px; }
   .heatmap-wrap::-webkit-scrollbar { display:none; }
   .heatmap { display:grid; grid-template-rows:repeat(7,1fr); grid-auto-flow:column; gap:2px; min-width:max-content; }
-  .hm-cell { width:11px; height:11px; border-radius:2px; background:var(--panel2); }
+  .hm-cell { width:13px; height:13px; border-radius:3px; background:var(--panel2); transition:transform .15s var(--ease-spring), outline-color .15s; }
+  .hm-cell:hover { outline:2px solid var(--pulse); outline-offset:1px; transform:scale(1.2); }
   .hm-1 { background:rgba(180,255,57,.15); } .hm-2 { background:rgba(180,255,57,.35); }
-  .hm-3 { background:rgba(180,255,57,.55); } .hm-4 { background:rgba(180,255,57,.85); }
+  .hm-3 { background:rgba(180,255,57,.55); } .hm-4 { background:rgba(212,168,83,.85); }
   .hm-metric-sel { display:flex; align-items:center; gap:8px; margin-bottom:10px; }
   .hm-metric-sel select { appearance:none; -webkit-appearance:none; background:var(--panel2) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%238a8a8a'/%3E%3C/svg%3E") no-repeat right 10px center; border:1px solid var(--line); color:var(--ink); font-size:12px; font-weight:700; font-family:var(--mono); padding:6px 28px 6px 10px; border-radius:8px; cursor:pointer; }
   .hm-metric-sel select:focus { outline:none; border-color:var(--pulse); }
@@ -972,7 +983,7 @@ export function renderDashboard(): string {
             <circle id="sr2" cx="90" cy="90" r="44" fill="none" stroke="#60a5fa" stroke-width="10" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="276.5" class="score-arc" />
             <circle id="sr3" cx="90" cy="90" r="30" fill="none" stroke="#a78bfa" stroke-width="10" stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="188.5" class="score-arc" />
           </svg>
-          <div class="ring-label"><div class="n" id="scoreNum">—</div><div class="u">health score</div></div>
+          <div class="ring-label"><div class="n" id="scoreNum">—</div><div class="u"><span id="scoreCrown" style="display:none">&#128081; </span>health score</div></div>
         </div>
         <div class="multi-ring-info">
           <div class="score-word" id="scoreWord">—</div>
@@ -1329,7 +1340,7 @@ async function deleteKnowledgeNote(date) {
 
 var BASELINES = null;
 var charts = {};
-var C = { pulse:'#a3e635', up:'#34d399', down:'#f76b4d', caution:'#fbbf24', blue:'#60a5fa', purple:'#a78bfa', dim:'#8a8a8a', grid:'#1e1e1e', faint:'#555555' };
+var C = { pulse:'#a3e635', up:'#34d399', down:'#f76b4d', caution:'#fbbf24', blue:'#60a5fa', purple:'#a78bfa', gold:'#d4a853', dim:'#8a8a8a', grid:'#1e1e1e', faint:'#555555' };
 
 function countUp(el, target, duration, decimals, from, force) {
   if (!el || (!force && el.dataset.counted)) return;
@@ -1857,8 +1868,12 @@ function renderScore(score) {
   var n = score.overall;
   var numEl = document.getElementById('scoreNum');
   numEl.textContent = n === null ? '—' : String(n);
-  document.getElementById('scoreWord').textContent = score.word;
+  var funWord = n === null ? score.word : n >= 90 ? 'Royalty' : n >= 80 ? 'Crushing it' : n >= 65 ? 'Solid' : score.word;
+  document.getElementById('scoreWord').textContent = funWord;
   document.getElementById('scoreWord').style.color = scoreColor(n);
+  numEl.classList.toggle('score-gold', n !== null && n >= 90);
+  var crownEl = document.getElementById('scoreCrown');
+  if (crownEl) crownEl.style.display = n !== null && n >= 90 ? '' : 'none';
   document.getElementById('scoreSummary').textContent = score.summary;
   if (n !== null) countUp(numEl, n, 800, 0);
   var ringColors = [C.up, C.down, C.blue, C.purple];
@@ -2002,7 +2017,8 @@ function statTile(def, trends) {
     var dotPos = Math.max(0, Math.min(100, ((reading.value - lo) / span) * 100));
     rangeBar = '<div class="range-bar"><div class="range-fill" style="left:0;width:100%"></div><div class="range-dot" style="left:calc(' + dotPos.toFixed(0) + '% - 5px)"></div></div>';
   }
-  return '<div class="stat" style="cursor:pointer" onclick="openMetric(\\'' + def.key + '\\')"><div class="label">' + def.label + '</div><div class="value">' + shown + (def.unit ? '<span class="unit">' + def.unit + '</span>' : '') +
+  var watermark = spark(series, color, 28).replace('class="spark"', 'class="spark watermark"');
+  return '<div class="stat" style="cursor:pointer" onclick="openMetric(\\'' + def.key + '\\')">' + watermark + '<div class="label">' + def.label + '</div><div class="value">' + shown + (def.unit ? '<span class="unit">' + def.unit + '</span>' : '') +
     (isToday ? '' : '<span class="asof">' + niceDate(reading.date) + '</span>') + baselineDelta + '</div>' +
     (trend.text ? '<div class="trend ' + cls + '">' + trend.text + ' vs last week</div>' : '<div class="trend flat">not enough data to compare weeks</div>') +
     spark(series, color, 28) + rangeBar + miniGuide(def.key, guideVal) + '</div>';
@@ -2962,7 +2978,7 @@ function buildCharts(days, history) {
   } else {
     var maxMin = Math.max.apply(null, workoutDays.map(function (d) { return d.workoutMinutes || 0; }).concat([1]));
     var wkIcons = { running: '\\u{1F3C3}', cycling: '\\u{1F6B4}', walking: '\\u{1F6B6}', swimming: '\\u{1F3CA}', yoga: '\\u{1F9D8}', hiking: '\\u26F0\\uFE0F', dance: '\\u{1F483}', tennis: '\\u{1F3BE}', pickleball: '\\u{1F3D3}', soccer: '\\u26BD', basketball: '\\u{1F3C0}', elliptical: '\\u{1F3CB}' };
-    var wkColors = { running: C.up, cycling: C.blue, walking: C.pulse, swimming: C.blue, yoga: C.purple, hiking: C.up, pickleball: C.caution, tennis: C.caution };
+    var wkColors = { running: C.up, cycling: C.blue, strength: C.purple, walking: C.pulse, swimming: '#22d3ee', yoga: C.gold, hiking: C.up, pickleball: C.caution, tennis: C.caution };
     listEl.innerHTML = '<div class="workout-cards">' + workoutDays.map(function (d) {
       var name = workoutName(d.workoutType) || 'Workout';
       var key = name.toLowerCase();
@@ -2972,7 +2988,7 @@ function buildCharts(days, history) {
       if (d.workoutEnergy) meta.push(Math.round(d.workoutEnergy) + ' kcal');
       if (d.workoutDistanceKm) meta.push(d.workoutDistanceKm.toFixed(1) + ' km');
       var pct = Math.round((d.workoutMinutes || 0) / maxMin * 100);
-      return '<div class="wk-card" style="border-left-color:' + color + '"><div class="wk-icon">' + icon + '</div><div class="wk-info"><div class="wk-name">' + name + '</div><div class="wk-meta">' + meta.join(' \\u00B7 ') + '</div><div class="wk-dur-bar"><div class="wk-dur-fill" style="width:' + pct + '%;background:' + color + '"></div></div></div><div class="wk-date">' + niceDate(d.date) + '</div></div>';
+      return '<div class="wk-card" style="border-left-color:' + color + '"><div class="wk-icon" style="background:linear-gradient(135deg,' + color + '26,' + color + '12)">' + icon + '</div><div class="wk-info"><div class="wk-name">' + name + '</div><div class="wk-meta">' + meta.join(' \\u00B7 ') + '</div><div class="wk-dur-bar"><div class="wk-dur-fill" style="width:' + pct + '%;background:linear-gradient(90deg,' + color + ',' + color + 'cc)"></div></div></div><div class="wk-date">' + niceDate(d.date) + '</div></div>';
     }).join('') + '</div>';
   }
 
