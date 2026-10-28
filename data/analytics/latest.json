@@ -12,14 +12,14 @@
     },
     {
       "marker": "Heart rate variability",
-      "value": 29.385714285714283,
-      "markerAge": 56.02380952380953,
+      "value": 29.2,
+      "markerAge": 56.333333333333336,
       "weight": 0.2
     },
     {
       "marker": "Resting heart rate",
-      "value": 67.66666666666667,
-      "markerAge": 43.33333333333336,
+      "value": 69.5,
+      "markerAge": 52.5,
       "weight": 0.15
     }
   ]
