@@ -1,8 +1,8 @@
 {
   "weekStart": "2026-10-26",
-  "generatedAt": "2026-10-27T19:17:01.086Z",
+  "generatedAt": "2026-10-28T20:01:56.937Z",
   "source": "template",
-  "rationale": "3 sessions: one step up from your 9 active days in the last 4 weeks. Intervals weekly to lift VO2max.",
+  "rationale": "4 sessions: one step up from your 10 active days in the last 4 weeks. Intervals weekly to lift VO2max.",
   "days": [
     {
       "date": "2026-10-26",
@@ -23,7 +23,7 @@
       "type": "intervals",
       "title": "Intervals",
       "minutes": 30,
-      "detail": "Warm up 8 min, then 4ÃÂÃÂÃÂÃÂ4 min hard, 3 min easy."
+      "detail": "Warm up 8 min, then 4×4 min hard, 3 min easy."
     },
     {
       "date": "2026-10-29",
@@ -34,10 +34,10 @@
     },
     {
       "date": "2026-10-30",
-      "type": "mobility",
-      "title": "Mobility",
-      "minutes": 15,
-      "detail": "Hips, hamstrings, upper back."
+      "type": "strength",
+      "title": "Strength",
+      "minutes": 40,
+      "detail": "Squats, push-ups, rows, lunges. 3 sets of 8-12."
     },
     {
       "date": "2026-10-31",
