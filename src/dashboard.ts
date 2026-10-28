@@ -5,7 +5,7 @@ import { METRIC_GUIDE, METRIC_FORMAT } from "./metricGuide";
 function reviewCard(domain: string, title: string, sub = ""): string {
   return `<div class="card ai-card">
       <div class="ai-head">
-        <h3>✦ ${title}</h3>
+        <h3>${title}</h3>
         <button class="btn btn-ghost btn-sm" id="review-${domain}-btn" onclick="loadReview('${domain}',true)">Retry</button>
       </div>
       ${sub ? `<div class="card-sub">${sub}</div>` : ""}
@@ -47,7 +47,7 @@ export function renderDashboard(): string {
   :root {
     --void:#000000; --panel:#121212; --panel2:#181818; --line:#262626;
     --ink:#ffffff; --dim:#8a8a8a; --faint:#555555;
-    --pulse:#b4ff39; --up:#34d399; --down:#f76b4d; --caution:#fbbf24;
+    --pulse:#a3e635; --up:#34d399; --down:#f76b4d; --caution:#fbbf24;
     /* kept the name --mono from the prior design pass (it's used ~40 places
        for every numeric readout) even though Barlow Condensed isn't a
        monospace face — renaming the token would mean touching every call
@@ -147,10 +147,8 @@ export function renderDashboard(): string {
   .ai-card { background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--pulse); border-radius:0 8px 8px 0; }
   .ai-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
   .ai-headline { font-size:16px; font-weight:700; margin:2px 0 10px; color:var(--ink); }
-  .ai-list { margin:0 0 10px; padding-left:16px; font-size:13.5px; line-height:1.7; color:var(--ink); }
-  .ai-list.concerns li { color:var(--down); }
-  .ai-list.recs li { color:var(--pulse); }
-  .ai-section-title { font-size:11px; color:var(--dim); font-weight:700; margin:12px 0 4px; }
+  .ai-body { font-size:13.5px; line-height:1.7; color:var(--ink); margin:0 0 8px; }
+  .ai-concern { font-size:13px; line-height:1.6; color:var(--caution); margin:0 0 8px; padding-left:10px; border-left:2px solid var(--caution); }
   .ai-meta { color:var(--faint); font-size:11.5px; margin-top:8px; font-family:var(--mono); }
   .skeleton { height:12px; border-radius:2px; background:linear-gradient(90deg,var(--panel2),#202020,var(--panel2)); background-size:200% 100%; animation:shimmer 1.4s infinite; margin:8px 0; }
   @keyframes shimmer { 0% { background-position:200% 0; } 100% { background-position:-200% 0; } }
@@ -227,10 +225,8 @@ export function renderDashboard(): string {
   .card { padding:20px; margin-bottom:14px; }
   .card h3 { font-size:16px; }
   .card .card-sub { font-size:13.5px; line-height:1.55; }
-  .ai-list { font-size:14.5px; line-height:1.65; }
-  .ai-list li { margin-bottom:6px; }
+  .ai-body { font-size:14.5px; line-height:1.65; }
   .ai-headline { font-size:18px; line-height:1.4; }
-  .ai-section-title { font-size:12px; text-transform:uppercase; letter-spacing:.06em; margin-top:16px; }
   .ai-loading { color:var(--dim); font-size:13px; margin-top:6px; }
 
   h2.sec { font-size:22px; font-weight:800; margin:34px 0 12px; letter-spacing:-.01em; }
@@ -367,22 +363,39 @@ export function renderDashboard(): string {
   .subtab.active { color:var(--ink); border-bottom-color:var(--pulse); }
 
   /* ---- Today: verdict + dials ---- */
-  .verdict { border-radius:14px; padding:20px 22px; margin-bottom:14px; border:1px solid var(--line); }
-  .verdict .v-label { font-size:12.5px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; opacity:.85; }
-  .verdict .v-word { font-family:var(--mono); font-size:46px; font-weight:800; line-height:1.05; margin:4px 0 6px; letter-spacing:-.01em; }
-  .verdict .v-line { font-size:16px; font-weight:600; line-height:1.45; }
-  .verdict .v-why { font-size:13px; opacity:.8; margin-top:6px; }
+  .verdict { border-radius:10px; padding:18px 20px; margin-bottom:12px; border:1px solid var(--line); }
+  .verdict .v-word { font-family:var(--mono); font-size:42px; font-weight:900; line-height:1.05; margin:0 0 4px; letter-spacing:-.01em; }
+  .verdict .v-line { font-size:15px; font-weight:600; line-height:1.45; }
+  .verdict .v-why { font-size:12.5px; opacity:.75; margin-top:4px; }
   .v-hard { background:rgba(52,211,153,.12); border-color:rgba(52,211,153,.4); color:#6ee7b7; }
   .v-steady { background:rgba(251,191,36,.10); border-color:rgba(251,191,36,.4); color:#fcd34d; }
   .v-recover { background:rgba(247,107,77,.12); border-color:rgba(247,107,77,.45); color:#fca594; }
   .v-neutral { background:var(--panel); color:var(--ink); }
   .v-hard .v-line, .v-steady .v-line, .v-recover .v-line { color:var(--ink); }
-  .dials { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-bottom:14px; }
-  .dial { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 8px 12px; text-align:center; cursor:pointer; transition:border-color .15s; }
-  .dial:hover { border-color:var(--pulse); }
-  .dial svg { width:92px; height:92px; display:block; margin:0 auto; }
-  .dial .d-label { font-weight:700; font-size:13.5px; margin-top:6px; }
-  .dial .d-word { font-size:12px; color:var(--dim); }
+  .brief-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:12px; }
+  .brief-item { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px 10px; text-align:center; }
+  .brief-n { font-family:var(--mono); font-size:24px; font-weight:900; }
+  .brief-d { font-size:12px; font-weight:600; margin-top:1px; }
+  .brief-d.up { color:var(--up); }
+  .brief-d.dn { color:var(--down); }
+  .brief-u { font-size:11px; color:var(--dim); margin-top:2px; text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
+  .strain-budget { margin-bottom:12px; }
+  .sb-label { font-size:12px; color:var(--dim); font-weight:600; margin-bottom:4px; }
+  .sb-track { height:10px; background:var(--panel); border:1px solid var(--line); border-radius:5px; position:relative; overflow:hidden; }
+  .sb-fill { height:100%; border-radius:5px; background:var(--up); transition:width .4s; }
+  .sb-fill.high { background:var(--caution); }
+  .sb-fill.over { background:var(--down); }
+  .sb-target { position:absolute; top:0; bottom:0; width:2px; background:var(--dim); }
+  .one-action { border-left:3px solid var(--pulse); border-radius:0 8px 8px 0; }
+  .oa-label { font-size:11px; color:var(--dim); font-weight:700; text-transform:uppercase; letter-spacing:.06em; margin-bottom:4px; }
+  .oa-text { font-size:14px; font-weight:600; color:var(--ink); }
+  .wm-item { display:flex; align-items:center; gap:8px; padding:6px 0; font-size:13.5px; border-bottom:1px solid var(--line); }
+  .wm-item:last-child { border-bottom:none; }
+  .wm-key { color:var(--dim); font-weight:600; flex:0 0 auto; }
+  .wm-val { font-family:var(--mono); font-weight:800; }
+  .wm-delta { font-size:12px; font-weight:600; }
+  .wm-delta.up { color:var(--up); }
+  .wm-delta.dn { color:var(--down); }
   .session-card .s-row { display:flex; align-items:center; gap:10px; padding:6px 0; font-size:14px; }
   .session-card .s-ico { width:22px; height:22px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-size:12px; font-weight:800; background:var(--panel2); color:var(--dim); flex-shrink:0; }
   .session-card .s-ico.done { background:var(--up); color:var(--void); }
@@ -397,8 +410,8 @@ export function renderDashboard(): string {
     .tabs.primary .tab { flex-direction:column; gap:3px; border:none; background:none; padding:4px 6px; font-size:10.5px; border-radius:8px; color:var(--faint); }
     .tabs.primary .tab svg { width:22px; height:22px; }
     .tabs.primary .tab.active { background:none; color:var(--pulse); }
-    .verdict .v-word { font-size:38px; }
-    .dial svg { width:74px; height:74px; }
+    .verdict .v-word { font-size:34px; }
+    .brief-n { font-size:20px; }
   }
 
   /* ---- metric detail sheet ---- */
@@ -439,7 +452,7 @@ export function renderDashboard(): string {
   /* ---- weekly story cards ---- */
   .story-scroll { display:flex; gap:12px; overflow-x:auto; padding:4px 0 12px; scroll-snap-type:x mandatory; scrollbar-width:none; }
   .story-scroll::-webkit-scrollbar { display:none; }
-  .story-card { min-width:280px; max-width:320px; flex-shrink:0; scroll-snap-align:start; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; }
+  .story-card { min-width:280px; max-width:320px; flex-shrink:0; scroll-snap-align:start; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:16px; }
   .story-card .sc-week { font-size:12px; color:var(--dim); font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
   .story-card .sc-title { font-size:18px; font-weight:800; margin:4px 0 8px; }
   .story-card .sc-stats { display:flex; gap:14px; margin-bottom:8px; }
@@ -595,53 +608,40 @@ export function renderDashboard(): string {
     </div>
 
     <div class="verdict v-neutral" id="verdict">
-      <div class="v-label">Today’s call</div>
       <div class="v-word" id="verdictWord">…</div>
       <div class="v-line" id="verdictLine">Reading your recovery.</div>
       <div class="v-why" id="verdictWhy"></div>
     </div>
 
-    <div class="dials" id="dials"></div>
+    <div class="brief-row" id="sleepBrief">
+      <div class="brief-item"><div class="brief-n" id="bSleepH">—</div><div class="brief-u">hours slept</div></div>
+      <div class="brief-item"><div class="brief-n" id="bSleepQ">—</div><div class="brief-u">quality</div></div>
+      <div class="brief-item"><div class="brief-n" id="bDeepRem">—</div><div class="brief-u">deep+REM</div></div>
+    </div>
+
+    <div class="brief-row" id="bodyState">
+      <div class="brief-item"><div class="brief-n" id="bHrv">—</div><div class="brief-d" id="bHrvD"></div><div class="brief-u">HRV</div></div>
+      <div class="brief-item"><div class="brief-n" id="bRhr">—</div><div class="brief-d" id="bRhrD"></div><div class="brief-u">resting HR</div></div>
+      <div class="brief-item"><div class="brief-n" id="bRecov">—</div><div class="brief-u">recovery</div></div>
+    </div>
+
+    <div class="strain-budget" id="strainBudget">
+      <div class="sb-label">Strain <span id="sbUsed">0</span> / <span id="sbMax">21</span></div>
+      <div class="sb-track"><div class="sb-fill" id="sbFill"></div><div class="sb-target" id="sbTarget"></div></div>
+    </div>
 
     <div class="card session-card" id="todaySession"><h3>Up next</h3><div class="sub">Loading your plan…</div></div>
 
-    ${reviewCard("today", "Coach’s note", "The reasoning behind today’s call.")}
-
-    <div class="card">
-      <h3>Your action items</h3>
-      <ul class="actions" id="overviewActions"><li class="sub">Loading…</li></ul>
+    <div class="card" id="whatMoved">
+      <h3>What moved</h3>
+      <div class="sub" id="whatMovedList">Checking…</div>
     </div>
 
-    <h2 class="sec">This week<span>Last 7 days</span></h2>
-    <div class="card"><div class="week" id="weekStrip"></div>
-      <div class="legend"><span><i class="lg-bar"></i>steps</span><span><i class="lg-dot on"></i>ring closed</span><span><i class="lg-dot"></i>ring missed</span></div>
-    </div>
-    <div class="highlights" id="highlights"></div>
-    <button class="btn btn-ghost btn-sm" id="moreHighlights" style="display:none;margin:-4px 0 14px;" onclick="toggleHighlights()">Show all highlights</button>
-    ${reviewCard("weekly", "Your week in review", "What worked, what slipped, what to change.")}
+    ${reviewCard("today", "Coach’s note")}
 
-    <h2 class="sec">Key numbers<span>Latest values with 30-day trend</span></h2>
-    <div class="grid" id="quickStats"></div>
-    <div class="untracked" id="untracked"></div>
-
-    <h2 class="sec" id="scoreSection">Health score<span>Four areas, scored against your own data</span></h2>
-    <div class="scoreboard card">
-      <div class="score-main">
-        <div class="ring-wrap">
-          <svg width="148" height="148" viewBox="0 0 148 148">
-            <circle cx="74" cy="74" r="64" fill="none" stroke="#1d1d1d" stroke-width="12" />
-            <circle id="scoreRing" cx="74" cy="74" r="64" fill="none" stroke="url(#ringGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="402" stroke-dashoffset="402" />
-            <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#b4ff39" /><stop offset="100%" stop-color="#34d399" /></linearGradient></defs>
-          </svg>
-          <div class="ring-label"><div class="n" id="scoreNum">—</div><div class="u">health score</div></div>
-        </div>
-        <div>
-          <div class="score-word" id="scoreWord">—</div>
-          <div class="score-summary" id="scoreSummary">Calculating…</div>
-        </div>
-      </div>
-      <div class="score-parts" id="scoreParts"></div>
-      <details class="more"><summary>How is this calculated?</summary><div>The average of four 0-100 scores. <b>Recovery</b>: today’s heart data vs your normal. <b>Activity</b>: exercise minutes vs 150 a week, steps vs 8,000. <b>Fitness</b>: VO2max for your age, plus active days. <b>Sleep</b>: hours vs your goal. Areas without data are skipped, not guessed.</div></details>
+    <div class="card one-action" id="oneAction" style="display:none;">
+      <div class="oa-label">Focus today</div>
+      <div class="oa-text" id="oneActionText"></div>
     </div>
   </section>
 
@@ -802,6 +802,37 @@ export function renderDashboard(): string {
         <button type="submit" class="btn btn-sm">Add goal</button>
       </form>
       <div class="card-sub" id="goalHint" style="margin-top:8px;"></div>
+    </div>
+    <h2 class="sec">This week<span>Last 7 days</span></h2>
+    <div class="card"><div class="week" id="weekStrip"></div>
+      <div class="legend"><span><i class="lg-bar"></i>steps</span><span><i class="lg-dot on"></i>ring closed</span><span><i class="lg-dot"></i>ring missed</span></div>
+    </div>
+    <div class="highlights" id="highlights"></div>
+    <button class="btn btn-ghost btn-sm" id="moreHighlights" style="display:none;margin:-4px 0 14px;" onclick="toggleHighlights()">Show all highlights</button>
+    ${reviewCard("weekly", "Your week in review", "What worked, what slipped, what to change.")}
+
+    <h2 class="sec">Key numbers<span>Latest values with 30-day trend</span></h2>
+    <div class="grid" id="quickStats"></div>
+    <div class="untracked" id="untracked"></div>
+
+    <h2 class="sec" id="scoreSection">Health score<span>Four areas, scored against your own data</span></h2>
+    <div class="scoreboard card">
+      <div class="score-main">
+        <div class="ring-wrap">
+          <svg width="148" height="148" viewBox="0 0 148 148">
+            <circle cx="74" cy="74" r="64" fill="none" stroke="#1d1d1d" stroke-width="12" />
+            <circle id="scoreRing" cx="74" cy="74" r="64" fill="none" stroke="url(#ringGrad)" stroke-width="12" stroke-linecap="round" stroke-dasharray="402" stroke-dashoffset="402" />
+            <defs><linearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#b4ff39" /><stop offset="100%" stop-color="#34d399" /></linearGradient></defs>
+          </svg>
+          <div class="ring-label"><div class="n" id="scoreNum">—</div><div class="u">health score</div></div>
+        </div>
+        <div>
+          <div class="score-word" id="scoreWord">—</div>
+          <div class="score-summary" id="scoreSummary">Calculating…</div>
+        </div>
+      </div>
+      <div class="score-parts" id="scoreParts"></div>
+      <details class="more"><summary>How is this calculated?</summary><div>The average of four 0-100 scores. <b>Recovery</b>: today's heart data vs your normal. <b>Activity</b>: exercise minutes vs 150 a week, steps vs 8,000. <b>Fitness</b>: VO2max for your age, plus active days. <b>Sleep</b>: hours vs your goal. Areas without data are skipped, not guessed.</div></details>
     </div>
   </section>
 
@@ -1037,7 +1068,7 @@ function timeAgo(iso) {
 
 var reviewLoadedOnce = {};
 var appBooted = false;
-var TAB_REVIEWS = { overview: ['today', 'weekly'], longview: ['longterm'], training: ['training'], heart: ['recovery'], activity: ['activity'], sleep: ['sleep'], age: ['body'], discoveries: ['discoveries'], ai: ['overview'] };
+var TAB_REVIEWS = { overview: ['today'], plan: ['weekly'], longview: ['longterm'], training: ['training'], heart: ['recovery'], activity: ['activity'], sleep: ['sleep'], age: ['body'], discoveries: ['discoveries'], ai: ['overview'] };
 // Five top-level views, each a group of sections shown one at a time via
 // a sub-tab row. Sections keep their old ids, so every loader still works.
 var VIEWS = {
@@ -1350,25 +1381,87 @@ function renderVerdict() {
   document.getElementById('verdictWhy').textContent = why.join(' · ');
 }
 
-function dialSvg(frac, color, text) {
-  var c = 2 * Math.PI * 38;
-  var f = Math.max(0, Math.min(1, frac || 0));
-  return '<svg viewBox="0 0 92 92"><circle cx="46" cy="46" r="38" fill="none" stroke="#222" stroke-width="9"/>' +
-    '<circle cx="46" cy="46" r="38" fill="none" stroke="' + color + '" stroke-width="9" stroke-linecap="round" stroke-dasharray="' + (c * f).toFixed(1) + ' ' + c.toFixed(1) + '" transform="rotate(-90 46 46)"/>' +
-    '<text x="46" y="53" text-anchor="middle" font-family="Barlow Condensed, sans-serif" font-weight="800" font-size="24" fill="#fff">' + text + '</text></svg>';
+// ---------- today: sleep brief, body state, strain budget, what moved ----------
+function renderSleepBrief(today, prev) {
+  var h = today ? today.sleepHours : null;
+  var q = today && today.sleepEfficiency !== undefined ? Math.round(today.sleepEfficiency * 100) : null;
+  var deep = today ? (today.sleepDeepHours || 0) + (today.sleepRemHours || 0) : null;
+  document.getElementById('bSleepH').textContent = h !== null ? h.toFixed(1) : '—';
+  document.getElementById('bSleepQ').textContent = q !== null ? q + '%' : '—';
+  document.getElementById('bDeepRem').textContent = deep !== null && deep > 0 ? deep.toFixed(1) + 'h' : '—';
 }
 
-function renderDials() {
-  var r = TODAY.readiness, st = TODAY.strain, sc = TODAY.score;
-  var rColor = r === null ? '#555' : r >= 70 ? '#34d399' : r >= 45 ? '#fbbf24' : '#f76b4d';
-  var dials = [
-    { label: 'Recovery', frac: r === null ? 0 : r / 100, color: rColor, text: r === null ? '—' : String(r), word: r === null ? 'No data' : r >= 70 ? 'Recovered' : r >= 45 ? 'Partly' : 'Low', go: "showTab('heart')" },
-    { label: 'Strain', frac: st === null ? 0 : st / 21, color: '#60a5fa', text: st === null ? '—' : fmt(st, 1), word: st === null ? 'No data' : st >= 14 ? 'Hard day' : st >= 8 ? 'Moderate' : 'Light', go: "showTab('training')" },
-    { label: 'Health', frac: sc === null ? 0 : sc / 100, color: scoreColor(sc), text: sc === null ? '—' : String(sc), word: sc === null ? 'No data' : (TODAY.scoreWord || ''), go: "document.getElementById('scoreSection').scrollIntoView({behavior:'smooth'})" },
-  ];
-  document.getElementById('dials').innerHTML = dials.map(function (d) {
-    return '<div class="dial" onclick="' + d.go + '">' + dialSvg(d.frac, d.color, d.text) + '<div class="d-label">' + d.label + '</div><div class="d-word">' + d.word + '</div></div>';
+function renderBodyState(today, baselines) {
+  var hrv = today ? today.hrv : null;
+  var rhr = today ? today.restingHeartRate : null;
+  var recov = TODAY.readiness;
+  document.getElementById('bHrv').textContent = hrv !== null ? String(Math.round(hrv)) : '—';
+  document.getElementById('bRhr').textContent = rhr !== null ? String(Math.round(rhr)) : '—';
+  document.getElementById('bRecov').textContent = recov !== null ? recov + '/100' : '—';
+  if (baselines) {
+    var hrvB = baselines.hrv, rhrB = baselines.restingHeartRate;
+    if (hrvB && hrvB.mean && hrv !== null) {
+      var d = Math.round(hrv - hrvB.mean);
+      var el = document.getElementById('bHrvD');
+      el.textContent = (d >= 0 ? '+' : '') + d + ' ms';
+      el.className = 'brief-d ' + (d >= 0 ? 'up' : 'dn');
+    }
+    if (rhrB && rhrB.mean && rhr !== null) {
+      var d2 = Math.round(rhr - rhrB.mean);
+      var el2 = document.getElementById('bRhrD');
+      el2.textContent = (d2 >= 0 ? '+' : '') + d2 + ' bpm';
+      el2.className = 'brief-d ' + (d2 <= 0 ? 'up' : 'dn');
+    }
+  }
+}
+
+function renderStrainBudget() {
+  var strain = TODAY.strain || 0;
+  var recov = TODAY.readiness;
+  var maxStrain = recov !== null && recov >= 70 ? 18 : recov !== null && recov >= 45 ? 14 : 10;
+  var pct = Math.min(100, Math.round(strain / 21 * 100));
+  var fill = document.getElementById('sbFill');
+  fill.style.width = pct + '%';
+  fill.className = 'sb-fill' + (strain > maxStrain ? ' over' : strain > maxStrain * 0.8 ? ' high' : '');
+  document.getElementById('sbUsed').textContent = fmt(strain, 1);
+  document.getElementById('sbMax').textContent = String(maxStrain);
+  document.getElementById('sbTarget').style.left = Math.round(maxStrain / 21 * 100) + '%';
+}
+
+function renderWhatMoved(today, yesterday) {
+  var el = document.getElementById('whatMovedList');
+  if (!today || !yesterday) { el.innerHTML = '<div class="sub">Need two days of data.</div>'; return; }
+  var keys = ['steps', 'exerciseMinutes', 'restingHeartRate', 'hrv', 'sleepHours', 'activeEnergy', 'vo2max', 'walkingSpeed'];
+  var moved = [];
+  keys.forEach(function (k) {
+    if (typeof today[k] !== 'number' || typeof yesterday[k] !== 'number') return;
+    var diff = today[k] - yesterday[k];
+    var pct = yesterday[k] !== 0 ? Math.abs(diff / yesterday[k]) : 0;
+    if (pct < 0.1 && Math.abs(diff) < 3) return;
+    var fmt2 = METRIC_FORMAT[k];
+    var unit = fmt2 ? (fmt2.unit || '') : '';
+    var label = k.replace(/([A-Z])/g, ' $1').trim();
+    var better = fmt2 && fmt2.better;
+    var isUp = diff > 0;
+    var good = better === 'higher' ? isUp : better === 'lower' ? !isUp : null;
+    moved.push({ key: k, label: label, val: fmtMetricVal(k, today[k]), diff: diff, pct: pct, unit: unit, isUp: isUp, good: good });
+  });
+  moved.sort(function (a, b) { return b.pct - a.pct; });
+  if (moved.length === 0) { el.innerHTML = '<div class="sub">Steady day — nothing flagged.</div>'; return; }
+  el.innerHTML = moved.slice(0, 5).map(function (m) {
+    var arrow = m.isUp ? '&#9650;' : '&#9660;';
+    var cls = m.good === true ? 'up' : m.good === false ? 'dn' : '';
+    var click = METRIC_FORMAT[m.key] ? ' style="cursor:pointer" onclick="openMetric(\\'' + m.key + '\\')"' : '';
+    return '<div class="wm-item"' + click + '><span class="wm-key">' + m.label + '</span> <span class="wm-val">' + m.val + '</span> <span class="wm-delta ' + cls + '">' + arrow + ' ' + Math.round(m.pct * 100) + '%</span></div>';
   }).join('');
+}
+
+function renderOneAction() {
+  if (!TODAY.fitness || !TODAY.fitness.actionItems || !TODAY.fitness.actionItems.length) return;
+  var top = TODAY.fitness.actionItems[0];
+  var el = document.getElementById('oneAction');
+  document.getElementById('oneActionText').textContent = top.text + (top.why ? ' — ' + top.why : '');
+  el.style.display = '';
 }
 
 var HIGHLIGHTS_ALL = [];
@@ -1376,7 +1469,7 @@ var highlightsOpen = false;
 function toggleHighlights() { highlightsOpen = !highlightsOpen; renderHighlights(HIGHLIGHTS_ALL); }
 
 function renderScore(score) {
-  TODAY.score = score.overall; TODAY.scoreWord = score.word; renderDials();
+  TODAY.score = score.overall; TODAY.scoreWord = score.word;
   var ring = document.getElementById('scoreRing');
   var n = score.overall;
   document.getElementById('scoreNum').textContent = n === null ? '—' : n;
@@ -2111,8 +2204,7 @@ function renderWeekly(weeks) {
 async function loadFitness() {
   try {
     var f = await authedFetch('/api/fitness');
-    TODAY.fitness = f; renderVerdict();
-    renderActionItems('overviewActions', f.actionItems, 4);
+    TODAY.fitness = f; renderVerdict(); renderStrainBudget(); renderOneAction();
     renderActionItems('trainingActions', f.actionItems);
     renderFitnessMetrics(f.metrics || []);
     renderWeekly(f.weekly || []);
@@ -2124,7 +2216,7 @@ async function loadFitness() {
       { type: 'line', label: 'Form', data: s.map(function (p) { return p.form; }), borderColor: '#60a5fa', borderDash: [4, 4], pointRadius: 0, borderWidth: 1.5, tension: .3, order: 1 },
     ]}});
   } catch (err) {
-    ['overviewActions', 'trainingActions'].forEach(function (id) { var el = document.getElementById(id); if (el) el.innerHTML = '<li class="sub">Could not load (' + err.message + ').</li>'; });
+    var traEl = document.getElementById('trainingActions'); if (traEl) traEl.innerHTML = '<li class="sub">Could not load (' + err.message + ').</li>';
   }
 }
 
@@ -2153,12 +2245,19 @@ async function loadReview(domain, force, silent) {
     var res = await authedFetch('/api/insights?domain=' + domain + (force ? '&force=1' : ''));
     var ins = res.insights;
     var html = '<div class="ai-headline">' + ins.headline + '</div>';
-    if (ins.recommendations && ins.recommendations.length) {
-      html += '<div class="ai-section-title">Do next</div><ul class="ai-list recs">' + ins.recommendations.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
-    }
-    html += '<div class="ai-section-title">What the data shows</div><ul class="ai-list">' + ins.insights.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
-    if (ins.concerns && ins.concerns.length) {
-      html += '<div class="ai-section-title">Keep an eye on</div><ul class="ai-list concerns">' + ins.concerns.map(function (i) { return '<li>' + i + '</li>'; }).join('') + '</ul>';
+    if (ins.body) {
+      html += '<p class="ai-body">' + ins.body + '</p>';
+      if (ins.concern) html += '<p class="ai-concern">' + ins.concern + '</p>';
+    } else {
+      if (ins.recommendations && ins.recommendations.length) {
+        html += '<p class="ai-body">' + ins.recommendations.join(' ') + '</p>';
+      }
+      if (ins.insights && ins.insights.length) {
+        html += '<p class="ai-body">' + ins.insights.join(' ') + '</p>';
+      }
+      if (ins.concerns && ins.concerns.length) {
+        html += '<p class="ai-concern">' + ins.concerns[0] + '</p>';
+      }
     }
     // Out of date: the server is rewriting it in the background — pick up
     // the new version shortly, without a loading state.
@@ -2714,7 +2813,10 @@ async function boot() {
   TODAY.readiness = trends.readinessScore === undefined ? null : trends.readinessScore;
   TODAY.strain = trends.todayStrain === undefined ? null : trends.todayStrain;
   renderVerdict();
-  renderDials();
+  renderSleepBrief(today, days.length >= 2 ? days[days.length - 2] : null);
+  renderBodyState(today, null);
+  renderStrainBudget();
+  renderWhatMoved(today, days.length >= 2 ? days[days.length - 2] : null);
   renderMarkers(latestAnalytics);
   renderQuickStats(today, trends);
   renderTrainingLoad(trends);
@@ -2744,6 +2846,14 @@ async function boot() {
 
   loadFitness();
   loadOverview();
+  authedFetch('/api/baselines').then(function (b) {
+    var w30 = b && b.windows && b.windows['30'];
+    if (w30) {
+      var map = {};
+      w30.forEach(function (x) { map[x.metric] = x; });
+      renderBodyState(today, map);
+    }
+  }).catch(function () {});
   loadPlanView();
   loadGoals();
   loadDataQuality();

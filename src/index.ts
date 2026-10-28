@@ -36,7 +36,7 @@ const ANALYTICS_WINDOW_DAYS = 7;
 function insightsCacheKey(domain: ReviewDomain): string {
   // v4: crisper voice. v3: plainer voice + weekly/longterm domains. v2: snapshots carry domain-specific computed context (fitness
   // report, recent rows...) — don't serve reviews generated without it.
-  return `insights:v4:${domain}`;
+  return `insights:v5:${domain}`;
 }
 // Kept in KV well past "fresh" so a flaky llm-gateway call can fall back to
 // the last good review (flagged stale) instead of an empty error card.

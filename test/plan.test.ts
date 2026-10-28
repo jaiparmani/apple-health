@@ -114,7 +114,7 @@ describe("morning brief", () => {
       today: "2026-03-04",
       lastDataDate: "2026-03-02",
       readiness: 38,
-      review: { headline: "Recover today.", insights: [], concerns: [], recommendations: [] },
+      review: { headline: "Recover today.", body: "Rest and recover.", concern: null },
       session: { date: "2026-03-04", type: "intervals", title: "Intervals", minutes: 30, detail: "4×4 min", weekday: "Wed", status: "today", actualMinutes: null, autoDetected: false,
         adjusted: { type: "walk", title: "Recovery walk", minutes: 25, detail: "Easy pace.", reason: "Readiness 38: swapped for recovery." } },
       actionItems: [{ priority: "high", area: "recovery", text: "Rest day", why: "x" }],

@@ -5,9 +5,12 @@ import { CHART_TYPES, sanitizeChartSpec, buildChartData, type ChartData } from "
 
 export interface AiInsights {
   headline: string;
-  insights: string[];
-  concerns: string[];
-  recommendations: string[];
+  body: string;
+  concern: string | null;
+  // Legacy fields for cached reviews in old format
+  insights?: string[];
+  concerns?: string[];
+  recommendations?: string[];
 }
 
 export interface GatewayMessage {
@@ -48,24 +51,22 @@ export async function callGateway(env: Env, messages: GatewayMessage[], expectKe
 // and output shape — only the "focus" clause changes what the model is
 // asked to pay attention to within the same full snapshot.
 const BASE_VOICE =
-  "You are a sharp performance coach writing a briefing for one person, from a JSON snapshot of their own Apple " +
-  "Health data plus metrics computed in code. Cite only numbers that are in the snapshot; never invent or re-derive one. " +
-  "STYLE — crisp above all: every line is one short sentence, at most 15 words; the headline at most 18 words. Lead " +
-  "with the number or the verdict, then the meaning. No filler, no hedging, no praise words (\"great\", \"amazing\", " +
-  "\"keep it up\"), no exclamation points, no semicolon-chained clauses. Plain English for a non-expert: never use raw " +
-  "field names (\"readiness\", not \"readinessScoreToday\") or jargon — say \"freshness\" not \"TSB\", \"fitness base\" " +
-  "not \"CTL\", \"resting heart rate\" not \"RHR\" (HRV and VO2max are fine). Round like a person: whole numbers for " +
-  "steps, bpm, minutes, kcal, ms; one decimal for hours, kg, VO2max. Dates as \"Mon 26 Oct\". " +
-  "Read biologicalAgeInWords literally — a positive gap means OLDER than actual age. Never advise doing less activity " +
-  "unless a recovery metric in the snapshot has status \"bad\".";
+  "You are a private physician writing a brief clinical note for one patient, from a JSON snapshot of their Apple " +
+  "Health data. Cite only numbers in the snapshot; never invent one. " +
+  "STYLE — sentences of at most 10 words. Headline at most 12 words. Lead with the number, then its meaning. " +
+  "Never start a sentence with \"Your\". Vary openings. Use imperatives: \"Walk 8,000 steps\" not \"Try to aim for 8,000 steps\". " +
+  "No filler, no hedging, no exclamation points, no semicolons. Earned praise only: say \"strong\" when a number proves it. " +
+  "Plain English: say \"resting heart rate\" not \"RHR\", \"freshness\" not \"TSB\", \"fitness base\" not \"CTL\" (HRV and VO2max are fine). " +
+  "Round like a person: whole numbers for steps, bpm, minutes, kcal, ms; one decimal for hours, kg, VO2max. Dates as \"Mon 26 Oct\". " +
+  "Read biologicalAgeInWords literally — positive gap means OLDER than actual age. " +
+  "Never advise less activity unless a recovery metric has status \"bad\".";
 
 const OUTPUT_SHAPE =
-  'Reply with ONLY a JSON object of this exact shape: {"headline": string, "insights": string[], ' +
-  '"concerns": string[], "recommendations": string[]}. ' +
-  '"headline": the single most decision-relevant fact right now. ' +
-  '"insights": 2-4 specific observations (a trend, streak, or comparison to normal). ' +
-  '"concerns": 0-2 items genuinely worth attention; empty if nothing stands out — never manufacture concern. ' +
-  '"recommendations": 1-3 concrete actions with a number in each (minutes, days, times, targets), grounded in the data. ' +
+  'Reply with ONLY a JSON object: {"headline": string, "body": string, "concern": string | null}. ' +
+  '"headline": the single most important fact, at most 12 words. ' +
+  '"body": one paragraph of 3-5 short sentences. Weave observations and actions together naturally — ' +
+  "no headers, no bullets, no lists. Each sentence earns its place with a specific number. " +
+  '"concern": one sentence only if something genuinely needs attention, otherwise null. Never manufacture concern. ' +
   "Never diagnose or claim medical authority.";
 
 export type ReviewDomain = "overview" | "today" | "weekly" | "longterm" | "training" | "recovery" | "activity" | "sleep" | "body" | "discoveries";
@@ -147,21 +148,35 @@ export async function generateReview(
     { role: "user", content: `Snapshot:\n${JSON.stringify(snapshot)}` },
   ];
 
-  const data = await callGateway(env, messages, "headline", 900);
+  const data = await callGateway(env, messages, "headline", 500);
   return parseInsights(data);
 }
 
 export function parseInsights(data: Record<string, unknown>): AiInsights {
   const headline = typeof data.headline === "string" ? data.headline.trim() : "";
+
+  // New format: body + concern
+  if (typeof data.body === "string" && data.body.trim()) {
+    const concern = typeof data.concern === "string" && data.concern.trim() ? data.concern.trim() : null;
+    return { headline, body: data.body.trim(), concern };
+  }
+
+  // Legacy format: insights[] + concerns[] + recommendations[] → convert to body
   const insights = toStringArray(data.insights);
   const concerns = toStringArray(data.concerns);
   const recommendations = toStringArray(data.recommendations);
 
-  if (!headline || insights.length === 0) {
-    throw new Error("Model did not return a usable headline/insights.");
+  if (!headline && insights.length === 0) {
+    throw new Error("Model did not return a usable headline or body.");
   }
 
-  return { headline, insights: insights.slice(0, 4), concerns: concerns.slice(0, 2), recommendations: recommendations.slice(0, 3) };
+  const bodyParts = [...recommendations, ...insights];
+  return {
+    headline,
+    body: bodyParts.join(" "),
+    concern: concerns.length > 0 ? concerns[0] : null,
+    insights, concerns, recommendations,
+  };
 }
 
 function toStringArray(v: unknown): string[] {
