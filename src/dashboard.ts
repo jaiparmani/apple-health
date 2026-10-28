@@ -102,14 +102,15 @@ export function renderDashboard(): string {
 
   /* ---- shell ---- */
   #app { display:none; max-width:900px; margin:0 auto; padding:0 20px 60px; }
+  #app.app-revealing { animation:appReveal .6s var(--ease-smooth) both; }
   header.top { position:sticky; top:0; z-index:20; background:rgba(0,0,0,.92); backdrop-filter:blur(10px); padding:18px 20px 10px; margin:0 -20px 20px; border-bottom:1px solid var(--line); }
   header.top .row { display:flex; align-items:baseline; justify-content:space-between; max-width:900px; margin:0 auto; }
   header.top h1 { font-size:18px; margin:0; font-weight:800; letter-spacing:-.01em; }
   header.top .sub { font-family:var(--mono); font-weight:600; font-size:13px; }
   .tabs { display:flex; gap:6px; overflow-x:auto; margin-top:14px; padding-bottom:2px; max-width:900px; margin-left:auto; margin-right:auto; scrollbar-width:none; }
   .tabs::-webkit-scrollbar { display:none; }
-  .tab { white-space:nowrap; padding:7px 13px; border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--dim); cursor:pointer; font-size:13px; font-weight:600; }
-  .tab.active { color:var(--void); background:var(--pulse); border-color:var(--pulse); }
+  .tab { white-space:nowrap; padding:7px 13px; border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--dim); cursor:pointer; font-size:13px; font-weight:600; transition:color .2s, transform .15s var(--ease-spring), background-color .2s, border-color .2s; }
+  .tab.active { color:var(--void); background:var(--pulse); border-color:var(--pulse); transform:scale(1.04); }
 
   .section { display:none; }
   .section.active { display:block; }
@@ -254,7 +255,7 @@ export function renderDashboard(): string {
   .stat .baseline { font-family:var(--mono); font-size:11px; font-weight:700; margin-left:6px; }
   .ar-wrap { display:flex; gap:20px; align-items:center; padding:12px 0; }
   .ar-svg { flex-shrink:0; }
-  .ar-svg circle { transition:stroke-dashoffset 1s ease-out; }
+  .ar-svg circle { transition:stroke-dashoffset 1.5s var(--ease-spring); }
   .ar-labels { flex:1; display:flex; flex-direction:column; gap:8px; }
   .ar-row { display:flex; align-items:center; gap:8px; }
   .ar-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
@@ -328,7 +329,7 @@ export function renderDashboard(): string {
   .multi-ring svg { transform:rotate(-90deg); }
   .multi-ring .ring-label { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
   .multi-ring .ring-label .n { font-size:44px; }
-  .score-arc { transition:stroke-dashoffset 1.2s cubic-bezier(.32,.72,0,1); }
+  .score-arc { transition:stroke-dashoffset 1.5s var(--ease-spring); }
   .multi-ring-info { min-width:0; }
   .ring-legend { display:flex; flex-direction:column; gap:6px; margin-top:12px; }
   .ring-legend .rl-row { display:flex; align-items:center; gap:8px; font-size:13px; }
@@ -450,6 +451,7 @@ export function renderDashboard(): string {
   .subtab { background:none; border:none; color:var(--dim); font-size:13.5px; font-weight:600; padding:4px 0 8px; cursor:pointer; white-space:nowrap; border-bottom:2px solid transparent; }
   .subtab.active { color:var(--ink); border-bottom-color:transparent; }
   .section { transition:opacity .2s ease; }
+  .section.active.tab-enter { animation:fadeSlideUp .35s var(--ease-smooth) both; }
 
   /* ---- Today: verdict + dials ---- */
   .verdict { border-radius:16px; padding:24px 28px; margin-bottom:12px; border:1px solid var(--line); box-shadow:var(--depth-2); position:relative; overflow:hidden; }
@@ -1239,8 +1241,11 @@ function showView(view) {
 function showTab(id) {
   if (!document.getElementById('tab-' + id)) id = 'overview';
   var view = viewOf(id);
-  document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active'); });
-  document.getElementById('tab-' + id).classList.add('active');
+  document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active', 'tab-enter'); });
+  var activeSection = document.getElementById('tab-' + id);
+  activeSection.classList.add('active');
+  void activeSection.offsetWidth;
+  activeSection.classList.add('tab-enter');
   document.querySelectorAll('#primaryNav .tab').forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-view') === view); });
   var subs = VIEWS[view];
   document.getElementById('subNav').innerHTML = subs.length < 2 ? '' : subs.map(function (x) {
@@ -1253,7 +1258,7 @@ function showTab(id) {
   if (appBooted) (TAB_REVIEWS[id] || []).forEach(function (domain) {
     if (!reviewLoadedOnce[domain]) { reviewLoadedOnce[domain] = true; loadReview(domain, false); }
   });
-  if (appBooted) staggerReveal(document.getElementById('tab-' + id));
+  if (appBooted) { staggerReveal(activeSection); initScrollAnimations(activeSection); window.scrollTo({ top: 0, behavior: 'smooth' }); }
   requestAnimationFrame(function () {
     var subNav = document.getElementById('subNav');
     var activeBtn = subNav ? subNav.querySelector('.subtab.active') : null;
@@ -1358,6 +1363,27 @@ function staggerReveal(container) {
     void el.offsetWidth;
     el.style.animationDelay = (i * 40) + 'ms';
     el.classList.add('reveal');
+  });
+}
+
+var scrollObserver = null;
+var SCROLL_REVEAL_SELECTOR = '.card, .stat, .fit, .lv, .hl, .trio .t, .brief-item, .recap-card, .yir, .tvn-card, .milestone, .wk-card, .season-card, h2.sec';
+function initScrollAnimations(root) {
+  if (!('IntersectionObserver' in window)) return;
+  if (!scrollObserver) {
+    scrollObserver = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (entry.isIntersecting) { entry.target.classList.add('in-view'); scrollObserver.unobserve(entry.target); }
+      });
+    }, { threshold: 0.15, rootMargin: '-40px' });
+  }
+  var scope = root || document;
+  var els = scope.querySelectorAll(SCROLL_REVEAL_SELECTOR);
+  els.forEach(function (el, i) {
+    if (el.classList.contains('in-view') || el.classList.contains('scroll-observe')) return;
+    el.classList.add('scroll-observe');
+    el.style.setProperty('--stagger', Math.min(i, 12) * 60 + 'ms');
+    scrollObserver.observe(el);
   });
 }
 
@@ -1483,7 +1509,7 @@ function upsertChart(id, config) {
       tooltip:{enabled:false} },
     scales:{ x:{ ticks:{ color:C.dim, maxTicksLimit:8, font:{size:9, family:chartFont} }, grid:{ display:false }, border:{display:false} },
              y:{ ticks:{ color:C.dim, font:{size:9, family:chartFont} }, grid:{ color:C.grid, drawBorder:false }, border:{display:false} } },
-    animation:{ duration:400 } }, config.options || {});
+    animation:{ duration:800 } }, config.options || {});
   var wrap = el.closest('.chart-wrap');
   (wrap || el.parentElement).style.height = '280px';
   if (config.type === 'line') {
@@ -2653,7 +2679,7 @@ function renderMetricChart(key, rangeDays) {
         tooltip: { enabled: false } },
       scales: { x: { ticks: { color: C.dim, maxTicksLimit: 8, font: { size: 9, family: chartFont } }, grid: { display: false }, border: { display: false } },
                 y: { ticks: { color: C.dim, font: { size: 9, family: chartFont } }, grid: { color: C.grid, drawBorder: false }, border: { display: false } } },
-      animation: { duration: 400 }
+      animation: { duration: 800 }
     }
   });
   var msCtx = el.getContext('2d');
@@ -3452,7 +3478,11 @@ async function boot() {
   try { savedTab = localStorage.getItem('healthTab'); } catch (e) {}
   appBooted = true;
   var firstTab = savedTab && document.getElementById('tab-' + savedTab) ? savedTab : 'overview';
+  var appEl = document.getElementById('app');
+  appEl.classList.add('app-revealing');
+  requestAnimationFrame(function () { appEl.classList.remove('app-revealing'); });
   showTab(firstTab);
+  initScrollAnimations(document.getElementById('tab-' + firstTab));
   loadAllReviews(firstTab);
 
   loadFitness();
