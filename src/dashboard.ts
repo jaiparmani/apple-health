@@ -1,4 +1,6 @@
 import { METRIC_GUIDE, METRIC_FORMAT } from "./metricGuide";
+import { renderMuscleMap } from "./muscleMap";
+import { EXERCISE_LIBRARY } from "./exerciseLibrary";
 
 // Every AI review card is identical apart from its domain and title — same
 // loader, same 1-hour KV cache, same Retry (force) button.
@@ -673,6 +675,91 @@ export function renderDashboard(): string {
   .install-banner button { background:var(--pulse); color:#fff; border:none; border-radius:6px; padding:6px 14px; font-size:13px; cursor:pointer; }
   @media (min-width:561px) { .checkin-fab { bottom:24px; right:24px; } }
 
+  /* ---- workout logger ---- */
+  .muscle-map { display:flex; gap:12px; justify-content:center; padding:8px 0; }
+  .muscle-view { text-align:center; }
+  .muscle-view-label { font-size:10px; color:var(--dim); margin-top:4px; text-transform:uppercase; letter-spacing:.5px; }
+  .muscle-body { width:120px; height:auto; }
+  .muscle-body circle, .muscle-body rect, .muscle-body ellipse, .muscle-body path { fill:var(--line); transition:fill .2s, filter .2s; }
+  .muscle-region { cursor:default; }
+  .muscle-region.lit { fill:var(--pulse) !important; filter:drop-shadow(0 0 6px var(--pulse)); }
+  .muscle-region.lit-secondary { fill:var(--pulse) !important; opacity:.45; filter:drop-shadow(0 0 3px var(--pulse)); }
+  .muscle-map-mini { pointer-events:none; }
+  .muscle-map-mini .muscle-body { width:56px; }
+  .muscle-map-mini .muscle-view-label { display:none; }
+  .muscle-map-mini .muscle-map { gap:4px; padding:0; }
+
+  .wl-overlay { position:fixed; inset:0; background:rgba(0,0,0,.75); z-index:70; display:none; align-items:flex-end; justify-content:center; }
+  .wl-overlay.open { display:flex; }
+  .wl-sheet { background:var(--panel); border-radius:16px 16px 0 0; padding:20px 16px 30px; width:100%; max-width:520px; max-height:90vh; overflow-y:auto; }
+  .wl-sheet h3 { margin:0 0 16px; font-size:18px; font-weight:700; }
+  .wl-row { display:flex; gap:8px; margin-bottom:12px; align-items:center; }
+  .wl-row input, .wl-row select { background:var(--void); border:1px solid var(--line); color:var(--ink); border-radius:6px; padding:8px 10px; font-family:inherit; font-size:14px; flex:1; }
+  .wl-row input:focus { border-color:var(--pulse); outline:none; }
+  .wl-exercise { background:var(--void); border:1px solid var(--line); border-radius:10px; padding:12px; margin-bottom:10px; position:relative; }
+  .wl-ex-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .wl-ex-name { font-weight:700; font-size:15px; flex:1; }
+  .wl-ex-muscles { font-size:11px; color:var(--pulse); }
+  .wl-ex-rm { position:absolute; top:10px; right:10px; background:none; border:none; color:var(--faint); cursor:pointer; font-size:16px; padding:4px; }
+  .wl-ex-rm:hover { color:var(--down); }
+  .wl-sets-head { display:grid; grid-template-columns:36px 1fr 1fr 28px; gap:6px; font-size:10px; color:var(--dim); font-weight:600; text-transform:uppercase; margin-bottom:4px; padding:0 2px; }
+  .wl-set-row { display:grid; grid-template-columns:36px 1fr 1fr 28px; gap:6px; margin-bottom:4px; align-items:center; }
+  .wl-set-row .set-num { font-family:var(--mono); font-weight:700; color:var(--pulse); font-size:14px; text-align:center; }
+  .wl-set-row input { background:var(--panel2); border:1px solid var(--line); color:var(--ink); border-radius:4px; padding:6px; font-family:var(--mono); font-size:14px; font-weight:600; text-align:center; width:100%; box-sizing:border-box; }
+  .wl-set-row input:focus { border-color:var(--pulse); outline:none; }
+  .wl-set-row .set-rm { background:none; border:none; color:var(--faint); cursor:pointer; font-size:14px; text-align:center; padding:0; }
+  .wl-set-row .set-rm:hover { color:var(--down); }
+  .wl-add-set { background:none; border:1px dashed var(--line); color:var(--dim); border-radius:6px; padding:4px 0; font-size:12px; cursor:pointer; margin-top:4px; width:100%; }
+  .wl-add-set:hover { border-color:var(--pulse); color:var(--pulse); }
+  .wl-add-ex { background:none; border:1px dashed var(--line); color:var(--dim); border-radius:10px; padding:14px; font-size:14px; cursor:pointer; text-align:center; width:100%; margin-bottom:12px; }
+  .wl-add-ex:hover { border-color:var(--pulse); color:var(--pulse); }
+  .wl-ac { position:relative; flex:1; }
+  .wl-ac input { width:100%; box-sizing:border-box; }
+  .wl-ac-list { position:absolute; top:100%; left:0; right:0; background:var(--panel2); border:1px solid var(--line); border-radius:0 0 8px 8px; max-height:200px; overflow-y:auto; z-index:80; display:none; }
+  .wl-ac-list.show { display:block; }
+  .wl-ac-item { padding:8px 12px; cursor:pointer; font-size:13px; display:flex; justify-content:space-between; align-items:center; }
+  .wl-ac-item:hover { background:var(--pulse); color:#000; }
+  .wl-ac-cat { font-size:10px; color:var(--dim); text-transform:uppercase; }
+  .wl-ac-item:hover .wl-ac-cat { color:rgba(0,0,0,.5); }
+  .wl-link-section { background:var(--panel2); border-radius:8px; padding:10px 12px; margin-bottom:12px; }
+  .wl-link-section h4 { margin:0 0 8px; font-size:12px; color:var(--dim); font-weight:600; text-transform:uppercase; }
+  .wl-link-item { display:flex; align-items:center; gap:8px; padding:6px 8px; border-radius:6px; cursor:pointer; font-size:13px; margin-bottom:2px; }
+  .wl-link-item:hover, .wl-link-item.selected { background:var(--pulse); color:#000; }
+  .wl-link-item .wl-li-meta { font-size:11px; color:var(--dim); }
+  .wl-link-item:hover .wl-li-meta, .wl-link-item.selected .wl-li-meta { color:rgba(0,0,0,.5); }
+  .wl-actions { display:flex; gap:8px; margin-top:16px; }
+  .wl-actions button { flex:1; padding:12px; border-radius:8px; font-size:14px; font-weight:700; cursor:pointer; border:none; }
+  .wl-actions .wl-save { background:var(--pulse); color:#000; }
+  .wl-actions .wl-save:disabled { opacity:.4; cursor:not-allowed; }
+  .wl-actions .wl-cancel { background:var(--void); color:var(--dim); border:1px solid var(--line); }
+  .wl-log-btn { background:var(--pulse); color:#000; border:none; border-radius:8px; padding:10px 20px; font-size:14px; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; }
+  .wl-log-btn:hover { filter:brightness(1.1); }
+  .wl-history-card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; margin-bottom:10px; cursor:pointer; transition:border-color .15s; }
+  .wl-history-card:hover { border-color:var(--pulse); }
+  .wl-hc-top { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px; }
+  .wl-hc-type { font-weight:700; font-size:16px; }
+  .wl-hc-date { font-size:12px; color:var(--dim); }
+  .wl-hc-stats { display:flex; gap:16px; font-size:13px; color:var(--dim); margin-bottom:6px; flex-wrap:wrap; }
+  .wl-hc-stat strong { color:var(--ink); font-family:var(--mono); font-weight:700; }
+  .wl-hc-exercises { font-size:12px; color:var(--faint); }
+  .wl-hc-bottom { display:flex; align-items:center; gap:12px; margin-top:8px; }
+  .wl-hc-linked { font-size:11px; color:var(--pulse); display:flex; align-items:center; gap:4px; }
+  .wl-detail { background:var(--void); border-radius:10px; padding:16px; margin-bottom:12px; }
+  .wl-detail h4 { margin:0 0 4px; font-size:15px; }
+  .wl-d-meta { font-size:12px; color:var(--dim); margin-bottom:12px; }
+  .wl-detail-ex { margin-bottom:12px; }
+  .wl-detail-ex h5 { margin:0 0 4px; font-size:14px; color:var(--pulse); font-weight:600; }
+  .wl-detail-sets { display:grid; grid-template-columns:36px repeat(2,1fr); gap:2px 8px; font-size:13px; }
+  .wl-detail-sets .ds-head { color:var(--dim); font-size:10px; font-weight:600; text-transform:uppercase; }
+  .wl-detail-sets .ds-num { color:var(--pulse); font-family:var(--mono); font-weight:700; }
+  .wl-detail-sets .ds-val { font-family:var(--mono); font-weight:600; }
+  .wl-detail-actions { display:flex; gap:8px; margin-top:12px; }
+  .wl-detail-actions button { padding:6px 14px; border-radius:6px; font-size:13px; cursor:pointer; border:none; font-weight:600; }
+  .wl-detail-actions .wl-edit { background:var(--pulse); color:#000; }
+  .wl-detail-actions .wl-del { background:var(--void); color:var(--down); border:1px solid var(--line); }
+  .wl-empty { text-align:center; padding:40px 20px; color:var(--dim); }
+  .wl-empty p { margin:8px 0; font-size:14px; }
+
   footer { color:var(--faint); font-size:11.5px; text-align:left; padding:28px 0 10px; border-top:1px solid var(--line); margin-top:10px; }
 
   @media (max-width:560px) {
@@ -1014,6 +1101,20 @@ export function renderDashboard(): string {
     </div>
   </section>
 
+  <!-- WORKOUTS (manual log) -->
+  <section class="section" id="tab-workouts">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+        <h3 style="margin:0">Your workouts</h3>
+        <button class="wl-log-btn" onclick="openWorkoutLogger()">+ Log workout</button>
+      </div>
+      <div id="wlMuscleOverview">${renderMuscleMap()}</div>
+      <div id="wlHistory">
+        <div class="wl-empty"><p>No workouts logged yet.</p><p style="font-size:12px">Tap <strong>Log workout</strong> to record your first session.</p></div>
+      </div>
+    </div>
+  </section>
+
   <!-- SLEEP -->
   <section class="section" id="tab-sleep">
     ${reviewCard("sleep", "Sleep review")}
@@ -1143,6 +1244,37 @@ export function renderDashboard(): string {
     </div>
   </div>
 
+  <div class="wl-overlay" id="wlOverlay" onclick="if(event.target===this)closeWorkoutLogger()">
+    <div class="wl-sheet">
+      <h3 id="wlTitle">Log workout</h3>
+      <div class="wl-row">
+        <input type="date" id="wlDate" />
+        <input type="text" id="wlType" placeholder="Workout type (e.g. Gym, Push, Legs)" style="flex:1" />
+      </div>
+      <div class="wl-row">
+        <input type="number" id="wlDuration" placeholder="Duration (min)" style="flex:1" min="0" />
+      </div>
+      <div id="wlExercises"></div>
+      <button class="wl-add-ex" id="wlAddExBtn" onclick="wlShowExercisePicker()">+ Add exercise</button>
+      <div id="wlExPicker" style="display:none;margin-bottom:12px;">
+        <div class="wl-ac">
+          <input type="text" id="wlExSearch" placeholder="Search exercises…" oninput="wlSearchExercises()" onfocus="wlSearchExercises()" autocomplete="off" style="width:100%;box-sizing:border-box;background:var(--void);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:8px 10px;font-size:14px;" />
+          <div class="wl-ac-list" id="wlAcList"></div>
+        </div>
+      </div>
+      <div id="wlMuscleMapLive" style="margin-bottom:12px;">${renderMuscleMap()}</div>
+      <div class="wl-link-section" id="wlLinkSection" style="display:none">
+        <h4>Link to Apple Watch session</h4>
+        <div id="wlLinkList"></div>
+      </div>
+      <div class="wl-row"><textarea id="wlNotes" placeholder="Notes (optional)" rows="2" style="flex:1;background:var(--void);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:14px;resize:vertical;"></textarea></div>
+      <div class="wl-actions">
+        <button class="wl-cancel" onclick="closeWorkoutLogger()">Cancel</button>
+        <button class="wl-save" id="wlSaveBtn" onclick="saveWorkout()">Save workout</button>
+      </div>
+    </div>
+  </div>
+
   <div class="install-banner" id="installBanner">
     <div class="ib-text">Add to home screen for quick access.</div>
     <button onclick="installApp()">Install</button>
@@ -1172,6 +1304,324 @@ async function authedFetch(path, opts) {
   return res.json();
 }
 
+// ---- workout logger ----
+var EXERCISES = ${JSON.stringify(EXERCISE_LIBRARY.map(e => ({ n: e.name, c: e.category, p: e.primary, s: e.secondary })))};
+var WL_WORKOUTS = [];
+var WL_EDIT_ID = null;
+var WL_EXERCISES = []; // current form state: [{name, sets:[{reps,weightKg}], primary, secondary}]
+var WL_LINKED = null;
+
+function wlSearchLib(q) {
+  q = (q || '').trim().toLowerCase();
+  if (!q) return [];
+  var starts = [], contains = [];
+  EXERCISES.forEach(function (ex) {
+    var n = ex.n.toLowerCase();
+    if (n.startsWith(q)) starts.push(ex);
+    else if (n.includes(q)) contains.push(ex);
+  });
+  return starts.concat(contains).slice(0, 8);
+}
+
+async function loadWorkouts() {
+  try {
+    var res = await authedFetch('/api/workouts');
+    WL_WORKOUTS = res.workouts || [];
+    renderWorkoutHistory();
+    renderMuscleOverview();
+  } catch (e) {}
+}
+
+function renderMuscleOverview() {
+  var el = document.getElementById('wlMuscleOverview');
+  if (!el) return;
+  var muscles = {};
+  WL_WORKOUTS.slice(0, 20).forEach(function (w) {
+    w.exercises.forEach(function (ex) {
+      var lib = EXERCISES.find(function (e) { return e.n.toLowerCase() === ex.name.toLowerCase(); });
+      if (lib) {
+        lib.p.forEach(function (m) { muscles[m] = (muscles[m] || 0) + 2; });
+        lib.s.forEach(function (m) { muscles[m] = (muscles[m] || 0) + 1; });
+      }
+    });
+  });
+  var regions = el.querySelectorAll('.muscle-region');
+  regions.forEach(function (r) {
+    var m = r.getAttribute('data-muscle');
+    r.classList.remove('lit', 'lit-secondary');
+    if (muscles[m] >= 4) r.classList.add('lit');
+    else if (muscles[m] >= 1) r.classList.add('lit-secondary');
+  });
+}
+
+function renderWorkoutHistory() {
+  var el = document.getElementById('wlHistory');
+  if (!el) return;
+  if (WL_WORKOUTS.length === 0) {
+    el.innerHTML = '<div class="wl-empty"><p>No workouts logged yet.</p><p style="font-size:12px">Tap <strong>Log workout</strong> to record your first session.</p></div>';
+    return;
+  }
+  el.innerHTML = WL_WORKOUTS.map(function (w) {
+    var totalSets = 0, totalVol = 0, exNames = [];
+    w.exercises.forEach(function (ex) {
+      exNames.push(ex.name);
+      ex.sets.forEach(function (s) { totalSets++; totalVol += (s.reps || 0) * (s.weightKg || 0); });
+    });
+    var stats = '<div class="wl-hc-stats">';
+    stats += '<div class="wl-hc-stat"><strong>' + w.exercises.length + '</strong> exercises</div>';
+    stats += '<div class="wl-hc-stat"><strong>' + totalSets + '</strong> sets</div>';
+    if (totalVol > 0) stats += '<div class="wl-hc-stat"><strong>' + Math.round(totalVol).toLocaleString() + '</strong> kg vol</div>';
+    if (w.durationMin) stats += '<div class="wl-hc-stat"><strong>' + w.durationMin + '</strong> min</div>';
+    stats += '</div>';
+    var linked = w.linkedSession ? '<div class="wl-hc-linked"><span style="font-size:14px">\\u2713</span> Linked to Apple Watch</div>' : '';
+    return '<div class="wl-history-card" onclick="showWorkoutDetail(\\''+w.id+'\\')">' +
+      '<div class="wl-hc-top"><div class="wl-hc-type">' + (w.type || 'Workout') + '</div><div class="wl-hc-date">' + niceDate(w.date) + '</div></div>' +
+      stats +
+      '<div class="wl-hc-exercises">' + exNames.join(' \\u00B7 ') + '</div>' +
+      '<div class="wl-hc-bottom">' + linked + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function showWorkoutDetail(id) {
+  var w = WL_WORKOUTS.find(function (x) { return x.id === id; });
+  if (!w) return;
+  var el = document.getElementById('wlHistory');
+  var html = '<div class="wl-detail"><h4>' + (w.type || 'Workout') + '</h4>';
+  html += '<div class="wl-d-meta">' + niceDate(w.date) + (w.durationMin ? ' \\u00B7 ' + w.durationMin + ' min' : '') + (w.notes ? ' \\u00B7 ' + w.notes : '') + '</div>';
+  w.exercises.forEach(function (ex) {
+    html += '<div class="wl-detail-ex"><h5>' + ex.name + '</h5>';
+    html += '<div class="wl-detail-sets"><div class="ds-head">Set</div><div class="ds-head">Reps</div><div class="ds-head">Weight</div>';
+    ex.sets.forEach(function (s, i) {
+      html += '<div class="ds-num">' + (i + 1) + '</div>';
+      html += '<div class="ds-val">' + (s.reps || '—') + '</div>';
+      html += '<div class="ds-val">' + (s.weightKg ? s.weightKg + ' kg' : '—') + '</div>';
+    });
+    html += '</div></div>';
+  });
+  if (w.linkedSession) html += '<div class="wl-hc-linked" style="margin-top:8px"><span>\\u2713</span> Linked: ' + w.linkedSession.type + '</div>';
+  html += '<div class="wl-detail-actions"><button class="wl-edit" onclick="editWorkout(\\''+id+'\\')">Edit</button><button class="wl-del" onclick="deleteWorkout(\\''+id+'\\')">Delete</button><button style="background:var(--void);color:var(--dim);border:1px solid var(--line);padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600" onclick="renderWorkoutHistory()">Back</button></div>';
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function openWorkoutLogger(editId) {
+  WL_EDIT_ID = editId || null;
+  WL_EXERCISES = [];
+  WL_LINKED = null;
+  var dateEl = document.getElementById('wlDate');
+  var typeEl = document.getElementById('wlType');
+  var durEl = document.getElementById('wlDuration');
+  var notesEl = document.getElementById('wlNotes');
+  document.getElementById('wlTitle').textContent = editId ? 'Edit workout' : 'Log workout';
+
+  if (editId) {
+    var w = WL_WORKOUTS.find(function (x) { return x.id === editId; });
+    if (w) {
+      dateEl.value = w.date;
+      typeEl.value = w.type || '';
+      durEl.value = w.durationMin || '';
+      notesEl.value = w.notes || '';
+      WL_LINKED = w.linkedSession || null;
+      w.exercises.forEach(function (ex) {
+        var lib = EXERCISES.find(function (e) { return e.n.toLowerCase() === ex.name.toLowerCase(); });
+        WL_EXERCISES.push({ name: ex.name, sets: ex.sets.map(function (s) { return { reps: s.reps || 0, weightKg: s.weightKg || 0 }; }), primary: lib ? lib.p : [], secondary: lib ? lib.s : [] });
+      });
+    }
+  } else {
+    dateEl.value = new Date().toISOString().slice(0, 10);
+    typeEl.value = '';
+    durEl.value = '';
+    notesEl.value = '';
+  }
+  wlRenderExercises();
+  wlHighlightMuscles();
+  wlLoadAppleSessions();
+  document.getElementById('wlOverlay').classList.add('open');
+  document.getElementById('wlExPicker').style.display = 'none';
+}
+
+function closeWorkoutLogger() {
+  document.getElementById('wlOverlay').classList.remove('open');
+  WL_EXERCISES = [];
+  WL_EDIT_ID = null;
+  WL_LINKED = null;
+}
+
+function wlShowExercisePicker() {
+  var picker = document.getElementById('wlExPicker');
+  picker.style.display = 'block';
+  var input = document.getElementById('wlExSearch');
+  input.value = '';
+  input.focus();
+  wlSearchExercises();
+}
+
+function wlSearchExercises() {
+  var q = document.getElementById('wlExSearch').value;
+  var results = wlSearchLib(q);
+  var list = document.getElementById('wlAcList');
+  if (results.length === 0 && !q.trim()) {
+    list.innerHTML = EXERCISES.slice(0, 10).map(function (ex) {
+      return '<div class="wl-ac-item" onclick="wlPickExercise(\\''+ex.n.replace(/'/g,"\\\\'")+'\\')"><span>'+ex.n+'</span><span class="wl-ac-cat">'+ex.c+'</span></div>';
+    }).join('');
+    list.classList.add('show');
+    return;
+  }
+  if (results.length === 0) {
+    list.innerHTML = '<div class="wl-ac-item" onclick="wlAddCustomExercise()"><span>Add "' + q + '" as custom</span></div>';
+    list.classList.add('show');
+    return;
+  }
+  list.innerHTML = results.map(function (ex) {
+    return '<div class="wl-ac-item" onclick="wlPickExercise(\\''+ex.n.replace(/'/g,"\\\\'")+'\\')"><span>'+ex.n+'</span><span class="wl-ac-cat">'+ex.c+'</span></div>';
+  }).join('');
+  list.classList.add('show');
+}
+
+function wlPickExercise(name) {
+  var lib = EXERCISES.find(function (e) { return e.n === name; });
+  WL_EXERCISES.push({ name: name, sets: [{ reps: 0, weightKg: 0 }], primary: lib ? lib.p : [], secondary: lib ? lib.s : [] });
+  document.getElementById('wlExPicker').style.display = 'none';
+  document.getElementById('wlAcList').classList.remove('show');
+  wlRenderExercises();
+  wlHighlightMuscles();
+}
+
+function wlAddCustomExercise() {
+  var name = document.getElementById('wlExSearch').value.trim();
+  if (!name) return;
+  WL_EXERCISES.push({ name: name, sets: [{ reps: 0, weightKg: 0 }], primary: [], secondary: [] });
+  document.getElementById('wlExPicker').style.display = 'none';
+  document.getElementById('wlAcList').classList.remove('show');
+  wlRenderExercises();
+  wlHighlightMuscles();
+}
+
+function wlRenderExercises() {
+  var el = document.getElementById('wlExercises');
+  el.innerHTML = WL_EXERCISES.map(function (ex, ei) {
+    var muscles = ex.primary.concat(ex.secondary).join(', ');
+    var html = '<div class="wl-exercise">';
+    html += '<button class="wl-ex-rm" onclick="wlRemoveExercise('+ei+')">&times;</button>';
+    html += '<div class="wl-ex-head"><div class="wl-ex-name">'+ex.name+'</div>';
+    if (muscles) html += '<div class="wl-ex-muscles">'+muscles+'</div>';
+    html += '</div>';
+    html += '<div class="wl-sets-head"><div>Set</div><div>Reps</div><div>Weight (kg)</div><div></div></div>';
+    ex.sets.forEach(function (s, si) {
+      html += '<div class="wl-set-row">';
+      html += '<div class="set-num">'+(si+1)+'</div>';
+      html += '<input type="number" min="0" value="'+(s.reps||'')+'" onchange="wlUpdateSet('+ei+','+si+',\\'reps\\',this.value)" placeholder="0" />';
+      html += '<input type="number" min="0" step="0.5" value="'+(s.weightKg||'')+'" onchange="wlUpdateSet('+ei+','+si+',\\'weightKg\\',this.value)" placeholder="0" />';
+      html += '<button class="set-rm" onclick="wlRemoveSet('+ei+','+si+')">&times;</button>';
+      html += '</div>';
+    });
+    html += '<button class="wl-add-set" onclick="wlAddSet('+ei+')">+ Add set</button>';
+    html += '</div>';
+    return html;
+  }).join('');
+}
+
+function wlRemoveExercise(ei) { WL_EXERCISES.splice(ei, 1); wlRenderExercises(); wlHighlightMuscles(); }
+function wlAddSet(ei) { WL_EXERCISES[ei].sets.push({ reps: 0, weightKg: 0 }); wlRenderExercises(); }
+function wlRemoveSet(ei, si) { if (WL_EXERCISES[ei].sets.length > 1) { WL_EXERCISES[ei].sets.splice(si, 1); wlRenderExercises(); } }
+function wlUpdateSet(ei, si, field, val) { WL_EXERCISES[ei].sets[si][field] = parseFloat(val) || 0; }
+
+function wlHighlightMuscles() {
+  var container = document.getElementById('wlMuscleMapLive');
+  if (!container) return;
+  var primary = {}, secondary = {};
+  WL_EXERCISES.forEach(function (ex) {
+    (ex.primary || []).forEach(function (m) { primary[m] = true; });
+    (ex.secondary || []).forEach(function (m) { if (!primary[m]) secondary[m] = true; });
+  });
+  container.querySelectorAll('.muscle-region').forEach(function (r) {
+    var m = r.getAttribute('data-muscle');
+    r.classList.remove('lit', 'lit-secondary');
+    if (primary[m]) r.classList.add('lit');
+    else if (secondary[m]) r.classList.add('lit-secondary');
+  });
+}
+
+async function wlLoadAppleSessions() {
+  var date = document.getElementById('wlDate').value;
+  if (!date) return;
+  var section = document.getElementById('wlLinkSection');
+  var list = document.getElementById('wlLinkList');
+  try {
+    var day = GUIDE_DAYS.find(function (d) { return d.date === date; });
+    if (day && day.workoutType) {
+      section.style.display = 'block';
+      var types = (day.workoutType || '').split(',');
+      list.innerHTML = types.map(function (t) {
+        t = t.trim();
+        var sel = WL_LINKED && WL_LINKED.type === t ? ' selected' : '';
+        return '<div class="wl-link-item' + sel + '" onclick="wlToggleLink(\\''+t.replace(/'/g,"\\\\'")+'\\',\\''+date+'\\')">' +
+          '<span>' + workoutName(t) + '</span>' +
+          '<span class="wl-li-meta">' + (day.workoutMinutes ? Math.round(day.workoutMinutes) + ' min' : '') +
+          (day.workoutEnergy ? ' \\u00B7 ' + Math.round(day.workoutEnergy) + ' kcal' : '') + '</span></div>';
+      }).join('');
+    } else {
+      section.style.display = 'none';
+    }
+  } catch (e) { section.style.display = 'none'; }
+}
+
+function wlToggleLink(type, date) {
+  if (WL_LINKED && WL_LINKED.type === type) { WL_LINKED = null; }
+  else { WL_LINKED = { type: type, startTime: date + 'T00:00:00Z' }; }
+  wlLoadAppleSessions();
+}
+
+async function saveWorkout() {
+  var date = document.getElementById('wlDate').value;
+  var type = document.getElementById('wlType').value.trim();
+  var durationMin = parseInt(document.getElementById('wlDuration').value) || undefined;
+  var notes = document.getElementById('wlNotes').value.trim() || undefined;
+  if (!date || !type || WL_EXERCISES.length === 0) { alert('Date, type and at least one exercise are required.'); return; }
+  var body = {
+    date: date,
+    type: type,
+    durationMin: durationMin,
+    notes: notes,
+    exercises: WL_EXERCISES.map(function (ex) {
+      return { name: ex.name, sets: ex.sets.filter(function (s) { return s.reps > 0 || s.weightKg > 0; }).map(function (s) { return { reps: s.reps || undefined, weightKg: s.weightKg || undefined }; }) };
+    }),
+    linkedSession: WL_LINKED || undefined,
+  };
+  if (WL_EDIT_ID) body.id = WL_EDIT_ID;
+  document.getElementById('wlSaveBtn').disabled = true;
+  document.getElementById('wlSaveBtn').textContent = 'Saving…';
+  try {
+    await authedFetch('/api/workouts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    closeWorkoutLogger();
+    await loadWorkouts();
+  } catch (e) {
+    alert('Failed to save: ' + e.message);
+  } finally {
+    document.getElementById('wlSaveBtn').disabled = false;
+    document.getElementById('wlSaveBtn').textContent = 'Save workout';
+  }
+}
+
+function editWorkout(id) { closeWorkoutLogger(); setTimeout(function () { openWorkoutLogger(id); }, 100); }
+
+async function deleteWorkout(id) {
+  if (!confirm('Delete this workout?')) return;
+  try {
+    await authedFetch('/api/workouts?id=' + id, { method: 'DELETE' });
+    await loadWorkouts();
+  } catch (e) { alert('Failed to delete: ' + e.message); }
+}
+
+document.addEventListener('click', function (e) {
+  var acList = document.getElementById('wlAcList');
+  if (acList && !e.target.closest('.wl-ac')) acList.classList.remove('show');
+});
+document.addEventListener('change', function (e) {
+  if (e.target && e.target.id === 'wlDate') wlLoadAppleSessions();
+});
+
 function fmt(n, d) {
   d = d || 0;
   return (n === null || n === undefined) ? '—' : Number(n).toFixed(d);
@@ -1199,7 +1649,7 @@ var TAB_REVIEWS = { overview: ['today'], plan: ['weekly'], longview: ['longterm'
 var VIEWS = {
   today: [['overview', 'Today']],
   plan: [['plan', 'Week and goals'], ['training', 'Training load']],
-  trends: [['heart', 'Heart'], ['activity', 'Activity'], ['sleep', 'Sleep and body'], ['longview', 'Long view'], ['insights', 'Insights'], ['dayexplorer', 'Day explorer'], ['allmetrics', 'All metrics']],
+  trends: [['heart', 'Heart'], ['activity', 'Activity'], ['workouts', 'Workouts'], ['sleep', 'Sleep and body'], ['longview', 'Long view'], ['insights', 'Insights'], ['dayexplorer', 'Day explorer'], ['allmetrics', 'All metrics']],
   coach: [['ai', 'Ask and reviews'], ['discoveries', 'Discoveries'], ['story', 'Weekly story']],
   you: [['age', 'Biological age'], ['records', 'Records'], ['more', 'More data'], ['settings', 'Settings']],
 };
@@ -3451,6 +3901,7 @@ async function boot() {
   loadReport('week');
   loadKnowledge();
   loadExperiments();
+  loadWorkouts();
 }
 
 async function loadReport(period) {
