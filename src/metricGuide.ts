@@ -379,3 +379,47 @@ export function guideFor(key: string, value: number | null | undefined): GuideRe
   }
   return { meaning: entry.meaning, status: null, action: entry.fallback };
 }
+
+/**
+ * How each metric is displayed on its detail page: unit, decimals, whether
+ * it's stored as a 0-1 fraction (shown as %), and which direction is better
+ * (null = neither, e.g. weight). Serialised into the dashboard with
+ * METRIC_GUIDE.
+ */
+export interface MetricFormat {
+  unit: string;
+  dp: number;
+  pct?: boolean;
+  better: "up" | "down" | null;
+}
+
+export const METRIC_FORMAT: Record<string, MetricFormat> = {
+  restingHeartRate: { unit: "bpm", dp: 0, better: "down" },
+  hrv: { unit: "ms", dp: 0, better: "up" },
+  heartRateAvg: { unit: "bpm", dp: 0, better: null },
+  walkingHeartRateAvg: { unit: "bpm", dp: 0, better: "down" },
+  vo2max: { unit: "ml/kg/min", dp: 1, better: "up" },
+  respiratoryRate: { unit: "/min", dp: 1, better: null },
+  oxygenSaturation: { unit: "%", dp: 1, pct: true, better: "up" },
+  steps: { unit: "", dp: 0, better: "up" },
+  activeEnergy: { unit: "kcal", dp: 0, better: "up" },
+  exerciseMinutes: { unit: "min", dp: 0, better: "up" },
+  standMinutes: { unit: "min", dp: 0, better: "up" },
+  standHours: { unit: "h", dp: 0, better: "up" },
+  flightsClimbed: { unit: "", dp: 0, better: "up" },
+  distanceKm: { unit: "km", dp: 1, better: "up" },
+  workoutMinutes: { unit: "min", dp: 0, better: "up" },
+  daylightMinutes: { unit: "min", dp: 0, better: "up" },
+  walkingSpeed: { unit: "m/s", dp: 2, better: "up" },
+  walkingStepLength: { unit: "cm", dp: 1, better: "up" },
+  walkingAsymmetryPct: { unit: "%", dp: 1, pct: true, better: "down" },
+  walkingDoubleSupportPct: { unit: "%", dp: 1, pct: true, better: "down" },
+  sleepHours: { unit: "h", dp: 1, better: "up" },
+  sleepEfficiency: { unit: "%", dp: 0, pct: true, better: "up" },
+  sleepDeepHours: { unit: "h", dp: 1, better: "up" },
+  sleepRemHours: { unit: "h", dp: 1, better: "up" },
+  weightKg: { unit: "kg", dp: 1, better: null },
+  bodyFatPct: { unit: "%", dp: 1, better: "down" },
+  bloodPressureSystolic: { unit: "mmHg", dp: 0, better: "down" },
+  bloodGlucose: { unit: "mg/dL", dp: 0, better: "down" },
+};

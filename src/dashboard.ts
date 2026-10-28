@@ -1,4 +1,4 @@
-import { METRIC_GUIDE } from "./metricGuide";
+import { METRIC_GUIDE, METRIC_FORMAT } from "./metricGuide";
 
 // Every AI review card is identical apart from its domain and title — same
 // loader, same 1-hour KV cache, same Retry (force) button.
@@ -396,6 +396,54 @@ export function renderDashboard(): string {
     .dial svg { width:74px; height:74px; }
   }
 
+  /* ---- metric detail sheet ---- */
+  .metric-sheet { position:fixed; inset:0; z-index:50; background:var(--void); overflow-y:auto; -webkit-overflow-scrolling:touch; display:none; }
+  .metric-sheet.open { display:block; }
+  .ms-head { position:sticky; top:0; z-index:2; background:rgba(0,0,0,.94); backdrop-filter:blur(10px); padding:16px 20px 12px; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:12px; }
+  .ms-back { background:none; border:none; color:var(--ink); font-size:22px; cursor:pointer; padding:0 4px; line-height:1; }
+  .ms-title { font-size:17px; font-weight:800; flex:1; }
+  .ms-body { max-width:640px; margin:0 auto; padding:20px 20px 80px; }
+  .ms-hero { text-align:center; padding:20px 0 18px; border-bottom:1px solid var(--line); margin-bottom:18px; }
+  .ms-big { font-family:var(--mono); font-size:56px; font-weight:800; line-height:1; letter-spacing:-.02em; }
+  .ms-unit { font-size:16px; color:var(--dim); font-weight:600; margin-left:4px; font-family:var(--sans); }
+  .ms-normal { font-size:13.5px; color:var(--dim); margin-top:8px; }
+  .ms-best { font-size:13px; color:var(--faint); margin-top:4px; }
+  .ms-best b { color:var(--pulse); font-weight:700; }
+  .ms-ranges { display:flex; justify-content:center; gap:6px; margin-bottom:18px; }
+  .ms-ranges button { padding:6px 14px; border-radius:999px; background:transparent; border:1px solid var(--line); color:var(--dim); cursor:pointer; font-size:12.5px; font-weight:600; }
+  .ms-ranges button.active { color:var(--void); background:var(--pulse); border-color:var(--pulse); }
+  .ms-chart { position:relative; height:220px; margin-bottom:18px; }
+  .ms-section { margin-bottom:18px; }
+  .ms-section h4 { font-size:13px; font-weight:700; color:var(--dim); text-transform:uppercase; letter-spacing:.06em; margin:0 0 8px; }
+  .ms-tvn { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; }
+  .ms-tvn-item { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; }
+  .ms-tvn-item .tvn-label { font-size:12px; color:var(--dim); font-weight:600; }
+  .ms-tvn-item .tvn-val { font-family:var(--mono); font-size:22px; font-weight:800; margin:2px 0; }
+  .ms-tvn-item .tvn-delta { font-family:var(--mono); font-size:13px; font-weight:700; }
+  .ms-corr { padding:8px 0; border-bottom:1px solid var(--line); font-size:13.5px; }
+  .ms-corr:last-child { border-bottom:none; }
+  .ms-bestworst { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .ms-bw { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; }
+  .ms-bw .bw-label { font-size:12px; color:var(--dim); font-weight:600; }
+  .ms-bw .bw-val { font-family:var(--mono); font-size:20px; font-weight:800; margin-top:2px; }
+  .ms-bw .bw-date { font-size:11px; color:var(--faint); font-family:var(--mono); }
+  .ms-meaning { font-size:14px; line-height:1.6; color:var(--dim); }
+  .ms-action { font-size:14.5px; line-height:1.55; margin-top:8px; }
+  .ms-action::before { content:"\\2192  "; font-weight:700; color:var(--pulse); }
+
+  /* ---- all metrics grid ---- */
+  .am-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:0; border-top:1px solid var(--line); }
+  .am-tile { padding:14px 14px 14px 12px; border-bottom:1px solid var(--line); border-left:3px solid var(--line); cursor:pointer; transition:border-color .15s; }
+  .am-tile:hover { border-left-color:var(--pulse); }
+  .am-tile.s-good { border-left-color:var(--up); }
+  .am-tile.s-ok { border-left-color:var(--pulse); }
+  .am-tile.s-watch { border-left-color:var(--caution); }
+  .am-tile.s-bad { border-left-color:var(--down); }
+  .am-tile .am-label { color:var(--dim); font-size:12px; font-weight:600; display:flex; justify-content:space-between; align-items:center; gap:6px; }
+  .am-tile .am-val { font-family:var(--mono); font-size:22px; font-weight:800; margin-top:2px; }
+  .am-tile .am-val .unit { font-size:12px; color:var(--dim); font-weight:600; margin-left:3px; font-family:var(--sans); }
+  .am-tile .am-act { font-size:12.5px; color:var(--dim); margin-top:4px; line-height:1.45; }
+
   footer { color:var(--faint); font-size:11.5px; text-align:left; padding:28px 0 10px; border-top:1px solid var(--line); margin-top:10px; }
 
   @media (max-width:560px) {
@@ -498,6 +546,12 @@ export function renderDashboard(): string {
       <div id="weekdayBars"></div>
     </div>
     ${reviewCard("longterm", "Where you’re heading", "Where your trends point, and habits for the next 3 months.")}
+  </section>
+
+  <!-- TRENDS: ALL METRICS -->
+  <section class="section" id="tab-allmetrics">
+    <h2 class="sec" style="margin-top:6px;">All metrics<span>Every metric with data, at a glance</span></h2>
+    <div class="am-grid" id="allMetricsGrid"></div>
   </section>
 
   <!-- YOU: RECORDS -->
@@ -734,6 +788,15 @@ export function renderDashboard(): string {
   </section>
 
   <footer>Estimates only, not medical advice. Data lives in your own GitHub repo.</footer>
+
+  <div class="metric-sheet" id="metricSheet">
+    <div class="ms-head">
+      <button class="ms-back" onclick="closeMetric()">&larr;</button>
+      <span class="ms-title" id="msTitle"></span>
+      <span id="msPill"></span>
+    </div>
+    <div class="ms-body" id="msBody"></div>
+  </div>
 </div>
 
 <script>
@@ -785,7 +848,7 @@ var TAB_REVIEWS = { overview: ['today', 'weekly'], longview: ['longterm'], train
 var VIEWS = {
   today: [['overview', 'Today']],
   plan: [['plan', 'Week and goals'], ['training', 'Training load']],
-  trends: [['heart', 'Heart'], ['activity', 'Activity'], ['sleep', 'Sleep and body'], ['longview', 'Long view']],
+  trends: [['heart', 'Heart'], ['activity', 'Activity'], ['sleep', 'Sleep and body'], ['longview', 'Long view'], ['allmetrics', 'All metrics']],
   coach: [['ai', 'Ask and reviews'], ['discoveries', 'Discoveries']],
   you: [['age', 'Biological age'], ['records', 'Records'], ['more', 'More data'], ['settings', 'Settings']],
 };
@@ -1188,7 +1251,7 @@ function renderLongView(monthly, pattern) {
       word = better === null ? (pct > 0 ? 'Rising' : 'Falling') : better ? 'Improving' : 'Slipping';
     } else { status = 'ok'; }
     var fmtV = function (v) { return m.dp ? v.toFixed(m.dp) : Math.round(v).toLocaleString(); };
-    return '<div class="lv"><div class="lv-label"><span>' + m.label + '</span>' + pill(status, word) + '</div>' +
+    return '<div class="lv" style="cursor:pointer" onclick="openMetric(\\'' + m.key + '\\')"><div class="lv-label"><span>' + m.label + '</span>' + pill(status, word) + '</div>' +
       '<div class="lv-val">' + fmtV(b) + ' <small>' + m.unit + ' in ' + MONTHS[Number(lastP.month.slice(5)) - 1] + '</small></div>' +
       spark(vals, m.color, 34) +
       '<div class="lv-note">' + (pct >= 0 ? '+' : '') + pct.toFixed(0) + '% since ' + MONTHS[Number(first.month.slice(5)) - 1] + ' ' + first.month.slice(0, 4) + ' (' + fmtV(a) + ')</div></div>';
@@ -1239,7 +1302,7 @@ function statTile(def, trends) {
   var series = GUIDE_DAYS.slice(-30).map(function (d) { return typeof d[def.key] === 'number' ? d[def.key] : null; });
   var guideVal = l7[def.key] !== null && l7[def.key] !== undefined ? l7[def.key] : reading.value;
   var shown = def.dp === 0 && reading.value >= 1000 ? Math.round(reading.value).toLocaleString() : fmt(reading.value, def.dp);
-  return '<div class="stat"><div class="label">' + def.label + '</div><div class="value">' + shown + (def.unit ? '<span class="unit">' + def.unit + '</span>' : '') +
+  return '<div class="stat" style="cursor:pointer" onclick="openMetric(\\'' + def.key + '\\')"><div class="label">' + def.label + '</div><div class="value">' + shown + (def.unit ? '<span class="unit">' + def.unit + '</span>' : '') +
     (isToday ? '' : '<span class="asof">' + niceDate(reading.date) + '</span>') + '</div>' +
     (trend.text ? '<div class="trend ' + cls + '">' + trend.text + ' vs last week (7-day avg)</div>' : '<div class="trend flat">not enough data to compare weeks</div>') +
     spark(series, color, 28) + miniGuide(def.key, guideVal) + '</div>';
@@ -1413,6 +1476,7 @@ async function deleteGoal(id) {
 // Data from src/metricGuide.ts, serialised at render time so the copy lives
 // in one (tested) place.
 var METRIC_GUIDE = ${JSON.stringify(METRIC_GUIDE)};
+var METRIC_FORMAT = ${JSON.stringify(METRIC_FORMAT)};
 var GUIDE_VALUES = {}; // values not on daily rows (readiness, strain, bio-age delta)
 var GUIDE_DAYS = [];
 var PCT_KEYS = { oxygenSaturation: 1, walkingAsymmetryPct: 1, walkingDoubleSupportPct: 1, sleepEfficiency: 1 };
@@ -1469,6 +1533,357 @@ function fillGuides() {
   });
 }
 
+// ---------------- metric detail sheet ----------------
+var DISCOVERIES_CACHE = null;
+var metricChartInstance = null;
+
+function fmtMetricVal(key, v) {
+  if (v === null || v === undefined) return '\\u2014';
+  var f = METRIC_FORMAT[key];
+  if (f && f.pct) return (v * 100).toFixed(f.dp) + '%';
+  if (f) return f.dp === 0 && Math.abs(v) >= 1000 ? Math.round(v).toLocaleString() : Number(v).toFixed(f.dp);
+  return Math.abs(v) >= 100 ? Math.round(v).toLocaleString() : String(Math.round(v * 10) / 10);
+}
+
+function metricUnit(key) {
+  var f = METRIC_FORMAT[key];
+  if (!f) return '';
+  if (f.pct) return '%';
+  return f.unit || '';
+}
+
+function metricSeries(key, rangeDays) {
+  var days = GUIDE_DAYS;
+  if (!days.length) return [];
+  if (rangeDays && rangeDays < days.length) days = days.slice(-rangeDays);
+  return days.map(function (d) {
+    var v = typeof d[key] === 'number' ? d[key] : (d.extra && typeof d.extra[key] === 'number' ? d.extra[key] : null);
+    return { date: d.date, value: v };
+  });
+}
+
+function metricBest(key) {
+  var best = null, bestDate = null;
+  var f = METRIC_FORMAT[key];
+  var up = f ? f.better : null;
+  GUIDE_DAYS.forEach(function (d) {
+    var v = typeof d[key] === 'number' ? d[key] : (d.extra && typeof d.extra[key] === 'number' ? d.extra[key] : null);
+    if (v === null) return;
+    if (best === null || (up === 'down' ? v < best : v > best)) { best = v; bestDate = d.date; }
+  });
+  return best !== null ? { value: best, date: bestDate } : null;
+}
+
+function metricWorst(key) {
+  var worst = null, worstDate = null;
+  var f = METRIC_FORMAT[key];
+  var up = f ? f.better : null;
+  GUIDE_DAYS.forEach(function (d) {
+    var v = typeof d[key] === 'number' ? d[key] : (d.extra && typeof d.extra[key] === 'number' ? d.extra[key] : null);
+    if (v === null) return;
+    if (worst === null || (up === 'down' ? v > worst : v < worst)) { worst = v; worstDate = d.date; }
+  });
+  return worst !== null ? { value: worst, date: worstDate } : null;
+}
+
+function metricAvgWindow(key, endIdx, windowDays) {
+  var vals = [];
+  var start = Math.max(0, endIdx - windowDays + 1);
+  for (var i = start; i <= endIdx; i++) {
+    var d = GUIDE_DAYS[i];
+    var v = typeof d[key] === 'number' ? d[key] : (d.extra && typeof d.extra[key] === 'number' ? d.extra[key] : null);
+    if (v !== null) vals.push(v);
+  }
+  return vals.length >= 3 ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : null;
+}
+
+function metricThenVsNow(key) {
+  var days = GUIDE_DAYS;
+  if (days.length < 30) return [];
+  var now = metricAvgWindow(key, days.length - 1, 30);
+  var results = [];
+  var windows = [
+    { label: '1 year ago', offset: 365 },
+    { label: '3 years ago', offset: 1095 },
+    { label: '5 years ago', offset: 1825 },
+  ];
+  windows.forEach(function (w) {
+    var idx = days.length - 1 - w.offset;
+    if (idx < 30) return;
+    var then = metricAvgWindow(key, idx, 30);
+    if (then === null || now === null) return;
+    var delta = now - then;
+    var pct = then !== 0 ? (delta / Math.abs(then)) * 100 : 0;
+    results.push({ label: w.label, then: then, now: now, delta: delta, pct: pct });
+  });
+  return results;
+}
+
+function metricNormalBand(key) {
+  var days = GUIDE_DAYS.slice(-90);
+  var vals = [];
+  days.forEach(function (d) {
+    var v = typeof d[key] === 'number' ? d[key] : (d.extra && typeof d.extra[key] === 'number' ? d.extra[key] : null);
+    if (v !== null) vals.push(v);
+  });
+  if (vals.length < 10) return null;
+  vals.sort(function (a, b) { return a - b; });
+  var p25 = vals[Math.floor(vals.length * 0.25)];
+  var p75 = vals[Math.floor(vals.length * 0.75)];
+  return { p25: p25, p75: p75 };
+}
+
+function rollingAvg(series, window) {
+  return series.map(function (pt, i) {
+    if (pt.value === null) return null;
+    var vals = [];
+    for (var j = Math.max(0, i - window + 1); j <= i; j++) {
+      if (series[j].value !== null) vals.push(series[j].value);
+    }
+    return vals.length >= 2 ? vals.reduce(function (a, b) { return a + b; }, 0) / vals.length : pt.value;
+  });
+}
+
+var METRIC_RANGE = '30';
+
+function openMetric(key) {
+  var guide = METRIC_GUIDE[key];
+  var f = METRIC_FORMAT[key];
+  var label = guide ? guide.label : (f ? key : key.replace(/([A-Z])/g, ' $1').trim());
+
+  var sheet = document.getElementById('metricSheet');
+  document.getElementById('msTitle').textContent = label;
+
+  var reading = latestReading(key, 90);
+  var v = reading ? reading.value : null;
+  var g = guideFor(key, v);
+  document.getElementById('msPill').innerHTML = g ? pill(g.status) : '';
+
+  var unit = metricUnit(key);
+  var band = metricNormalBand(key);
+  var best = metricBest(key);
+  var worst = metricWorst(key);
+  var tvn = metricThenVsNow(key);
+  var corrs = DISCOVERIES_CACHE ? DISCOVERIES_CACHE.filter(function (c) {
+    return (c.metricA === key || c.metricB === key) && c.strength !== 'negligible' && c.strength !== 'insufficient_data';
+  }).slice(0, 5) : [];
+
+  var html = '<div class="ms-hero">';
+  html += '<div class="ms-big">' + fmtMetricVal(key, v) + '<span class="ms-unit">' + unit + '</span></div>';
+  if (band) html += '<div class="ms-normal">Your normal: ' + fmtMetricVal(key, band.p25) + ' \\u2013 ' + fmtMetricVal(key, band.p75) + ' ' + unit + ' (90-day p25\\u2013p75)</div>';
+  if (best) html += '<div class="ms-best">Best ever: <b>' + fmtMetricVal(key, best.value) + '</b> ' + unit + ' on ' + niceDate(best.date) + '</div>';
+  html += '</div>';
+
+  html += '<div class="ms-ranges">';
+  ['7', '30', '90', '365', 'all'].forEach(function (r) {
+    html += '<button class="' + (r === METRIC_RANGE ? 'active' : '') + '" onclick="changeMetricRange(\\'' + key + '\\',\\'' + r + '\\')">' + (r === 'all' ? 'All' : r === '365' ? '1Y' : r + 'D') + '</button>';
+  });
+  html += '</div>';
+  html += '<div class="ms-chart"><canvas id="msChart"></canvas></div>';
+
+  if (g) {
+    html += '<div class="ms-section">';
+    html += '<h4>What it means</h4>';
+    html += '<div class="ms-meaning">' + g.meaning + '</div>';
+    if (g.action) html += '<div class="ms-action">' + g.action + '</div>';
+    html += '</div>';
+  }
+
+  if (tvn.length) {
+    html += '<div class="ms-section"><h4>Then vs now</h4><div class="ms-tvn">';
+    tvn.forEach(function (t) {
+      var better = f && f.better;
+      var dirCls = Math.abs(t.pct) < 3 ? 'flat' : (better === 'up' ? (t.delta > 0 ? 'up' : 'down') : better === 'down' ? (t.delta < 0 ? 'up' : 'down') : 'flat');
+      var color = dirCls === 'up' ? 'var(--up)' : dirCls === 'down' ? 'var(--down)' : 'var(--dim)';
+      html += '<div class="ms-tvn-item"><div class="tvn-label">' + t.label + '</div><div class="tvn-val">' + fmtMetricVal(key, t.then) + '</div>' +
+        '<div class="tvn-delta" style="color:' + color + '">' + (t.pct >= 0 ? '+' : '') + t.pct.toFixed(0) + '% (' + (t.delta >= 0 ? '+' : '') + fmtMetricVal(key, t.delta) + ')</div></div>';
+    });
+    html += '</div></div>';
+  }
+
+  if (corrs.length) {
+    html += '<div class="ms-section"><h4>Linked to</h4>';
+    corrs.forEach(function (c) {
+      html += '<div class="ms-corr">' + c.label + ' <span class="faint">r=' + c.r + ', ' + c.strength + '</span></div>';
+    });
+    html += '</div>';
+  }
+
+  if (best || worst) {
+    html += '<div class="ms-section"><h4>Extremes</h4><div class="ms-bestworst">';
+    if (best) html += '<div class="ms-bw"><div class="bw-label">Best</div><div class="bw-val" style="color:var(--up)">' + fmtMetricVal(key, best.value) + ' ' + unit + '</div><div class="bw-date">' + best.date + '</div></div>';
+    if (worst) html += '<div class="ms-bw"><div class="bw-label">Worst</div><div class="bw-val" style="color:var(--down)">' + fmtMetricVal(key, worst.value) + ' ' + unit + '</div><div class="bw-date">' + worst.date + '</div></div>';
+    html += '</div></div>';
+  }
+
+  document.getElementById('msBody').innerHTML = html;
+  renderMetricChart(key, Number(METRIC_RANGE) || null);
+
+  sheet.classList.add('open');
+  history.pushState({ metric: key }, '', '#metric/' + key);
+}
+
+function closeMetric() {
+  document.getElementById('metricSheet').classList.remove('open');
+  if (metricChartInstance) { metricChartInstance.destroy(); metricChartInstance = null; }
+  if (location.hash.indexOf('#metric/') === 0) history.back();
+}
+
+window.addEventListener('popstate', function (e) {
+  var sheet = document.getElementById('metricSheet');
+  if (sheet && sheet.classList.contains('open') && (!e.state || !e.state.metric)) {
+    sheet.classList.remove('open');
+    if (metricChartInstance) { metricChartInstance.destroy(); metricChartInstance = null; }
+  }
+  if (e.state && e.state.metric) openMetric(e.state.metric);
+});
+
+function changeMetricRange(key, range) {
+  METRIC_RANGE = range;
+  var days = range === 'all' ? null : Number(range);
+  renderMetricChart(key, days);
+  document.querySelectorAll('.ms-ranges button').forEach(function (b) {
+    b.classList.toggle('active', b.textContent === (range === 'all' ? 'All' : range === '365' ? '1Y' : range + 'D'));
+  });
+}
+
+function renderMetricChart(key, rangeDays) {
+  var series = metricSeries(key, rangeDays);
+  if (!series.length) return;
+
+  var f = METRIC_FORMAT[key];
+  var band = metricNormalBand(key);
+
+  var useWeekly = rangeDays && rangeDays > 90;
+  var useMonthly = !rangeDays || (rangeDays && rangeDays > 730);
+  var labels, values, avg;
+
+  if (useMonthly) {
+    var byMonth = {};
+    series.forEach(function (pt) {
+      if (pt.value === null) return;
+      var m = pt.date.slice(0, 7);
+      if (!byMonth[m]) byMonth[m] = [];
+      byMonth[m].push(pt.value);
+    });
+    var months = Object.keys(byMonth).sort();
+    labels = months;
+    values = months.map(function (m) { var arr = byMonth[m]; return arr.reduce(function (a, b) { return a + b; }, 0) / arr.length; });
+    avg = null;
+  } else if (useWeekly) {
+    var byWeek = {};
+    series.forEach(function (pt) {
+      if (pt.value === null) return;
+      var d = new Date(pt.date + 'T00:00:00Z');
+      var dow = (d.getUTCDay() + 6) % 7;
+      var mon = new Date(d.getTime() - dow * 86400000).toISOString().slice(0, 10);
+      if (!byWeek[mon]) byWeek[mon] = [];
+      byWeek[mon].push(pt.value);
+    });
+    var weeks = Object.keys(byWeek).sort();
+    labels = weeks;
+    values = weeks.map(function (w) { var arr = byWeek[w]; return arr.reduce(function (a, b) { return a + b; }, 0) / arr.length; });
+    avg = null;
+  } else {
+    labels = series.map(function (pt) { return pt.date; });
+    values = series.map(function (pt) { return pt.value; });
+    avg = rollingAvg(series, 7);
+  }
+
+  var datasets = [{ label: (METRIC_GUIDE[key] ? METRIC_GUIDE[key].label : key), data: values, borderColor: '#b4ff39', backgroundColor: 'transparent', tension: .3, pointRadius: 0, borderWidth: 1.8, spanGaps: true }];
+
+  if (avg) {
+    datasets.push({ label: '7-day avg', data: avg, borderColor: '#60a5fa', borderDash: [4, 4], pointRadius: 0, borderWidth: 1.2, tension: .3, spanGaps: true });
+  }
+
+  if (band && !useWeekly && !useMonthly) {
+    datasets.push({ label: 'p75', data: labels.map(function () { return band.p75; }), borderColor: 'transparent', pointRadius: 0, fill: '+1', backgroundColor: 'rgba(180,255,57,.08)' });
+    datasets.push({ label: 'p25', data: labels.map(function () { return band.p25; }), borderColor: 'transparent', pointRadius: 0, fill: false });
+  }
+
+  if (metricChartInstance) { metricChartInstance.destroy(); metricChartInstance = null; }
+  var el = document.getElementById('msChart');
+  if (!el) return;
+  el.parentElement.style.height = '220px';
+  metricChartInstance = new Chart(el, {
+    type: 'line',
+    data: { labels: labels, datasets: datasets },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: { legend: { display: datasets.length > 1, labels: { color: '#8a8a8a', boxWidth: 10, font: { size: 11, family: "Barlow Condensed, sans-serif" } } },
+        tooltip: { callbacks: { label: function (ctx) { return ctx.dataset.label + ': ' + fmtMetricVal(key, ctx.raw); } } } },
+      scales: { x: { ticks: { color: '#8a8a8a', maxTicksLimit: 8, font: { size: 10 } }, grid: { color: '#262626' } },
+                y: { ticks: { color: '#8a8a8a', font: { size: 10 } }, grid: { color: '#262626' } } }
+    }
+  });
+}
+
+// "All metrics" grid: every metric with data, one tile each.
+function renderAllMetrics() {
+  var el = document.getElementById('allMetricsGrid');
+  if (!el || !GUIDE_DAYS.length) return;
+
+  var allKeys = {};
+  var last30 = GUIDE_DAYS.slice(-30);
+  last30.forEach(function (d) {
+    Object.keys(d).forEach(function (k) {
+      if (k === 'date' || k === 'source' || k === 'extra') return;
+      if (typeof d[k] === 'number') allKeys[k] = true;
+    });
+    if (d.extra) Object.keys(d.extra).forEach(function (k) { if (typeof d.extra[k] === 'number') allKeys[k] = true; });
+  });
+
+  var keys = Object.keys(allKeys).sort(function (a, b) {
+    var ga = METRIC_GUIDE[a], gb = METRIC_GUIDE[b];
+    if (ga && !gb) return -1;
+    if (!ga && gb) return 1;
+    return a.localeCompare(b);
+  });
+
+  el.innerHTML = keys.map(function (key) {
+    var reading = latestReading(key, 30);
+    if (!reading) {
+      var extra30 = last30.slice().reverse();
+      for (var i = 0; i < extra30.length; i++) {
+        var ev = extra30[i].extra && extra30[i].extra[key];
+        if (typeof ev === 'number') { reading = { value: ev, date: extra30[i].date }; break; }
+      }
+    }
+    if (!reading) return '';
+    var guide = METRIC_GUIDE[key];
+    var label = guide ? guide.label : key.replace(/([A-Z])/g, ' $1').trim();
+    var v = reading.value;
+    var g = guideFor(key, v);
+    var statusCls = g && g.status ? 's-' + g.status : '';
+    var unit = metricUnit(key);
+    var shown = fmtMetricVal(key, v);
+    var series30 = GUIDE_DAYS.slice(-30).map(function (d) {
+      var val = typeof d[key] === 'number' ? d[key] : (d.extra && typeof d.extra[key] === 'number' ? d.extra[key] : null);
+      return val;
+    });
+    var f = METRIC_FORMAT[key];
+    var better = f ? f.better : null;
+    var color = '#8a8a8a';
+    if (series30.filter(function (x) { return x !== null; }).length >= 2) {
+      var first = null, last2 = null;
+      for (var j = 0; j < series30.length; j++) if (series30[j] !== null && first === null) first = series30[j];
+      for (var j2 = series30.length - 1; j2 >= 0; j2--) if (series30[j2] !== null && last2 === null) last2 = series30[j2];
+      if (first !== null && last2 !== null) {
+        var dir = last2 > first ? 'up' : last2 < first ? 'down' : 'flat';
+        if (better === 'up') color = dir === 'up' ? '#34d399' : dir === 'down' ? '#f76b4d' : '#8a8a8a';
+        else if (better === 'down') color = dir === 'down' ? '#34d399' : dir === 'up' ? '#f76b4d' : '#8a8a8a';
+      }
+    }
+    return '<div class="am-tile ' + statusCls + '" onclick="openMetric(\\'' + key + '\\')">' +
+      '<div class="am-label"><span>' + label + '</span>' + (g ? pill(g.status) : '') + '</div>' +
+      '<div class="am-val">' + shown + (unit ? '<span class="unit">' + unit + '</span>' : '') + '</div>' +
+      spark(series30, color, 24) +
+      (g && g.action ? '<div class="am-act">' + g.action + '</div>' : '') +
+      '</div>';
+  }).join('');
+}
+
 // ---------------- training & fitness ----------------
 function renderActionItems(elId, items, limit) {
   var el = document.getElementById(elId);
@@ -1483,7 +1898,8 @@ function renderFitnessMetrics(metrics) {
   var el = document.getElementById('fitnessMetrics');
   if (!metrics.length) { el.innerHTML = '<p class="sub">Not enough data yet.</p>'; return; }
   el.innerHTML = metrics.map(function (m) {
-    return '<div class="fit ' + m.status + '"><div class="fit-top"><span class="label">' + m.label + '</span>' + pill(m.status) + '</div><div class="value">' + m.display + '</div>' +
+    var clickKey = m.key && METRIC_FORMAT[m.key] ? ' style="cursor:pointer" onclick="openMetric(\\'' + m.key + '\\')"' : '';
+    return '<div class="fit ' + m.status + '"' + clickKey + '><div class="fit-top"><span class="label">' + m.label + '</span>' + pill(m.status) + '</div><div class="value">' + m.display + '</div>' +
       '<div class="act">' + m.action + '</div>' + more(m.meaning) + '</div>';
   }).join('');
 }
@@ -1731,6 +2147,7 @@ async function boot() {
   renderBests(trends.bests);
   renderExtraMetrics(days);
   renderActivityRings(today);
+  renderAllMetrics();
   buildCharts(days.slice(-180), history.slice(-180));
 
   var savedTab = null;
@@ -1843,7 +2260,8 @@ async function loadDiscoveries() {
   var el = document.getElementById('discoveriesBody');
   try {
     var res = await authedFetch('/api/discoveries');
-    var reportable = (res.correlations || []).filter(function (c) { return c.strength !== 'negligible' && c.strength !== 'insufficient_data'; });
+    DISCOVERIES_CACHE = res.correlations || [];
+    var reportable = DISCOVERIES_CACHE.filter(function (c) { return c.strength !== 'negligible' && c.strength !== 'insufficient_data'; });
     var html = '';
     if (reportable.length === 0) {
       html += '<div class="sub">No correlations above a meaningful threshold found yet in your data.</div>';
