@@ -25,7 +25,7 @@ export function renderDashboard(): string {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Body + Health</title>
+<title>Body</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -792,6 +792,91 @@ export function renderDashboard(): string {
   .ab-mini-chip.neglected { background:rgba(247,107,77,.12); color:var(--down); }
   .ab-mini-chip.overtrained { background:rgba(201,184,255,.15); color:var(--royal); }
 
+  /* ==== BODY-CENTRIC HOME ==== */
+  .body-home { display:flex; flex-direction:column; align-items:center; position:relative; }
+
+  /* central body stage */
+  .body-stage { position:relative; width:100%; max-width:380px; margin:0 auto; }
+  .body-stage-svg { position:relative; z-index:2; width:220px; margin:0 auto; display:block; }
+  .body-stage-svg svg { width:100%; height:auto; filter:drop-shadow(0 0 20px rgba(163,230,53,.08)); }
+
+  /* orbital ring system around the body */
+  .orbit-system { position:absolute; inset:-30px; z-index:1; pointer-events:none; }
+  .orbit-ring { position:absolute; inset:0; }
+  .orbit-ring svg { width:100%; height:100%; }
+  .orbit-arc { fill:none; stroke-linecap:round; transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1), stroke .3s; cursor:pointer; pointer-events:stroke; }
+  .orbit-arc:hover { filter:drop-shadow(0 0 6px currentColor); stroke-width:7 !important; }
+
+  /* orbit labels floating around the body */
+  .orbit-labels { position:absolute; inset:0; z-index:3; pointer-events:none; }
+  .orbit-label { position:absolute; pointer-events:auto; cursor:pointer; text-align:center; transition:transform .2s var(--ease-spring); }
+  .orbit-label:hover { transform:scale(1.08); }
+  .orbit-label .ol-val { font-family:var(--mono); font-size:16px; font-weight:900; line-height:1; }
+  .orbit-label .ol-name { font-size:9px; color:var(--dim); font-weight:700; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; }
+  .orbit-label .ol-icon { font-size:14px; margin-bottom:2px; }
+
+  /* body score floating badge */
+  .body-score-badge { position:absolute; top:-8px; left:50%; transform:translateX(-50%); z-index:4; text-align:center; }
+  .bsb-ring { width:80px; height:80px; margin:0 auto; position:relative; }
+  .bsb-ring svg { width:100%; height:100%; transform:rotate(-90deg); }
+  .bsb-ring .bsb-bg { fill:none; stroke:var(--line); stroke-width:4; }
+  .bsb-ring .bsb-fill { fill:none; stroke:url(#bsbGrad); stroke-width:4; stroke-linecap:round; transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1); }
+  .bsb-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .bsb-num { font-family:var(--mono); font-size:22px; font-weight:900; line-height:1; background:linear-gradient(135deg, var(--pulse), var(--up)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .bsb-label { font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); }
+
+  /* satellite stat chips around body */
+  .body-satellites { display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:8px; }
+  .sat-chip { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px 12px; text-align:center; cursor:pointer; transition:all .2s var(--ease-spring); min-width:70px; }
+  .sat-chip:hover { border-color:rgba(163,230,53,.3); transform:translateY(-2px); }
+  .sat-chip .sat-v { font-family:var(--mono); font-size:16px; font-weight:800; }
+  .sat-chip .sat-l { font-size:9px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+
+  /* metric drawer (slides up on tap) */
+  .metric-drawer { position:fixed; bottom:0; left:0; right:0; z-index:55; transform:translateY(100%); transition:transform .35s cubic-bezier(.32,1.2,.54,1); }
+  .metric-drawer.open { transform:translateY(0); }
+  .metric-drawer-bg { position:fixed; inset:0; background:rgba(0,0,0,.5); backdrop-filter:blur(4px); z-index:54; opacity:0; pointer-events:none; transition:opacity .3s; }
+  .metric-drawer-bg.open { opacity:1; pointer-events:auto; }
+  .md-sheet { background:var(--panel); border:1px solid var(--line); border-radius:20px 20px 0 0; padding:20px 16px 32px; max-height:70vh; overflow-y:auto; box-shadow:0 -4px 30px rgba(0,0,0,.3); }
+  .md-handle { width:36px; height:4px; background:var(--faint); border-radius:2px; margin:0 auto 16px; }
+  .md-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:14px; }
+  .md-header h3 { margin:0; font-size:18px; font-weight:800; }
+  .md-header .md-close { background:var(--panel2); border:none; color:var(--dim); width:28px; height:28px; border-radius:50%; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .md-hero-num { font-family:var(--mono); font-size:48px; font-weight:900; line-height:1; margin-bottom:4px; }
+  .md-hero-sub { font-size:12px; color:var(--dim); margin-bottom:14px; }
+  .md-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
+  .md-stat { background:var(--panel2); border-radius:8px; padding:10px; text-align:center; }
+  .md-stat .mds-v { font-family:var(--mono); font-size:18px; font-weight:800; }
+  .md-stat .mds-l { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.03em; margin-top:2px; }
+  .md-spark { width:100%; height:60px; margin:8px 0; }
+  .md-spark svg { width:100%; height:100%; }
+  .md-reco { font-size:12.5px; color:var(--dim); line-height:1.5; padding-top:10px; border-top:1px solid var(--line); }
+
+  /* quick-glance row below body */
+  .qg-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; margin:12px 0; width:100%; }
+  .qg-card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px; cursor:pointer; transition:all .2s var(--ease-spring); }
+  .qg-card:hover { border-color:rgba(163,230,53,.3); transform:translateY(-2px); }
+  .qg-card .qg-head { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
+  .qg-card .qg-icon { font-size:14px; }
+  .qg-card .qg-name { font-size:11px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  .qg-card .qg-val { font-family:var(--mono); font-size:22px; font-weight:900; line-height:1; }
+  .qg-card .qg-sub { font-size:11px; color:var(--dim); margin-top:3px; }
+  .qg-card .qg-delta { font-size:11px; font-weight:700; }
+  .qg-card .qg-delta.up { color:var(--up); }
+  .qg-card .qg-delta.down { color:var(--down); }
+
+  @keyframes orbitFadeIn { from { stroke-dashoffset:var(--circ); opacity:0; } to { opacity:1; } }
+  @keyframes floatUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+  @media (max-width:480px) {
+    .body-stage { max-width:320px; }
+    .body-stage-svg { width:180px; }
+    .orbit-label .ol-val { font-size:14px; }
+    .sat-chip { padding:5px 8px; min-width:60px; }
+    .sat-chip .sat-v { font-size:14px; }
+    .qg-row { grid-template-columns:repeat(2,1fr); }
+  }
+
   .body-comp-bars { display:flex; height:32px; border-radius:8px; overflow:hidden; margin:12px 0 8px; }
   .body-comp-bars .bcb-lean { background:linear-gradient(90deg, var(--pulse), var(--up)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:var(--void); }
   .body-comp-bars .bcb-fat { background:rgba(247,107,77,.6); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:var(--ink); }
@@ -1342,79 +1427,111 @@ export function renderDashboard(): string {
 <div id="app">
   <header class="top">
     <div class="row">
-      <h1>Body + Health</h1>
+      <h1>Body</h1>
       <div class="sub" id="lastUpdated"><span class="live-dot"></span>—</div>
     </div>
     <nav class="tabs primary" id="primaryNav">
-      <button class="tab" data-view="today" onclick="showView('today')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Today</span></button>
-      <button class="tab" data-view="plan" onclick="showView('plan')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span>Plan</span></button>
-      <button class="tab" data-view="trends" onclick="showView('trends')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"/></svg><span>Trends</span></button>
+      <button class="tab" data-view="today" onclick="showView('today')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 3c1.7 0 3 1.3 3 3s-1.3 3-3 3-3-1.3-3-3 1.3-3 3-3zm0 14c-2.7 0-5-1.3-6.4-3.3C7.6 13.9 12 13 12 13s4.4.9 6.4 2.7C17 17.7 14.7 19 12 19z"/></svg><span>Body</span></button>
+      <button class="tab" data-view="trends" onclick="showView('trends')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"/></svg><span>Timeline</span></button>
       <button class="tab" data-view="coach" onclick="showView('coach')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg><span>Coach</span></button>
-      <button class="tab" data-view="you" onclick="showView('you')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 3c1.7 0 3 1.3 3 3s-1.3 3-3 3-3-1.3-3-3 1.3-3 3-3zm0 14c-2.7 0-5-1.3-6.4-3.3C7.6 13.9 12 13 12 13s4.4.9 6.4 2.7C17 17.7 14.7 19 12 19z"/></svg><span>Body</span></button>
     </nav>
     <nav class="subnav" id="subNav"></nav>
   </header>
 
-  <!-- TODAY -->
+  <!-- TODAY — BODY-CENTRIC HOME -->
   <section class="section active" id="tab-overview">
     <div class="greet">
       <div class="greet-hi"><span id="greeting">Hello</span><span id="greetStreak"></span></div>
-      <div class="greet-sub" id="greetingSub">Loading your data…</div>
+      <div class="greet-sub" id="greetingSub">Loading your body…</div>
     </div>
 
+    <!-- Verdict banner -->
     <div class="verdict v-neutral" id="verdict">
       <div class="v-word" id="verdictWord">…</div>
       <div class="v-line" id="verdictLine">Reading your recovery.</div>
       <div class="v-why" id="verdictWhy"></div>
     </div>
 
-    <div class="card" id="readinessCard" style="display:none">
-      <h3>Training readiness</h3>
-      <div id="readinessGauge"></div>
+    <!-- ===== THE BODY STAGE ===== -->
+    <div class="body-home">
+      <div class="body-stage" id="bodyStage">
+        <!-- Score badge floating above head -->
+        <div class="body-score-badge" id="bodyScoreBadge">
+          <div class="bsb-ring">
+            <svg viewBox="0 0 80 80">
+              <defs><linearGradient id="bsbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--pulse)"/><stop offset="100%" stop-color="var(--up)"/></linearGradient></defs>
+              <circle cx="40" cy="40" r="34" class="bsb-bg"/>
+              <circle cx="40" cy="40" r="34" class="bsb-fill" id="bsbFill" stroke-dasharray="214" stroke-dashoffset="214"/>
+            </svg>
+            <div class="bsb-center">
+              <div class="bsb-num count-up" id="bsbNum" data-target="0">—</div>
+              <div class="bsb-label">Body</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Orbital metric rings -->
+        <div class="orbit-system" id="orbitSystem">
+          <svg viewBox="0 0 380 460" id="orbitSvg" style="width:100%;height:100%;">
+            <defs>
+              <linearGradient id="ogSleep"><stop offset="0%" stop-color="#818cf8"/><stop offset="100%" stop-color="#6366f1"/></linearGradient>
+              <linearGradient id="ogHeart"><stop offset="0%" stop-color="#f87171"/><stop offset="100%" stop-color="#ef4444"/></linearGradient>
+              <linearGradient id="ogStrain"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient>
+              <linearGradient id="ogRecovery"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#10b981"/></linearGradient>
+            </defs>
+            <!-- sleep arc (top left) -->
+            <circle cx="190" cy="230" r="170" class="orbit-arc" id="oaSleep" stroke="url(#ogSleep)" stroke-width="5" stroke-dasharray="1068" stroke-dashoffset="1068" onclick="openMetricDrawer(‘sleep’)"/>
+            <!-- heart arc (top right) -->
+            <circle cx="190" cy="230" r="155" class="orbit-arc" id="oaHeart" stroke="url(#ogHeart)" stroke-width="5" stroke-dasharray="974" stroke-dashoffset="974" onclick="openMetricDrawer(‘heart’)"/>
+            <!-- strain arc (bottom left) -->
+            <circle cx="190" cy="230" r="140" class="orbit-arc" id="oaStrain" stroke="url(#ogStrain)" stroke-width="5" stroke-dasharray="880" stroke-dashoffset="880" onclick="openMetricDrawer(‘strain’)"/>
+            <!-- recovery arc (bottom right) -->
+            <circle cx="190" cy="230" r="125" class="orbit-arc" id="oaRecovery" stroke="url(#ogRecovery)" stroke-width="5" stroke-dasharray="785" stroke-dashoffset="785" onclick="openMetricDrawer(‘recovery’)"/>
+          </svg>
+        </div>
+
+        <!-- Orbit metric labels -->
+        <div class="orbit-labels" id="orbitLabels">
+          <div class="orbit-label" style="top:6%;left:4%;" onclick="openMetricDrawer(‘sleep’)">
+            <div class="ol-icon">🌙</div>
+            <div class="ol-val" id="olSleepVal">—</div>
+            <div class="ol-name">Sleep</div>
+          </div>
+          <div class="orbit-label" style="top:6%;right:4%;" onclick="openMetricDrawer(‘heart’)">
+            <div class="ol-icon">❤️</div>
+            <div class="ol-val" id="olHeartVal">—</div>
+            <div class="ol-name">HRV</div>
+          </div>
+          <div class="orbit-label" style="bottom:18%;left:2%;" onclick="openMetricDrawer(‘strain’)">
+            <div class="ol-icon">⚡</div>
+            <div class="ol-val" id="olStrainVal">—</div>
+            <div class="ol-name">Strain</div>
+          </div>
+          <div class="orbit-label" style="bottom:18%;right:2%;" onclick="openMetricDrawer(‘recovery’)">
+            <div class="ol-icon">💚</div>
+            <div class="ol-val" id="olRecoveryVal">—</div>
+            <div class="ol-name">Recovery</div>
+          </div>
+        </div>
+
+        <!-- The body itself -->
+        <div class="body-stage-svg" id="bodyStageSvg"></div>
+      </div>
+
+      <!-- Satellite stat chips -->
+      <div class="body-satellites" id="bodySatellites"></div>
     </div>
 
+    <!-- Smart check-in prompts -->
     <div id="smartCheckInArea"></div>
 
-    <div class="brief-row" id="sleepBrief">
-      <div class="brief-item"><div class="brief-n" id="bSleepH">—</div><div class="brief-u">hours slept</div></div>
-      <div class="brief-item"><div class="brief-n" id="bSleepQ">—</div><div class="brief-u">quality</div></div>
-      <div class="brief-item"><div class="brief-n" id="bDeepRem">—</div><div class="brief-u">deep+REM</div></div>
-    </div>
-    <div id="sleepArch"></div>
+    <!-- Quick-glance metric cards row -->
+    <div class="qg-row" id="quickGlanceRow"></div>
 
-    <div class="brief-row" id="bodyState">
-      <div class="brief-item"><div class="brief-n" id="bHrv">—</div><div class="brief-d" id="bHrvD"></div><div class="brief-u">HRV</div></div>
-      <div class="brief-item"><div class="brief-n" id="bRhr">—</div><div class="brief-d" id="bRhrD"></div><div class="brief-u">resting HR</div></div>
-      <div class="brief-item"><div class="brief-n" id="bRecov">—</div><div class="brief-u">recovery</div></div>
-    </div>
-
-    <div class="body-overview-strip" id="bodyOverviewStrip" style="display:none"></div>
-
-    <div class="card" id="recoveryBreakdown" style="display:none">
-      <h3>Recovery breakdown</h3>
-      <div class="recovery-pillars" id="recoveryPillars"></div>
-    </div>
-
-    <div class="card illness-card" id="illnessCard" style="display:none">
-      <div class="illness-head"><span class="illness-icon">⚠</span><span class="illness-title" id="illnessTitle"></span></div>
-      <div class="illness-body sub" id="illnessBody"></div>
-    </div>
-
-    <div class="strain-budget" id="strainBudget">
-      <div class="sb-label">Strain <span id="sbUsed">0</span> / <span id="sbMax">21</span></div>
-      <div class="sb-track"><div class="sb-fill" id="sbFill"></div><div class="sb-target" id="sbTarget"></div></div>
-    </div>
-
-    <button class="btn-ghost btn-sm" id="allVitalsBtn" onclick="toggleAllVitals()" style="margin-bottom:12px">Show all vitals</button>
-    <div class="compact-grid" id="allVitals" style="display:none"></div>
-
+    <!-- Session up next -->
     <div class="card session-card" id="todaySession"><h3>Up next</h3><div class="skel-line" style="width:60%;"></div><div class="skel-line" style="width:80%;"></div></div>
 
-    <div class="card" id="whatMoved">
-      <h3>What moved</h3>
-      <div id="whatMovedList"><div class="skel-line" style="width:70%;"></div><div class="skel-line" style="width:50%;"></div></div>
-    </div>
-
+    <!-- Coach note -->
     ${reviewCard("today", "Coach’s note")}
 
     <div class="card one-action" id="oneAction" style="display:none;">
@@ -1422,11 +1539,19 @@ export function renderDashboard(): string {
       <div class="oa-text" id="oneActionText"></div>
     </div>
 
+    <!-- Illness alert (hidden unless triggered) -->
+    <div class="card illness-card" id="illnessCard" style="display:none">
+      <div class="illness-head"><span class="illness-icon">⚠</span><span class="illness-title" id="illnessTitle"></span></div>
+      <div class="illness-body sub" id="illnessBody"></div>
+    </div>
+
+    <!-- Activity heatmap -->
     <div class="card" id="heatmapCard" style="display:none">
       <h3>Activity heatmap <span style="font-weight:400;font-size:12px;color:var(--dim);">last 90 days</span></h3>
       <div class="hm-wrap" id="heatmapGrid"></div>
     </div>
 
+    <!-- Streaks + Weekly comp + PRs -->
     <div class="card" id="streakCard" style="display:none">
       <h3>Consistency streaks</h3>
       <div class="streak-grid" id="streakGrid"></div>
@@ -1442,7 +1567,42 @@ export function renderDashboard(): string {
       <div class="card-sub">Your best estimated 1RM per exercise</div>
       <div class="pr-grid" id="prGrid"></div>
     </div>
+
+    <!-- Hidden elements needed by existing JS -->
+    <div id="sleepArch" style="display:none"></div>
+    <div id="bodyOverviewStrip" style="display:none"></div>
+    <div class="compact-grid" id="allVitals" style="display:none"></div>
+    <div id="readinessCard" style="display:none"><div id="readinessGauge"></div></div>
+    <div id="sleepBrief" style="display:none">
+      <div class="brief-item"><div class="brief-n" id="bSleepH">—</div><div class="brief-u">hours slept</div></div>
+      <div class="brief-item"><div class="brief-n" id="bSleepQ">—</div><div class="brief-u">quality</div></div>
+      <div class="brief-item"><div class="brief-n" id="bDeepRem">—</div><div class="brief-u">deep+REM</div></div>
+    </div>
+    <div id="bodyState" style="display:none">
+      <div class="brief-item"><div class="brief-n" id="bHrv">—</div><div class="brief-d" id="bHrvD"></div><div class="brief-u">HRV</div></div>
+      <div class="brief-item"><div class="brief-n" id="bRhr">—</div><div class="brief-d" id="bRhrD"></div><div class="brief-u">resting HR</div></div>
+      <div class="brief-item"><div class="brief-n" id="bRecov">—</div><div class="brief-u">recovery</div></div>
+    </div>
+    <div id="strainBudget" style="display:none">
+      <div class="sb-label">Strain <span id="sbUsed">0</span> / <span id="sbMax">21</span></div>
+      <div class="sb-track"><div class="sb-fill" id="sbFill"></div><div class="sb-target" id="sbTarget"></div></div>
+    </div>
+    <div id="recoveryBreakdown" style="display:none"><div id="recoveryPillars"></div></div>
+    <div id="whatMoved" style="display:none"><div id="whatMovedList"></div></div>
   </section>
+
+  <!-- METRIC DRAWER (slides up on tap from body/orbit) -->
+  <div class="metric-drawer-bg" id="metricDrawerBg" onclick="closeMetricDrawer()"></div>
+  <div class="metric-drawer" id="metricDrawer">
+    <div class="md-sheet">
+      <div class="md-handle"></div>
+      <div class="md-header">
+        <h3 id="mdTitle">—</h3>
+        <button class="md-close" onclick="closeMetricDrawer()">×</button>
+      </div>
+      <div id="mdContent"></div>
+    </div>
+  </div>
 
   <!-- TRENDS: LONG VIEW -->
   <section class="section" id="tab-longview">
@@ -3451,6 +3611,206 @@ function renderImbalances(sym) {
   }).join('');
 }
 
+// ---- Body-centric home rendering ----
+
+function renderBodyHome(todayData) {
+  var d = todayData;
+  // Render the central body silhouette with muscles lit
+  var svgEl = document.getElementById('bodyStageSvg');
+  if (svgEl) {
+    svgEl.innerHTML = BODY_FRONT_SVG;
+    if (_bodyData && _bodyData.muscleVolume) {
+      _bodyData.muscleVolume.forEach(function(m) {
+        var regions = svgEl.querySelectorAll('[data-muscle="' + m.muscle + '"]');
+        regions.forEach(function(r) {
+          r.classList.add('m-' + m.status);
+          r.addEventListener('click', function(e) { e.stopPropagation(); showMuscleDetail(m); });
+        });
+      });
+    }
+  }
+
+  // Body score badge
+  if (_bodyData && _bodyData.bodyScore) {
+    var score = _bodyData.bodyScore;
+    var numEl = document.getElementById('bsbNum');
+    var fillEl = document.getElementById('bsbFill');
+    if (numEl && fillEl) {
+      numEl.setAttribute('data-target', String(score.total));
+      var circ = 2 * Math.PI * 34;
+      var off = circ - (score.total / 100) * circ;
+      requestAnimationFrame(function() {
+        fillEl.style.strokeDashoffset = String(off);
+        animateCountUp(numEl);
+      });
+    }
+  }
+
+  // Orbital metric arcs
+  renderOrbitArcs(d);
+
+  // Satellite chips
+  renderSatelliteChips(d);
+
+  // Quick glance row
+  renderQuickGlance(d);
+}
+
+function renderOrbitArcs(d) {
+  var sleepH = d && d.today ? d.today.sleepHours : null;
+  var hrv = d && d.today ? d.today.hrv : null;
+  var strain = d && d.today ? d.today.strain : null;
+  var recovery = d && d.recoveryScore !== undefined ? d.recoveryScore : null;
+
+  function animateArc(id, value, max, delay) {
+    var el = document.getElementById(id);
+    if (!el || value === null || value === undefined) return;
+    var circ = parseFloat(el.getAttribute('stroke-dasharray'));
+    var pct = Math.min(1, value / max);
+    var offset = circ - pct * circ;
+    setTimeout(function() { el.style.strokeDashoffset = String(offset); }, delay);
+  }
+
+  animateArc('oaSleep', sleepH, 9, 100);
+  animateArc('oaHeart', hrv, 120, 250);
+  animateArc('oaStrain', strain, 21, 400);
+  animateArc('oaRecovery', recovery, 100, 550);
+
+  // Labels
+  var olSleep = document.getElementById('olSleepVal');
+  var olHeart = document.getElementById('olHeartVal');
+  var olStrain = document.getElementById('olStrainVal');
+  var olRecovery = document.getElementById('olRecoveryVal');
+  if (olSleep && sleepH !== null) olSleep.textContent = sleepH.toFixed(1) + 'h';
+  if (olHeart && hrv !== null) olHeart.textContent = String(Math.round(hrv)) + 'ms';
+  if (olStrain && strain !== null) olStrain.textContent = strain.toFixed(1);
+  if (olRecovery && recovery !== null) olRecovery.textContent = String(Math.round(recovery));
+}
+
+function renderSatelliteChips(d) {
+  var el = document.getElementById('bodySatellites');
+  if (!el) return;
+  var chips = [];
+  if (_bodyData && _bodyData.composition && _bodyData.composition.currentWeight !== null) {
+    chips.push({ v: _bodyData.composition.currentWeight.toFixed(1) + ' kg', l: 'Weight', click: "showTab('body')" });
+  }
+  if (_bodyData && _bodyData.composition && _bodyData.composition.bodyFatPct !== null) {
+    chips.push({ v: (_bodyData.composition.bodyFatPct * 100).toFixed(1) + '%', l: 'Body fat', click: "showTab('body')" });
+  }
+  if (d && d.today && d.today.restingHeartRate) {
+    chips.push({ v: d.today.restingHeartRate + ' bpm', l: 'Resting HR', click: "openMetricDrawer('heart')" });
+  }
+  if (d && d.today && d.today.steps) {
+    chips.push({ v: d.today.steps.toLocaleString(), l: 'Steps', click: "openMetricDrawer('activity')" });
+  }
+  el.innerHTML = chips.map(function(c) {
+    return '<div class="sat-chip" onclick="' + c.click + '"><div class="sat-v">' + c.v + '</div><div class="sat-l">' + c.l + '</div></div>';
+  }).join('');
+}
+
+function renderQuickGlance(d) {
+  var el = document.getElementById('quickGlanceRow');
+  if (!el || !d || !d.today) return;
+  var t = d.today;
+  var items = [];
+  if (t.sleepHours !== null && t.sleepHours !== undefined) {
+    var sleepColor = t.sleepHours >= 7 ? 'var(--up)' : t.sleepHours >= 6 ? 'var(--caution)' : 'var(--down)';
+    items.push({ icon: '🌙', name: 'Sleep', val: t.sleepHours.toFixed(1) + 'h', color: sleepColor, sub: t.sleepDeepHours ? (t.sleepDeepHours.toFixed(1) + 'h deep') : '', click: "openMetricDrawer('sleep')" });
+  }
+  if (t.hrv !== null && t.hrv !== undefined) {
+    items.push({ icon: '💓', name: 'HRV', val: Math.round(t.hrv) + 'ms', color: 'var(--ink)', sub: t.restingHeartRate ? (t.restingHeartRate + ' bpm RHR') : '', click: "openMetricDrawer('heart')" });
+  }
+  if (d.recoveryScore !== null && d.recoveryScore !== undefined) {
+    var recColor = d.recoveryScore >= 67 ? 'var(--up)' : d.recoveryScore >= 34 ? 'var(--caution)' : 'var(--down)';
+    items.push({ icon: '💚', name: 'Recovery', val: Math.round(d.recoveryScore) + '%', color: recColor, sub: d.recoveryLabel || '', click: "openMetricDrawer('recovery')" });
+  }
+  if (t.strain !== null && t.strain !== undefined) {
+    items.push({ icon: '⚡', name: 'Strain', val: t.strain.toFixed(1), color: 'var(--caution)', sub: t.activeEnergy ? (Math.round(t.activeEnergy) + ' kcal') : '', click: "openMetricDrawer('strain')" });
+  }
+  if (t.steps !== null && t.steps !== undefined) {
+    items.push({ icon: '🚶', name: 'Steps', val: t.steps.toLocaleString(), color: 'var(--ink)', sub: t.distanceKm ? (t.distanceKm.toFixed(1) + ' km') : '', click: "openMetricDrawer('activity')" });
+  }
+  if (t.activeEnergy !== null && t.activeEnergy !== undefined && !items.some(function(x){return x.name==='Strain';})) {
+    items.push({ icon: '🔥', name: 'Active cal', val: Math.round(t.activeEnergy), color: 'var(--ink)', sub: '', click: "openMetricDrawer('activity')" });
+  }
+  el.innerHTML = items.slice(0, 6).map(function(it) {
+    return '<div class="qg-card" onclick="' + it.click + '">' +
+      '<div class="qg-head"><span class="qg-icon">' + it.icon + '</span><span class="qg-name">' + it.name + '</span></div>' +
+      '<div class="qg-val" style="color:' + it.color + ';">' + it.val + '</div>' +
+      (it.sub ? '<div class="qg-sub">' + it.sub + '</div>' : '') +
+    '</div>';
+  }).join('');
+}
+
+// Metric drawer system
+function openMetricDrawer(type) {
+  var bg = document.getElementById('metricDrawerBg');
+  var drawer = document.getElementById('metricDrawer');
+  var title = document.getElementById('mdTitle');
+  var content = document.getElementById('mdContent');
+  if (!bg || !drawer || !content) return;
+  bg.classList.add('open');
+  drawer.classList.add('open');
+
+  var names = { sleep: 'Sleep', heart: 'Heart Rate', strain: 'Strain & Activity', recovery: 'Recovery', activity: 'Activity' };
+  title.textContent = names[type] || type;
+
+  var html = '';
+  if (type === 'sleep') {
+    var sleepH = document.getElementById('bSleepH');
+    var deepRem = document.getElementById('bDeepRem');
+    html += '<div class="md-hero-num" style="color:' + (parseFloat(sleepH ? sleepH.textContent : '0') >= 7 ? 'var(--up)' : 'var(--caution)') + ';">' + (sleepH ? sleepH.textContent : '—') + '</div>';
+    html += '<div class="md-hero-sub">hours slept last night</div>';
+    html += '<div class="md-stats">';
+    html += '<div class="md-stat"><div class="mds-v">' + (deepRem ? deepRem.textContent : '—') + '</div><div class="mds-l">Deep+REM</div></div>';
+    var quality = document.getElementById('bSleepQ');
+    html += '<div class="md-stat"><div class="mds-v">' + (quality ? quality.textContent : '—') + '</div><div class="mds-l">Quality</div></div>';
+    html += '<div class="md-stat"><div class="mds-v">—</div><div class="mds-l">Efficiency</div></div>';
+    html += '</div>';
+    html += '<div class="md-reco">Tap to see your full sleep trends and analysis.</div>';
+    html += '<button class="btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="closeMetricDrawer();showTab(' + "'sleep'" + ');">View sleep details</button>';
+  } else if (type === 'heart') {
+    var hrvVal = document.getElementById('bHrv');
+    var rhrVal = document.getElementById('bRhr');
+    html += '<div class="md-hero-num">' + (hrvVal ? hrvVal.textContent : '—') + '<span style="font-size:18px;color:var(--dim);"> ms</span></div>';
+    html += '<div class="md-hero-sub">heart rate variability</div>';
+    html += '<div class="md-stats">';
+    html += '<div class="md-stat"><div class="mds-v">' + (rhrVal ? rhrVal.textContent : '—') + '</div><div class="mds-l">Resting HR</div></div>';
+    html += '<div class="md-stat"><div class="mds-v">—</div><div class="mds-l">Walking HR</div></div>';
+    html += '<div class="md-stat"><div class="mds-v">—</div><div class="mds-l">Max HR</div></div>';
+    html += '</div>';
+    html += '<button class="btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="closeMetricDrawer();showTab(' + "'heart'" + ');">View heart details</button>';
+  } else if (type === 'strain' || type === 'activity') {
+    var usedEl = document.getElementById('sbUsed');
+    var maxEl = document.getElementById('sbMax');
+    html += '<div class="md-hero-num" style="color:var(--caution);">' + (usedEl ? usedEl.textContent : '—') + '<span style="font-size:18px;color:var(--dim);"> / ' + (maxEl ? maxEl.textContent : '21') + '</span></div>';
+    html += '<div class="md-hero-sub">strain today</div>';
+    html += '<div class="md-stats">';
+    html += '<div class="md-stat"><div class="mds-v">—</div><div class="mds-l">Active cal</div></div>';
+    html += '<div class="md-stat"><div class="mds-v">—</div><div class="mds-l">Exercise min</div></div>';
+    html += '<div class="md-stat"><div class="mds-v">—</div><div class="mds-l">Steps</div></div>';
+    html += '</div>';
+    html += '<button class="btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="closeMetricDrawer();showTab(' + "'activity'" + ');">View activity details</button>';
+  } else if (type === 'recovery') {
+    var recovEl = document.getElementById('bRecov');
+    var score = recovEl ? parseInt(recovEl.textContent) : 0;
+    var recColor = score >= 67 ? 'var(--up)' : score >= 34 ? 'var(--caution)' : 'var(--down)';
+    html += '<div class="md-hero-num" style="color:' + recColor + ';">' + (recovEl ? recovEl.textContent : '—') + '<span style="font-size:18px;color:var(--dim);">%</span></div>';
+    html += '<div class="md-hero-sub">recovery score</div>';
+    var pillarsEl = document.getElementById('recoveryPillars');
+    if (pillarsEl && pillarsEl.innerHTML) html += '<div style="margin-top:12px;">' + pillarsEl.innerHTML + '</div>';
+    html += '<button class="btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="closeMetricDrawer();showTab(' + "'heart'" + ');">View recovery details</button>';
+  }
+  content.innerHTML = html;
+}
+
+function closeMetricDrawer() {
+  var bg = document.getElementById('metricDrawerBg');
+  var drawer = document.getElementById('metricDrawer');
+  if (bg) bg.classList.remove('open');
+  if (drawer) drawer.classList.remove('open');
+}
+
 // ---- Premium UI systems ----
 
 function animateCountUp(el) {
@@ -3600,11 +3960,9 @@ var TAB_REVIEWS = { overview: ['today'], plan: ['weekly'], longview: ['longterm'
 // Five top-level views, each a group of sections shown one at a time via
 // a sub-tab row. Sections keep their old ids, so every loader still works.
 var VIEWS = {
-  today: [['overview', 'Today']],
-  plan: [['plan', 'Week and goals'], ['training', 'Training load']],
-  trends: [['heart', 'Heart'], ['activity', 'Activity'], ['workouts', 'Workouts'], ['sleep', 'Sleep and body'], ['longview', 'Long view'], ['insights', 'Insights'], ['dayexplorer', 'Day explorer'], ['allmetrics', 'All metrics']],
+  today: [['overview', 'Home'], ['body', 'Body'], ['age', 'Bio age'], ['records', 'Records'], ['plan', 'Plan'], ['settings', 'Settings']],
+  trends: [['heart', 'Heart'], ['activity', 'Activity'], ['workouts', 'Workouts'], ['sleep', 'Sleep'], ['training', 'Training'], ['longview', 'Long view'], ['insights', 'Insights'], ['dayexplorer', 'Explorer'], ['allmetrics', 'All metrics'], ['more', 'Extra']],
   coach: [['directive', 'Coach'], ['ai', 'Ask AI'], ['discoveries', 'Discoveries'], ['story', 'Weekly story']],
-  you: [['body', 'Body analysis'], ['age', 'Biological age'], ['records', 'Records'], ['more', 'More data'], ['settings', 'Settings']],
 };
 function viewOf(sectionId) {
   for (var v in VIEWS) if (VIEWS[v].some(function (x) { return x[0] === sectionId; })) return v;
@@ -6194,7 +6552,9 @@ async function boot() {
   loadProgression();
   loadRecommendations();
   loadPremium();
-  loadBody();
+  var _todayForBody = { today: today, recoveryScore: trends.readinessScore, recoveryLabel: trends.readinessLabel };
+  renderBodyHome(_todayForBody);
+  loadBody().then(function() { renderBodyHome(_todayForBody); });
   loadCoach();
   loadAlerts();
 }
