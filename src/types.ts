@@ -94,6 +94,74 @@ export interface KnowledgeNote {
   energy?: number; // 1-10, self-reported
   soreness?: number; // 1-10, self-reported
   note?: string;
+  // Structured journal fields (Whoop-style)
+  alcoholDrinks?: number; // 0+
+  caffeineMg?: number; // approximate mg
+  stress?: number; // 1-10
+  illness?: boolean;
+  lateMeal?: boolean; // ate within 2h of bed
+  screenBeforeBed?: boolean;
+  supplements?: string[]; // e.g. ["melatonin", "magnesium", "creatine"]
+  hydrationLiters?: number;
+}
+
+export interface RecoverySnapshot {
+  date: string;
+  score: number; // 0-100
+  hrvZ: number | null;
+  rhrZ: number | null;
+  respRateZ: number | null;
+  spo2Z: number | null;
+  tempDeviationC: number | null;
+  sleepScore: number | null;
+}
+
+export interface IllnessSignal {
+  date: string;
+  likelihood: "low" | "moderate" | "high";
+  score: number; // 0-100
+  signals: {
+    rhrElevated: boolean;
+    hrvDepressed: boolean;
+    tempElevated: boolean;
+    respRateElevated: boolean;
+  };
+  detail: string;
+}
+
+export interface SleepAnalysis {
+  avgHours: number | null;
+  dynamicNeedHours: number | null;
+  debtHours: number | null;
+  consistencyScore: number | null; // 0-100
+  performanceScore: number | null; // 0-100
+  onsetLatencyMin: number | null;
+  optimalBedtime: string | null; // "22:30"
+  bedtimeStddevMin: number | null;
+  wakeStddevMin: number | null;
+}
+
+export interface WorkoutPR {
+  exercise: string;
+  metric: "weight" | "volume" | "reps";
+  value: number;
+  date: string;
+  previousBest: number | null;
+}
+
+export interface MuscleBalance {
+  muscle: string;
+  hitsLast30: number;
+  hitsLast7: number;
+  category: "push" | "pull" | "legs" | "core" | "cardio";
+}
+
+export interface AlertPayload {
+  type: "anomaly" | "illness" | "recovery" | "strain" | "staleData" | "goalMilestone";
+  severity: "info" | "warning" | "critical";
+  title: string;
+  body: string;
+  date: string;
 }
 
 export interface UserKnowledge {

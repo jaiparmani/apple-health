@@ -812,6 +812,52 @@ export function renderDashboard(): string {
   .wl-empty { text-align:center; padding:40px 20px; color:var(--dim); }
   .wl-empty p { margin:8px 0; font-size:14px; }
 
+  /* ---- recovery breakdown ---- */
+  .recovery-pillars { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .rp-item { background:var(--panel2); border-radius:8px; padding:10px; text-align:center; }
+  .rp-label { font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px; }
+  .rp-val { font-family:var(--mono); font-weight:700; font-size:18px; }
+  .rp-bar { height:4px; border-radius:2px; background:var(--line); margin-top:6px; }
+  .rp-fill { height:100%; border-radius:2px; transition:width .4s var(--ease-smooth); }
+
+  /* ---- illness card ---- */
+  .illness-card { border-left:3px solid var(--caution); }
+  .illness-card.critical { border-left-color:var(--down); }
+  .illness-head { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .illness-icon { font-size:18px; }
+  .illness-title { font-weight:700; font-size:15px; }
+
+  /* ---- checkin enhancements ---- */
+  .ci-row { display:flex; gap:8px; margin:10px 0; }
+  .ci-field { flex:1; }
+  .ci-field label { display:block; font-size:11px; color:var(--dim); margin-bottom:4px; text-transform:uppercase; letter-spacing:.04em; }
+  .ci-field input { width:100%; box-sizing:border-box; padding:8px; background:var(--panel2); border:1px solid var(--line); border-radius:6px; color:var(--ink); font-family:var(--mono); font-size:14px; }
+  .ci-toggles { display:flex; flex-wrap:wrap; gap:6px; margin:10px 0; }
+  .ci-toggle { display:flex; align-items:center; gap:6px; padding:6px 10px; border:1px solid var(--line); border-radius:20px; font-size:12px; cursor:pointer; }
+  .ci-toggle input { display:none; }
+  .ci-toggle input:checked + span { color:var(--pulse); }
+  .ci-toggle:has(input:checked) { border-color:var(--pulse); background:rgba(163,230,53,.08); }
+
+  /* ---- workout analytics ---- */
+  .pr-list { list-style:none; padding:0; margin:0; }
+  .pr-item { display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid var(--line); }
+  .pr-item:last-child { border-bottom:none; }
+  .pr-exercise { font-weight:600; font-size:14px; }
+  .pr-value { font-family:var(--mono); font-weight:700; font-size:16px; color:var(--pulse); }
+  .pr-meta { font-size:11px; color:var(--dim); }
+  .mb-bars { display:flex; flex-direction:column; gap:6px; }
+  .mb-row { display:flex; align-items:center; gap:8px; }
+  .mb-label { width:80px; font-size:12px; color:var(--dim); text-transform:capitalize; }
+  .mb-bar-wrap { flex:1; height:20px; background:var(--panel2); border-radius:4px; position:relative; }
+  .mb-bar-fill { height:100%; border-radius:4px; transition:width .4s var(--ease-smooth); }
+  .mb-count { font-family:var(--mono); font-weight:700; font-size:13px; min-width:28px; text-align:right; }
+  .freq-list { list-style:none; padding:0; margin:0; }
+  .freq-item { display:flex; justify-content:space-between; align-items:center; padding:6px 0; border-bottom:1px solid var(--line); font-size:13px; }
+  .freq-item:last-child { border-bottom:none; }
+  .freq-change { font-family:var(--mono); font-weight:700; }
+  .freq-change.up { color:var(--up); }
+  .freq-change.down { color:var(--down); }
+
   footer { color:var(--faint); font-size:11.5px; text-align:left; padding:28px 0 10px; border-top:1px solid var(--line); margin-top:10px; }
 
   @media (max-width:560px) {
@@ -870,6 +916,16 @@ export function renderDashboard(): string {
       <div class="brief-item"><div class="brief-n" id="bHrv">—</div><div class="brief-d" id="bHrvD"></div><div class="brief-u">HRV</div></div>
       <div class="brief-item"><div class="brief-n" id="bRhr">—</div><div class="brief-d" id="bRhrD"></div><div class="brief-u">resting HR</div></div>
       <div class="brief-item"><div class="brief-n" id="bRecov">—</div><div class="brief-u">recovery</div></div>
+    </div>
+
+    <div class="card" id="recoveryBreakdown" style="display:none">
+      <h3>Recovery breakdown</h3>
+      <div class="recovery-pillars" id="recoveryPillars"></div>
+    </div>
+
+    <div class="card illness-card" id="illnessCard" style="display:none">
+      <div class="illness-head"><span class="illness-icon">⚠</span><span class="illness-title" id="illnessTitle"></span></div>
+      <div class="illness-body sub" id="illnessBody"></div>
     </div>
 
     <div class="strain-budget" id="strainBudget">
@@ -1024,6 +1080,11 @@ export function renderDashboard(): string {
       <div class="card-sub">Correlation, not causation.</div>
       <div id="discoveriesBody" class="sub">Loading…</div>
     </div>
+    <div class="card" id="journalCorrelationsCard" style="display:none">
+      <h3>Journal correlations</h3>
+      <div class="card-sub">How your habits correlate with sensor metrics.</div>
+      <div id="journalCorrelationsBody"></div>
+    </div>
 
     <div class="card">
       <h3>Experiments</h3>
@@ -1168,11 +1229,29 @@ export function renderDashboard(): string {
         <div class="wl-empty"><p>No workouts logged yet.</p><p style="font-size:12px">Tap <strong>Log workout</strong> to record your first session.</p></div>
       </div>
     </div>
+    <div class="card" id="workoutPRsCard" style="display:none">
+      <h3>Personal records</h3>
+      <div id="workoutPRs"></div>
+    </div>
+    <div class="card" id="muscleBalanceCard" style="display:none">
+      <h3>Muscle balance (30 days)</h3>
+      <div class="card-sub">Push / Pull / Legs / Core hit frequency.</div>
+      <div id="muscleBalanceChart"></div>
+    </div>
+    <div class="card" id="workoutFreqCard" style="display:none">
+      <h3>Workout frequency</h3>
+      <div class="card-sub">Last 30 days vs prior 30 days.</div>
+      <div id="workoutFreqChart"></div>
+    </div>
   </section>
 
   <!-- SLEEP -->
   <section class="section" id="tab-sleep">
     ${reviewCard("sleep", "Sleep review")}
+    <div class="card" id="sleepAnalysisCard" style="display:none">
+      <h3>Sleep analysis</h3>
+      <div class="brief-row" id="sleepAnalysisRow"></div>
+    </div>
     <div class="card"><h3>Sleep duration</h3><div class="chart-box"><canvas id="sleepChart"></canvas></div><div data-guide="sleepHours,sleepEfficiency"></div></div>
     <div class="card"><h3>Sleep stages</h3><div class="card-sub">Core, deep, REM and awake time.</div><div class="chart-box"><canvas id="sleepStagesChart"></canvas></div><div data-guide="sleepDeepHours,sleepRemHours"></div></div>
     <div class="card"><h3>Weight</h3><div class="chart-box"><canvas id="weightChart"></canvas></div><div data-guide="weightKg,bodyFatPct"></div></div>
@@ -1276,22 +1355,41 @@ export function renderDashboard(): string {
   <div class="checkin-overlay" id="checkinOverlay">
     <div class="checkin-sheet">
       <h3>Evening check-in</h3>
-      <div class="ci-q"><label>How do you feel?</label>
-        <div class="ci-opts" id="ciMood">
-          <span class="ci-opt" data-v="great" onclick="ciSel(this)">Great</span>
-          <span class="ci-opt" data-v="good" onclick="ciSel(this)">Good</span>
-          <span class="ci-opt" data-v="ok" onclick="ciSel(this)">OK</span>
-          <span class="ci-opt" data-v="tired" onclick="ciSel(this)">Tired</span>
-          <span class="ci-opt" data-v="bad" onclick="ciSel(this)">Bad</span>
-        </div>
-      </div>
-      <div class="ci-q"><label>Energy level</label>
+      <div class="ci-q"><label>Energy (1-10)</label>
         <div class="ci-opts" id="ciEnergy">
-          <span class="ci-opt" data-v="high" onclick="ciSel(this)">High</span>
-          <span class="ci-opt" data-v="moderate" onclick="ciSel(this)">Moderate</span>
-          <span class="ci-opt" data-v="low" onclick="ciSel(this)">Low</span>
+          <span class="ci-opt" data-v="2" onclick="ciSel(this)">Low</span>
+          <span class="ci-opt" data-v="5" onclick="ciSel(this)">OK</span>
+          <span class="ci-opt" data-v="7" onclick="ciSel(this)">Good</span>
+          <span class="ci-opt" data-v="9" onclick="ciSel(this)">Great</span>
         </div>
       </div>
+      <div class="ci-q"><label>Stress (1-10)</label>
+        <div class="ci-opts" id="ciStress">
+          <span class="ci-opt" data-v="2" onclick="ciSel(this)">Low</span>
+          <span class="ci-opt" data-v="5" onclick="ciSel(this)">Some</span>
+          <span class="ci-opt" data-v="7" onclick="ciSel(this)">High</span>
+          <span class="ci-opt" data-v="9" onclick="ciSel(this)">Very</span>
+        </div>
+      </div>
+      <div class="ci-q"><label>Soreness (1-10)</label>
+        <div class="ci-opts" id="ciSoreness">
+          <span class="ci-opt" data-v="1" onclick="ciSel(this)">None</span>
+          <span class="ci-opt" data-v="4" onclick="ciSel(this)">Mild</span>
+          <span class="ci-opt" data-v="7" onclick="ciSel(this)">Sore</span>
+          <span class="ci-opt" data-v="9" onclick="ciSel(this)">Very</span>
+        </div>
+      </div>
+      <div class="ci-row">
+        <div class="ci-field"><label>Drinks 🍺</label><input type="number" id="ciAlcohol" min="0" max="20" placeholder="0" /></div>
+        <div class="ci-field"><label>Caffeine mg</label><input type="number" id="ciCaffeine" min="0" max="1000" placeholder="0" /></div>
+        <div class="ci-field"><label>Water L</label><input type="number" id="ciHydration" min="0" max="10" step="0.5" placeholder="0" /></div>
+      </div>
+      <div class="ci-toggles">
+        <label class="ci-toggle"><input type="checkbox" id="ciLateMeal" /><span>Late meal</span></label>
+        <label class="ci-toggle"><input type="checkbox" id="ciScreen" /><span>Screen before bed</span></label>
+        <label class="ci-toggle"><input type="checkbox" id="ciIllness" /><span>Feeling ill</span></label>
+      </div>
+      <div class="ci-q"><label>Note</label><input type="text" id="ciNote" placeholder="Anything else…" style="width:100%;box-sizing:border-box;" /></div>
       <div class="ci-actions">
         <button class="ci-cancel" onclick="closeCheckin()">Cancel</button>
         <button class="ci-save" onclick="saveCheckin()">Save</button>
@@ -3954,6 +4052,137 @@ function renderMilestones() {
   }).join('');
 }
 
+// ---- sleep analysis card ----
+function renderSleepAnalysisCard(trends) {
+  var sa = trends.sleepAnalysis;
+  var card = document.getElementById('sleepAnalysisCard');
+  if (!sa || !card) return;
+  var items = [];
+  if (sa.performanceScore !== null) items.push('<div class="brief-item"><div class="brief-n">' + sa.performanceScore + '</div><div class="brief-u">performance</div></div>');
+  if (sa.consistencyScore !== null) items.push('<div class="brief-item"><div class="brief-n">' + sa.consistencyScore + '</div><div class="brief-u">consistency</div></div>');
+  if (sa.dynamicNeedHours !== null) items.push('<div class="brief-item"><div class="brief-n">' + sa.dynamicNeedHours + 'h</div><div class="brief-u">need tonight</div></div>');
+  if (sa.debtHours !== null && sa.debtHours > 0) items.push('<div class="brief-item"><div class="brief-n" style="color:var(--caution)">' + sa.debtHours + 'h</div><div class="brief-u">sleep debt</div></div>');
+  if (sa.onsetLatencyMin !== null) items.push('<div class="brief-item"><div class="brief-n">' + sa.onsetLatencyMin + 'm</div><div class="brief-u">fall asleep</div></div>');
+  if (sa.optimalBedtime) items.push('<div class="brief-item"><div class="brief-n">' + sa.optimalBedtime + '</div><div class="brief-u">bedtime</div></div>');
+  if (items.length) {
+    card.style.display = 'block';
+    document.getElementById('sleepAnalysisRow').innerHTML = items.join('');
+  }
+}
+
+// ---- recovery breakdown ----
+function renderRecoveryBreakdown(trends) {
+  var r = trends.recovery;
+  var card = document.getElementById('recoveryBreakdown');
+  if (!r || !card) return;
+  card.style.display = 'block';
+  var pillars = [
+    { label: 'HRV', z: r.hrvZ, weight: 25 },
+    { label: 'Resting HR', z: r.rhrZ, weight: 25 },
+    { label: 'Resp rate', z: r.respRateZ, weight: 15 },
+    { label: 'SpO2', z: r.spo2Z, weight: 10 },
+    { label: 'Wrist temp', z: r.tempDeviationC !== null ? (Math.abs(r.tempDeviationC) > 0.3 ? -1 : 0.5) : null, weight: 10 },
+    { label: 'Sleep', z: r.sleepScore !== null ? (r.sleepScore - 50) / 25 : null, weight: 15 },
+  ];
+  var el = document.getElementById('recoveryPillars');
+  el.innerHTML = pillars.map(function (p) {
+    if (p.z === null) return '<div class="rp-item"><div class="rp-label">' + p.label + '</div><div class="rp-val" style="color:var(--faint)">—</div></div>';
+    var pct = Math.max(0, Math.min(100, 50 + p.z * 25));
+    var color = pct >= 60 ? 'var(--up)' : pct >= 40 ? 'var(--caution)' : 'var(--down)';
+    return '<div class="rp-item"><div class="rp-label">' + p.label + '</div><div class="rp-val" style="color:' + color + '">' + Math.round(pct) + '</div><div class="rp-bar"><div class="rp-fill" style="width:' + pct + '%;background:' + color + '"></div></div></div>';
+  }).join('');
+}
+
+// ---- illness card ----
+function renderIllnessCard(trends) {
+  var ill = trends.illnessSignal;
+  var card = document.getElementById('illnessCard');
+  if (!ill || !card || ill.likelihood === 'low') { if (card) card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  card.classList.toggle('critical', ill.likelihood === 'high');
+  document.getElementById('illnessTitle').textContent = (ill.likelihood === 'high' ? 'High' : 'Moderate') + ' illness likelihood (' + ill.score + '/100)';
+  document.getElementById('illnessBody').textContent = ill.detail;
+}
+
+// ---- workout analytics ----
+async function loadWorkoutAnalytics() {
+  try {
+    var data = await authedFetch('/api/workouts/analytics');
+    renderWorkoutPRs(data.prs || []);
+    renderMuscleBalance(data.muscleBalance || []);
+    renderWorkoutFreq(data.frequency || []);
+  } catch (e) {}
+}
+
+function renderWorkoutPRs(prs) {
+  var card = document.getElementById('workoutPRsCard');
+  if (!prs.length || !card) return;
+  card.style.display = 'block';
+  var weightPRs = prs.filter(function (p) { return p.metric === 'weight'; }).slice(0, 10);
+  if (!weightPRs.length) { card.style.display = 'none'; return; }
+  document.getElementById('workoutPRs').innerHTML = '<ul class="pr-list">' + weightPRs.map(function (p) {
+    return '<li class="pr-item"><div><div class="pr-exercise">' + p.exercise + '</div><div class="pr-meta">' + p.date + ' · ' + p.metric + '</div></div><div class="pr-value">' + p.value + (p.metric === 'weight' ? ' kg' : p.metric === 'reps' ? ' reps' : '') + '</div></li>';
+  }).join('') + '</ul>';
+}
+
+function renderMuscleBalance(balance) {
+  var card = document.getElementById('muscleBalanceCard');
+  if (!balance.length || !card) return;
+  card.style.display = 'block';
+  var cats = {};
+  balance.forEach(function (b) {
+    cats[b.category] = (cats[b.category] || 0) + b.hitsLast30;
+  });
+  var maxVal = Math.max.apply(null, Object.values(cats).concat([1]));
+  var colors = { push: 'var(--pulse)', pull: 'var(--up)', legs: 'var(--caution)', core: 'var(--royal)' };
+  document.getElementById('muscleBalanceChart').innerHTML = '<div class="mb-bars">' + ['push', 'pull', 'legs', 'core'].map(function (cat) {
+    var val = cats[cat] || 0;
+    var pct = Math.round(val / maxVal * 100);
+    return '<div class="mb-row"><div class="mb-label">' + cat + '</div><div class="mb-bar-wrap"><div class="mb-bar-fill" style="width:' + pct + '%;background:' + (colors[cat] || 'var(--dim)') + '"></div></div><div class="mb-count">' + val + '</div></div>';
+  }).join('') + '</div>';
+}
+
+function renderWorkoutFreq(freq) {
+  var card = document.getElementById('workoutFreqCard');
+  if (!freq.length || !card) return;
+  card.style.display = 'block';
+  document.getElementById('workoutFreqChart').innerHTML = '<ul class="freq-list">' + freq.map(function (f) {
+    var cls = f.change > 0 ? 'up' : f.change < 0 ? 'down' : '';
+    return '<li class="freq-item"><span style="text-transform:capitalize">' + f.type + ' <span class="sub">' + f.countLast30 + 'x</span></span><span class="freq-change ' + cls + '">' + (f.change > 0 ? '+' : '') + f.change + '</span></li>';
+  }).join('') + '</ul>';
+}
+
+// ---- journal correlations ----
+function renderJournalCorrelations(jc) {
+  var card = document.getElementById('journalCorrelationsCard');
+  if (!jc || !jc.length || !card) return;
+  card.style.display = 'block';
+  document.getElementById('journalCorrelationsBody').innerHTML = '<ul class="ai-list">' + jc.map(function (c) {
+    var arrow = c.direction === 'positive' ? '↑' : c.direction === 'negative' ? '↓' : '—';
+    var rStr = c.r !== null ? ' (r=' + c.r.toFixed(2) + ')' : '';
+    return '<li><strong>' + c.label + '</strong> ' + arrow + rStr + '<br><span class="sub">' + c.hypothesis + (c.effectSummary ? ' ' + c.effectSummary : '') + '</span></li>';
+  }).join('') + '</ul>';
+}
+
+// ---- alerts ----
+async function loadAlerts() {
+  try {
+    var data = await authedFetch('/api/alerts');
+    if (data.alerts && data.alerts.length) {
+      renderAlertBanner(data.alerts[0]);
+    }
+  } catch (e) {}
+}
+
+function renderAlertBanner(alert) {
+  var verdict = document.getElementById('verdict');
+  if (!verdict || !alert || alert.severity === 'info') return;
+  var el = document.createElement('div');
+  el.className = 'card illness-card' + (alert.severity === 'critical' ? ' critical' : '');
+  el.innerHTML = '<div class="illness-head"><span class="illness-icon">' + (alert.severity === 'critical' ? '⚠' : '🟡') + '</span><span class="illness-title">' + alert.title + '</span></div><div class="illness-body sub">' + alert.body + '</div>';
+  verdict.parentNode.insertBefore(el, verdict.nextSibling.nextSibling);
+}
+
 async function boot() {
   document.getElementById('gateError').textContent = '';
   var series, analytics, trends;
@@ -3982,6 +4211,9 @@ async function boot() {
   TODAY.readiness = trends.readinessScore === undefined ? null : trends.readinessScore;
   TODAY.strain = trends.todayStrain === undefined ? null : trends.todayStrain;
   renderVerdict();
+  renderRecoveryBreakdown(trends);
+  renderIllnessCard(trends);
+  renderSleepAnalysisCard(trends);
   renderSleepBrief(today, days.length >= 2 ? days[days.length - 2] : null);
   renderSleepArch(today);
   renderBodyState(today, null);
@@ -4038,6 +4270,8 @@ async function boot() {
   loadKnowledge();
   loadExperiments();
   loadWorkouts();
+  loadWorkoutAnalytics();
+  loadAlerts();
 }
 
 async function loadReport(period) {
@@ -4150,6 +4384,7 @@ async function loadDiscoveries() {
       }).join('') + '</ul>';
     }
     el.innerHTML = html || '<div class="sub">Not enough history yet to find discoveries.</div>';
+    renderJournalCorrelations(res.journalCorrelations || []);
   } catch (err) {
     el.textContent = 'Could not load (' + err.message + ').';
   }
@@ -4599,28 +4834,43 @@ function openCheckin() {
 function closeCheckin() {
   document.getElementById('checkinOverlay').classList.remove('open');
   document.querySelectorAll('.ci-opt').forEach(function (o) { o.classList.remove('sel'); });
+  ['ciAlcohol','ciCaffeine','ciHydration','ciNote'].forEach(function (id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  ['ciLateMeal','ciScreen','ciIllness'].forEach(function (id) { var el = document.getElementById(id); if (el) el.checked = false; });
 }
 function ciSel(el) {
   el.parentElement.querySelectorAll('.ci-opt').forEach(function (o) { o.classList.remove('sel'); });
   el.classList.add('sel');
 }
 function saveCheckin() {
-  var mood = document.querySelector('#ciMood .ci-opt.sel');
-  var energy = document.querySelector('#ciEnergy .ci-opt.sel');
-  if (!mood || !energy) return;
-  var entry = { date: new Date().toISOString().slice(0, 10), time: new Date().toISOString().slice(11, 16), mood: mood.dataset.v, energy: energy.dataset.v };
-  try {
-    var arr = JSON.parse(localStorage.getItem('checkins') || '[]');
-    arr.push(entry);
-    if (arr.length > 90) arr = arr.slice(-90);
-    localStorage.setItem('checkins', JSON.stringify(arr));
-  } catch (e) {}
+  var energySel = document.querySelector('#ciEnergy .ci-opt.sel');
+  var stressSel = document.querySelector('#ciStress .ci-opt.sel');
+  var sorenessSel = document.querySelector('#ciSoreness .ci-opt.sel');
+
+  var note = {
+    date: new Date().toISOString().slice(0, 10),
+    energy: energySel ? parseInt(energySel.dataset.v) : undefined,
+    stress: stressSel ? parseInt(stressSel.dataset.v) : undefined,
+    soreness: sorenessSel ? parseInt(sorenessSel.dataset.v) : undefined,
+    alcoholDrinks: parseInt(document.getElementById('ciAlcohol').value) || undefined,
+    caffeineMg: parseInt(document.getElementById('ciCaffeine').value) || undefined,
+    hydrationLiters: parseFloat(document.getElementById('ciHydration').value) || undefined,
+    lateMeal: document.getElementById('ciLateMeal').checked || undefined,
+    screenBeforeBed: document.getElementById('ciScreen').checked || undefined,
+    illness: document.getElementById('ciIllness').checked || undefined,
+    note: document.getElementById('ciNote').value.trim() || undefined,
+  };
+
+  authedFetch('/api/knowledge/notes', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(note)
+  }).catch(function () {});
+
   closeCheckin();
 }
 function showCheckinFab() {
-  var h = new Date().getHours();
   var fab = document.getElementById('checkinFab');
-  if (fab && h >= 18) fab.classList.add('show');
+  if (fab) fab.classList.add('show');
 }
 
 // --------------- PWA install ---------------

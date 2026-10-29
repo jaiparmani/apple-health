@@ -1,11 +1,11 @@
-import type { BiologicalAgeResult, DailyMetrics, Env, KnowledgeNote, UserKnowledge, UserProfile } from "./types";
+import type { BiologicalAgeResult, DailyMetrics, Env, KnowledgeNote, UserKnowledge, UserProfile, AlertPayload } from "./types";
 import { bulkCommit, getJson, putJson, type BulkFile } from "./github";
 import { mergeDaily, normalizePayload } from "./normalize";
 import { chronologicalAge, computeStrain, estimateBiologicalAge } from "./analytics";
 import { computeTrends } from "./trends";
 import { computeBaselines } from "./baselines";
 import { computeCoverage } from "./coverage";
-import { computeCorrelations } from "./correlations";
+import { computeCorrelations, computeJournalCorrelations } from "./correlations";
 import { detectAnomalies } from "./anomalies";
 import { computePeriodReport, type ReportPeriod } from "./report";
 import { toCsv } from "./export";
@@ -18,8 +18,9 @@ import { healthBriefMessage } from "./brief";
 import { buildReviewContext } from "./reviewContext";
 import { computeFitnessReport } from "./fitness";
 import { computeOverview } from "./overview";
-import { sanitizeManualWorkout, type ManualWorkout } from "./manualWorkouts";
+import { sanitizeManualWorkout, computePRs, computeMuscleBalance, computeWorkoutFrequency, type ManualWorkout } from "./manualWorkouts";
 import { renderDashboard } from "./dashboard";
+import { generateAlerts } from "./alerts";
 
 const SERIES_PATH = "data/series.json";
 const PROFILE_PATH = "data/profile.json";
@@ -201,16 +202,18 @@ async function handleGetAnalytics(req: Request, env: Env): Promise<Response> {
 
 async function handleGetTrends(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
-  const [{ data: seriesData }, { data: profile }] = await Promise.all([
+  const [{ data: seriesData }, { data: profile }, { data: knowledge }] = await Promise.all([
     getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
     getJson<UserProfile>(env, PROFILE_PATH),
+    getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
   ]);
   const days = seriesData?.days ?? [];
   const age = profile ? chronologicalAge(profile.birthDate, new Date().toISOString().slice(0, 10)) : null;
   const strain7 = days.slice(-7).map((d) => ({ date: d.date, strain: d.strain ?? computeStrain(d, age) }));
   const today = days[days.length - 1];
   const todayStrain = today ? (today.strain ?? computeStrain(today, age)) : null;
-  return json({ ...computeTrends(days), todayStrain, strain7 });
+  const sleepTarget = knowledge?.sleepTargetHours ?? 7.5;
+  return json({ ...computeTrends(days, sleepTarget), todayStrain, strain7 });
 }
 
 interface InsightsCacheEntry {
@@ -541,10 +544,14 @@ async function handleTelegramBrief(req: Request, env: Env, ctx: ExecutionContext
     })().catch(() => null),
   ]);
   const fitness = computeFitnessReport(days, profile, 7.5);
+  const trends = computeTrends(days, 7.5);
   const text = healthBriefMessage({
     today: localToday(env),
     lastDataDate: days[days.length - 1].date,
-    readiness: computeTrends(days).readinessScore,
+    readiness: trends.readinessScore,
+    recovery: trends.recovery,
+    illnessSignal: trends.illnessSignal,
+    sleepAnalysis: trends.sleepAnalysis,
     review: review && !("error" in review) ? review.insights : null,
     session: plan?.today ?? null,
     actionItems: fitness.actionItems,
@@ -591,10 +598,15 @@ async function handleGetOverview(req: Request, env: Env): Promise<Response> {
 
 async function handleGetDiscoveries(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
-  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const [{ data: seriesData }, { data: knowledge }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
+  ]);
   const days = seriesData?.days ?? [];
+  const notes = knowledge?.notes ?? [];
   return json({
     correlations: computeCorrelations(days),
+    journalCorrelations: computeJournalCorrelations(days, notes),
     anomalies: detectAnomalies(days),
   });
 }
@@ -735,6 +747,14 @@ async function handlePostKnowledgeNote(req: Request, env: Env): Promise<Response
     energy: typeof body.energy === "number" ? Math.max(1, Math.min(10, body.energy)) : undefined,
     soreness: typeof body.soreness === "number" ? Math.max(1, Math.min(10, body.soreness)) : undefined,
     note: typeof body.note === "string" ? body.note.slice(0, 2000) : undefined,
+    alcoholDrinks: typeof body.alcoholDrinks === "number" ? Math.max(0, Math.round(body.alcoholDrinks)) : undefined,
+    caffeineMg: typeof body.caffeineMg === "number" ? Math.max(0, Math.round(body.caffeineMg)) : undefined,
+    stress: typeof body.stress === "number" ? Math.max(1, Math.min(10, body.stress)) : undefined,
+    illness: typeof body.illness === "boolean" ? body.illness : undefined,
+    lateMeal: typeof body.lateMeal === "boolean" ? body.lateMeal : undefined,
+    screenBeforeBed: typeof body.screenBeforeBed === "boolean" ? body.screenBeforeBed : undefined,
+    supplements: Array.isArray(body.supplements) ? body.supplements.filter((s: unknown) => typeof s === "string").slice(0, 10).map((s: string) => s.slice(0, 60)) : undefined,
+    hydrationLiters: typeof body.hydrationLiters === "number" ? Math.max(0, Math.round(body.hydrationLiters * 10) / 10) : undefined,
   };
 
   const { data: existing, sha } = await getJson<UserKnowledge>(env, KNOWLEDGE_PATH);
@@ -847,6 +867,17 @@ async function handleGetWorkouts(req: Request, env: Env): Promise<Response> {
   return json({ workouts });
 }
 
+async function handleGetWorkoutAnalytics(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const { data } = await getJson<{ workouts: ManualWorkout[] }>(env, WORKOUTS_PATH);
+  const workouts = data?.workouts ?? [];
+  return json({
+    prs: computePRs(workouts),
+    muscleBalance: computeMuscleBalance(workouts),
+    frequency: computeWorkoutFrequency(workouts),
+  });
+}
+
 async function handlePostWorkout(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   let body: unknown;
@@ -888,6 +919,21 @@ async function handleDeleteWorkout(req: Request, env: Env): Promise<Response> {
   await putJson(env, WORKOUTS_PATH, { workouts }, `workouts: delete ${id}`, sha);
   await bumpDataVersion(env);
   return json({ ok: true });
+}
+
+async function handleGetAlerts(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const [{ data: seriesData }, { data: knowledge }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
+  ]);
+  const days = seriesData?.days ?? [];
+  const today = localToday(env);
+  const sleepTarget = knowledge?.sleepTargetHours ?? 7.5;
+  const trends = computeTrends(days, sleepTarget);
+  const goals = await loadGoalProgress(env, days);
+  const lastSyncDate = days.length ? days[days.length - 1].date : null;
+  return json({ alerts: generateAlerts(days, trends, goals, lastSyncDate, today) });
 }
 
 async function handlePutProfile(req: Request, env: Env): Promise<Response> {
@@ -954,8 +1000,10 @@ export default {
       if (req.method === "POST" && url.pathname === "/api/experiments/adherence") return await handlePostExperimentAdherence(req, env);
       if (req.method === "DELETE" && url.pathname === "/api/experiments") return await handleDeleteExperiment(req, env);
       if (req.method === "GET" && url.pathname === "/api/workouts") return await handleGetWorkouts(req, env);
+      if (req.method === "GET" && url.pathname === "/api/workouts/analytics") return await handleGetWorkoutAnalytics(req, env);
       if (req.method === "POST" && url.pathname === "/api/workouts") return await handlePostWorkout(req, env);
       if (req.method === "DELETE" && url.pathname === "/api/workouts") return await handleDeleteWorkout(req, env);
+      if (req.method === "GET" && url.pathname === "/api/alerts") return await handleGetAlerts(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
       if (req.method === "GET" && url.pathname === "/manifest.json") {
         return new Response(JSON.stringify({

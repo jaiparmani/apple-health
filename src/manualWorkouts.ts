@@ -1,4 +1,5 @@
-import { findExercise, type MuscleId } from "./exerciseLibrary";
+import { findExercise, type MuscleId, EXERCISE_LIBRARY } from "./exerciseLibrary";
+import type { WorkoutPR, MuscleBalance } from "./types";
 
 /**
  * Manually-logged workout detail (sets/reps/weight) — stored entirely
@@ -145,4 +146,166 @@ export function sanitizeManualWorkout(raw: unknown): Omit<ManualWorkout, "id" | 
     notes: typeof r.notes === "string" ? r.notes.slice(0, 1000) : undefined,
     linkedSession,
   };
+}
+
+// ---- Workout volume tracking over time ----
+
+export interface ExerciseVolumeHistory {
+  exercise: string;
+  dataPoints: { date: string; totalVolume: number; maxWeight: number; totalReps: number }[];
+}
+
+export function exerciseVolumeHistory(workouts: ManualWorkout[], exerciseName: string): ExerciseVolumeHistory {
+  const points: ExerciseVolumeHistory["dataPoints"] = [];
+  const sorted = [...workouts].sort((a, b) => a.date.localeCompare(b.date));
+  for (const w of sorted) {
+    for (const ex of w.exercises) {
+      if (ex.name.toLowerCase() !== exerciseName.toLowerCase()) continue;
+      let totalVolume = 0;
+      let maxWeight = 0;
+      let totalReps = 0;
+      for (const s of ex.sets) {
+        if (typeof s.reps === "number") totalReps += s.reps;
+        if (typeof s.weightKg === "number") maxWeight = Math.max(maxWeight, s.weightKg);
+        if (typeof s.reps === "number" && typeof s.weightKg === "number") totalVolume += s.reps * s.weightKg;
+      }
+      points.push({ date: w.date, totalVolume: round(totalVolume, 1), maxWeight, totalReps });
+    }
+  }
+  return { exercise: exerciseName, dataPoints: points };
+}
+
+// ---- Personal records ----
+
+export function computePRs(workouts: ManualWorkout[]): WorkoutPR[] {
+  const prs: WorkoutPR[] = [];
+  const bestWeight = new Map<string, { value: number; date: string }>();
+  const bestVolume = new Map<string, { value: number; date: string }>();
+  const bestReps = new Map<string, { value: number; date: string }>();
+
+  const sorted = [...workouts].sort((a, b) => a.date.localeCompare(b.date));
+  for (const w of sorted) {
+    for (const ex of w.exercises) {
+      const name = ex.name.toLowerCase();
+      for (const s of ex.sets) {
+        if (typeof s.weightKg === "number" && s.weightKg > 0) {
+          const prev = bestWeight.get(name);
+          if (!prev || s.weightKg > prev.value) {
+            bestWeight.set(name, { value: s.weightKg, date: w.date });
+          }
+        }
+        if (typeof s.reps === "number" && typeof s.weightKg === "number") {
+          const vol = s.reps * s.weightKg;
+          const prev = bestVolume.get(name);
+          if (!prev || vol > prev.value) {
+            bestVolume.set(name, { value: round(vol, 1), date: w.date });
+          }
+        }
+        if (typeof s.reps === "number") {
+          const prev = bestReps.get(name);
+          if (!prev || s.reps > prev.value) {
+            bestReps.set(name, { value: s.reps, date: w.date });
+          }
+        }
+      }
+    }
+  }
+
+  for (const [exercise, best] of bestWeight) {
+    prs.push({ exercise, metric: "weight", value: best.value, date: best.date, previousBest: null });
+  }
+  for (const [exercise, best] of bestVolume) {
+    prs.push({ exercise, metric: "volume", value: best.value, date: best.date, previousBest: null });
+  }
+  for (const [exercise, best] of bestReps) {
+    prs.push({ exercise, metric: "reps", value: best.value, date: best.date, previousBest: null });
+  }
+
+  return prs.sort((a, b) => b.date.localeCompare(a.date));
+}
+
+// ---- Muscle balance analysis ----
+
+const MUSCLE_CATEGORY: Record<string, MuscleBalance["category"]> = {
+  chest: "push", front_delt: "push", triceps: "push",
+  upper_back: "pull", lats: "pull", rear_delt: "pull", biceps: "pull", forearms: "pull",
+  quads: "legs", hamstrings: "legs", glutes: "legs", calves: "legs", hip_flexors: "legs",
+  abs: "core", obliques: "core", lower_back: "core",
+};
+
+export function computeMuscleBalance(workouts: ManualWorkout[]): MuscleBalance[] {
+  const now = workouts.length ? workouts[workouts.length - 1].date : "";
+  const thirtyAgo = addDaysStr(now, -30);
+  const sevenAgo = addDaysStr(now, -7);
+  const last30 = workouts.filter((w) => w.date > thirtyAgo);
+  const last7 = workouts.filter((w) => w.date > sevenAgo);
+
+  const counts = new Map<string, { hitsLast30: number; hitsLast7: number }>();
+
+  for (const w of last30) {
+    for (const ex of w.exercises) {
+      const def = findExercise(ex.name);
+      if (!def) continue;
+      const muscles = [...def.primary, ...def.secondary];
+      for (const m of muscles) {
+        const c = counts.get(m) ?? { hitsLast30: 0, hitsLast7: 0 };
+        c.hitsLast30++;
+        if (w.date > sevenAgo) c.hitsLast7++;
+        counts.set(m, c);
+      }
+    }
+  }
+
+  return [...counts.entries()]
+    .map(([muscle, c]) => ({
+      muscle,
+      hitsLast30: c.hitsLast30,
+      hitsLast7: c.hitsLast7,
+      category: MUSCLE_CATEGORY[muscle] ?? "core" as MuscleBalance["category"],
+    }))
+    .sort((a, b) => b.hitsLast30 - a.hitsLast30);
+}
+
+// ---- Workout frequency by type over time ----
+
+export interface WorkoutFrequency {
+  type: string;
+  countLast30: number;
+  countPrev30: number;
+  change: number; // countLast30 - countPrev30
+}
+
+export function computeWorkoutFrequency(workouts: ManualWorkout[]): WorkoutFrequency[] {
+  if (workouts.length === 0) return [];
+  const latest = workouts[workouts.length - 1].date;
+  const thirtyAgo = addDaysStr(latest, -30);
+  const sixtyAgo = addDaysStr(latest, -60);
+
+  const last30 = workouts.filter((w) => w.date > thirtyAgo);
+  const prev30 = workouts.filter((w) => w.date > sixtyAgo && w.date <= thirtyAgo);
+
+  const types = new Map<string, { countLast30: number; countPrev30: number }>();
+  for (const w of last30) {
+    const t = w.type.toLowerCase();
+    const c = types.get(t) ?? { countLast30: 0, countPrev30: 0 };
+    c.countLast30++;
+    types.set(t, c);
+  }
+  for (const w of prev30) {
+    const t = w.type.toLowerCase();
+    const c = types.get(t) ?? { countLast30: 0, countPrev30: 0 };
+    c.countPrev30++;
+    types.set(t, c);
+  }
+
+  return [...types.entries()]
+    .map(([type, c]) => ({ type, ...c, change: c.countLast30 - c.countPrev30 }))
+    .sort((a, b) => b.countLast30 - a.countLast30);
+}
+
+function addDaysStr(date: string, n: number): string {
+  const [y, m, d] = date.split("-").map(Number);
+  const dt = new Date(Date.UTC(y, m - 1, d));
+  dt.setUTCDate(dt.getUTCDate() + n);
+  return dt.toISOString().slice(0, 10);
 }

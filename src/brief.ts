@@ -2,6 +2,7 @@ import type { AiInsights } from "./ai";
 import type { ActionItem } from "./fitness";
 import type { GoalProgress } from "./goals";
 import type { PlanDayView } from "./plan";
+import type { RecoverySnapshot, IllnessSignal, SleepAnalysis } from "./types";
 
 /**
  * The health section of the 7am Telegram brief. Rendered here, as
@@ -18,6 +19,9 @@ export interface BriefInput {
   today: string;
   lastDataDate: string | null;
   readiness: number | null;
+  recovery: RecoverySnapshot | null;
+  illnessSignal: IllnessSignal | null;
+  sleepAnalysis: SleepAnalysis | null;
   review: AiInsights | null;
   session: PlanDayView | null;
   actionItems: ActionItem[];
@@ -47,6 +51,27 @@ export function healthBriefMessage(b: BriefInput): string | null {
   lines.push(`*Health${b.readiness !== null ? ` · Readiness ${b.readiness}/100` : ""}*`);
   if (word) lines.push(e(`You're ${word}.`));
   if (b.review) lines.push(`_${e(b.review.headline)}_`);
+
+  if (b.illnessSignal && b.illnessSignal.likelihood !== "low") {
+    const sev = b.illnessSignal.likelihood === "high" ? "⚠️" : "🟡";
+    lines.push(`${sev} _${e(`Illness likelihood: ${b.illnessSignal.likelihood} (${b.illnessSignal.score}/100). ${b.illnessSignal.detail}`)}_`);
+  }
+
+  if (b.recovery) {
+    const parts: string[] = [];
+    if (b.recovery.hrvZ !== null) parts.push(`HRV ${b.recovery.hrvZ > 0 ? "+" : ""}${b.recovery.hrvZ.toFixed(1)}σ`);
+    if (b.recovery.rhrZ !== null) parts.push(`RHR ${b.recovery.rhrZ > 0 ? "+" : ""}${b.recovery.rhrZ.toFixed(1)}σ`);
+    if (b.recovery.sleepScore !== null) parts.push(`Sleep ${b.recovery.sleepScore}/100`);
+    if (parts.length) lines.push(e(`Recovery ${b.recovery.score}/100 — ${parts.join(", ")}`));
+  }
+
+  if (b.sleepAnalysis && b.sleepAnalysis.performanceScore !== null) {
+    const sa = b.sleepAnalysis;
+    const parts: string[] = [`perf ${sa.performanceScore}/100`];
+    if (sa.debtHours !== null && sa.debtHours > 0.5) parts.push(`debt ${sa.debtHours}h`);
+    if (sa.dynamicNeedHours !== null) parts.push(`need ${sa.dynamicNeedHours}h tonight`);
+    lines.push(e(`Sleep: ${parts.join(" · ")}`));
+  }
 
   if (b.session) {
     const s = b.session.adjusted ?? b.session;

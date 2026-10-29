@@ -539,6 +539,85 @@ export function computeFitnessReport(days: DailyMetrics[], profile: UserProfile 
     }
   }
 
+  // ---- Sleep performance (Whoop-style composite) ----
+  const trends = computeTrends(days, sleepTargetHours);
+  if (trends.sleepAnalysis) {
+    const sa = trends.sleepAnalysis;
+    if (sa.performanceScore !== null) {
+      metrics.push({
+        key: "sleepPerformance",
+        label: "Sleep performance",
+        value: sa.performanceScore,
+        unit: "/100",
+        display: `${sa.performanceScore}/100`,
+        status: sa.performanceScore >= 80 ? "good" : sa.performanceScore >= 60 ? "ok" : sa.performanceScore >= 40 ? "watch" : "bad",
+        meaning: "Composite of duration, efficiency, stage quality and consistency. Whoop-style 0-100.",
+        action: sa.performanceScore >= 80 ? "Excellent sleep. Keep your routine." :
+          sa.performanceScore >= 60 ? "Decent. Tighten bedtime consistency for more gains." :
+          "Low. Prioritize a fixed bedtime and wind-down routine.",
+      });
+    }
+    if (sa.consistencyScore !== null) {
+      metrics.push({
+        key: "sleepConsistency",
+        label: "Sleep consistency",
+        value: sa.consistencyScore,
+        unit: "/100",
+        display: `${sa.consistencyScore}/100`,
+        status: sa.consistencyScore >= 80 ? "good" : sa.consistencyScore >= 60 ? "ok" : "watch",
+        meaning: "How stable your bedtime and wake time are. More consistent = better hormone regulation.",
+        action: sa.consistencyScore >= 80 ? "Very consistent schedule." :
+          `Try keeping bedtime within 30 minutes. Your variance is ${sa.bedtimeStddevMin ?? "?"}min.`,
+      });
+    }
+    if (sa.dynamicNeedHours !== null) {
+      metrics.push({
+        key: "sleepNeed",
+        label: "Dynamic sleep need",
+        value: sa.dynamicNeedHours,
+        unit: "hr",
+        display: `${sa.dynamicNeedHours}h`,
+        status: "ok",
+        meaning: "How much sleep you need tonight, adjusted for yesterday's strain and accumulated debt.",
+        action: sa.optimalBedtime ? `Aim for bed by ${sa.optimalBedtime}.` : `Target ${sa.dynamicNeedHours}h tonight.`,
+      });
+    }
+    if (sa.onsetLatencyMin !== null) {
+      metrics.push({
+        key: "sleepLatency",
+        label: "Sleep onset latency",
+        value: sa.onsetLatencyMin,
+        unit: "min",
+        display: `${sa.onsetLatencyMin} min`,
+        status: sa.onsetLatencyMin <= 15 ? "good" : sa.onsetLatencyMin <= 30 ? "ok" : "watch",
+        meaning: "How long it takes to fall asleep. 10-20 min is ideal; under 5 means you're sleep-deprived.",
+        action: sa.onsetLatencyMin > 30 ? "Cut screen time 60 min before bed, dim lights, and cool the room." :
+          sa.onsetLatencyMin < 5 ? "Falling asleep instantly suggests sleep deprivation." : "Healthy range.",
+      });
+    }
+  }
+
+  // ---- Illness likelihood ----
+  if (trends.illnessSignal && trends.illnessSignal.likelihood !== "low") {
+    const ill = trends.illnessSignal;
+    metrics.push({
+      key: "illnessLikelihood",
+      label: "Illness likelihood",
+      value: ill.score,
+      unit: "/100",
+      display: `${ill.likelihood} (${ill.score}/100)`,
+      status: ill.likelihood === "high" ? "bad" : "watch",
+      meaning: "Combined signal from RHR, HRV, wrist temp and respiratory rate deviations from your baseline.",
+      action: ill.detail,
+    });
+    actionItems.push({
+      priority: ill.likelihood === "high" ? "high" : "medium",
+      area: "recovery",
+      text: ill.likelihood === "high" ? "Rest today — possible illness detected" : "Keep today easy, monitor symptoms",
+      why: ill.detail,
+    });
+  }
+
   // ---- Daily steps (NEAT) ----
   const steps7 = mean(nums(last7, (d) => d.steps));
   if (steps7 !== null) {

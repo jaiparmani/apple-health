@@ -1,4 +1,4 @@
-import type { DailyMetrics } from "./types";
+import type { DailyMetrics, KnowledgeNote } from "./types";
 
 /**
  * Correlation discovery over a FIXED, hand-picked set of metric pairs that
@@ -29,6 +29,105 @@ const PAIR_DEFS: CorrelationPairDef[] = [
   { id: "strain_next_rhr", label: "Strain -> next-day resting heart rate", metricA: "strain", metricB: "restingHeartRate", lagDays: 1, hypothesis: "Higher cardiovascular load may relate to next-day resting heart rate." },
   { id: "sleep_eff_next_hrv", label: "Sleep efficiency -> next-day HRV", metricA: "sleepEfficiency", metricB: "hrv", lagDays: 1, hypothesis: "More efficient sleep may relate to next-day HRV." },
 ];
+
+/**
+ * Journal-to-metric correlations: structured journal fields (alcohol,
+ * caffeine, stress, etc.) correlated against next-day sensor metrics.
+ */
+export interface JournalCorrelationDef {
+  id: string;
+  label: string;
+  journalField: keyof KnowledgeNote;
+  metricField: keyof DailyMetrics;
+  lagDays: number;
+  hypothesis: string;
+  booleanField?: boolean;
+}
+
+const JOURNAL_PAIR_DEFS: JournalCorrelationDef[] = [
+  { id: "alcohol_next_hrv", label: "Alcohol -> next-day HRV", journalField: "alcoholDrinks", metricField: "hrv", lagDays: 1, hypothesis: "Alcohol may suppress next-day HRV." },
+  { id: "alcohol_next_rhr", label: "Alcohol -> next-day resting HR", journalField: "alcoholDrinks", metricField: "restingHeartRate", lagDays: 1, hypothesis: "Alcohol may elevate next-day resting heart rate." },
+  { id: "alcohol_sleep", label: "Alcohol -> same-night sleep quality", journalField: "alcoholDrinks", metricField: "sleepEfficiency", lagDays: 0, hypothesis: "Alcohol may reduce sleep efficiency." },
+  { id: "caffeine_sleep", label: "Caffeine -> same-night sleep", journalField: "caffeineMg", metricField: "sleepHours", lagDays: 0, hypothesis: "Higher caffeine intake may reduce that night's sleep duration." },
+  { id: "stress_next_hrv", label: "Stress -> next-day HRV", journalField: "stress", metricField: "hrv", lagDays: 1, hypothesis: "Higher reported stress may be followed by lower HRV." },
+  { id: "stress_sleep", label: "Stress -> same-night sleep", journalField: "stress", metricField: "sleepHours", lagDays: 0, hypothesis: "Higher stress may relate to shorter sleep." },
+  { id: "late_meal_sleep", label: "Late meal -> sleep efficiency", journalField: "lateMeal", metricField: "sleepEfficiency", lagDays: 0, hypothesis: "Eating late may reduce sleep efficiency.", booleanField: true },
+  { id: "screen_sleep", label: "Screen before bed -> sleep latency", journalField: "screenBeforeBed", metricField: "sleepEfficiency", lagDays: 0, hypothesis: "Screen time before bed may reduce sleep efficiency.", booleanField: true },
+  { id: "hydration_next_hrv", label: "Hydration -> next-day HRV", journalField: "hydrationLiters", metricField: "hrv", lagDays: 1, hypothesis: "Better hydration may support next-day HRV." },
+];
+
+export interface JournalCorrelationResult {
+  id: string;
+  label: string;
+  hypothesis: string;
+  sampleSize: number;
+  r: number | null;
+  strength: CorrelationResult["strength"];
+  direction: "positive" | "negative" | null;
+  effectSummary: string | null;
+}
+
+export function computeJournalCorrelation(
+  days: DailyMetrics[],
+  notes: KnowledgeNote[],
+  def: JournalCorrelationDef
+): JournalCorrelationResult {
+  const noteByDate = new Map(notes.map((n) => [n.date, n]));
+  const dayByDate = new Map(days.map((d) => [d.date, d]));
+  const xs: number[] = [];
+  const ys: number[] = [];
+
+  for (const note of notes) {
+    let aVal: number | undefined;
+    if (def.booleanField) {
+      const boolVal = note[def.journalField];
+      if (typeof boolVal !== "boolean") continue;
+      aVal = boolVal ? 1 : 0;
+    } else {
+      const numVal = note[def.journalField];
+      if (typeof numVal !== "number") continue;
+      aVal = numVal;
+    }
+
+    const bDate = def.lagDays === 0 ? note.date : addDays(note.date, def.lagDays);
+    const bDay = dayByDate.get(bDate);
+    const bVal = bDay ? bDay[def.metricField] : undefined;
+    if (typeof bVal !== "number") continue;
+
+    xs.push(aVal);
+    ys.push(bVal);
+  }
+
+  if (xs.length < MIN_SAMPLE_SIZE) {
+    return { id: def.id, label: def.label, hypothesis: def.hypothesis, sampleSize: xs.length, r: null, strength: "insufficient_data", direction: null, effectSummary: null };
+  }
+
+  const r = Math.round(pearson(xs, ys) * 1000) / 1000;
+  const strength = strengthOf(r);
+  const direction = r === 0 ? null : r > 0 ? "positive" as const : "negative" as const;
+
+  let effectSummary: string | null = null;
+  if (strength !== "negligible" && strength !== "insufficient_data") {
+    const avgA = xs.reduce((a, b) => a + b, 0) / xs.length;
+    const highXs = xs.filter((v) => v > avgA);
+    const lowXs = xs.filter((v) => v <= avgA);
+    if (highXs.length >= 3 && lowXs.length >= 3) {
+      const highYs = ys.filter((_, i) => xs[i] > avgA);
+      const lowYs = ys.filter((_, i) => xs[i] <= avgA);
+      const avgHighY = highYs.reduce((a, b) => a + b, 0) / highYs.length;
+      const avgLowY = lowYs.reduce((a, b) => a + b, 0) / lowYs.length;
+      const diff = avgHighY - avgLowY;
+      effectSummary = `On days with higher ${def.journalField}, ${def.metricField} was ${diff > 0 ? "+" : ""}${diff.toFixed(1)} on average.`;
+    }
+  }
+
+  return { id: def.id, label: def.label, hypothesis: def.hypothesis, sampleSize: xs.length, r, strength, direction, effectSummary };
+}
+
+export function computeJournalCorrelations(days: DailyMetrics[], notes: KnowledgeNote[]): JournalCorrelationResult[] {
+  return JOURNAL_PAIR_DEFS.map((def) => computeJournalCorrelation(days, notes, def))
+    .filter((r) => r.strength !== "insufficient_data");
+}
 
 export interface CorrelationResult {
   id: string;
