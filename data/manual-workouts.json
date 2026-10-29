@@ -1,0 +1,84 @@
+{
+  "workouts": [
+    {
+      "date": "2026-10-28",
+      "type": "All exercises",
+      "exercises": [
+        {
+          "name": "Overhead Press",
+          "sets": [
+            {
+              "reps": 12
+            }
+          ]
+        },
+        {
+          "name": "Lateral Raise",
+          "sets": []
+        },
+        {
+          "name": "Front Raise",
+          "sets": []
+        },
+        {
+          "name": "Bench Press",
+          "sets": []
+        },
+        {
+          "name": "Incline Bench Press",
+          "sets": []
+        },
+        {
+          "name": "Lat Pulldown",
+          "sets": []
+        },
+        {
+          "name": "Seated Cable Row",
+          "sets": []
+        },
+        {
+          "name": "Dumbbell Curl",
+          "sets": []
+        },
+        {
+          "name": "Overhead Tricep Extension",
+          "sets": []
+        },
+        {
+          "name": "Dumbel Chest Pullover",
+          "sets": []
+        },
+        {
+          "name": "Squat",
+          "sets": []
+        },
+        {
+          "name": "Leg Extension",
+          "sets": []
+        },
+        {
+          "name": "Leg Curl",
+          "sets": []
+        },
+        {
+          "name": "Leg raises",
+          "sets": []
+        },
+        {
+          "name": "Crunch",
+          "sets": []
+        },
+        {
+          "name": "Back Extension",
+          "sets": []
+        }
+      ],
+      "linkedSession": {
+        "startTime": "2026-10-28T00:00:00Z",
+        "type": "TraditionalStrengthTraining"
+      },
+      "id": "7eb32f37-b72a-45ca-8beb-2f76e3f0a370",
+      "createdAt": "2026-10-28T20:07:49.716Z"
+    }
+  ]
+}
