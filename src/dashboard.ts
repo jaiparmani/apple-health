@@ -795,10 +795,24 @@ export function renderDashboard(): string {
   /* ==== BODY-CENTRIC HOME ==== */
   .body-home { display:flex; flex-direction:column; align-items:center; position:relative; }
 
+  /* ambient state background — shifts with recovery */
+  .body-home::before { content:''; position:absolute; top:-60px; left:50%; transform:translateX(-50%); width:500px; height:500px; border-radius:50%; pointer-events:none; z-index:0; opacity:.06; transition:background 1.5s ease; background:radial-gradient(circle, var(--up) 0%, transparent 70%); }
+  .body-home.state-hard::before { background:radial-gradient(circle, #34d399 0%, transparent 70%); opacity:.08; }
+  .body-home.state-steady::before { background:radial-gradient(circle, #fbbf24 0%, transparent 70%); opacity:.06; }
+  .body-home.state-recover::before { background:radial-gradient(circle, #f76b4d 0%, transparent 70%); opacity:.05; }
+
+  /* breathing aura behind the body */
+  .body-aura { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:320px; height:420px; border-radius:50%; pointer-events:none; z-index:1; opacity:.12; animation:bodyBreathe 4s ease-in-out infinite; background:radial-gradient(ellipse, rgba(163,230,53,.25) 0%, rgba(52,211,153,.1) 40%, transparent 70%); }
+  @keyframes bodyBreathe { 0%,100% { transform:translate(-50%,-50%) scale(1); opacity:.1; } 50% { transform:translate(-50%,-50%) scale(1.08); opacity:.18; } }
+
+  /* particle canvas */
+  .body-particles { position:absolute; inset:-40px; z-index:0; pointer-events:none; }
+
   /* central body stage */
   .body-stage { position:relative; width:100%; max-width:380px; margin:0 auto; }
   .body-stage-svg { position:relative; z-index:2; width:260px; margin:0 auto; display:block; }
-  .body-stage-svg svg { width:100%; height:auto; filter:drop-shadow(0 0 30px rgba(163,230,53,.12)); }
+  .body-stage-svg svg { width:100%; height:auto; filter:drop-shadow(0 0 30px rgba(163,230,53,.12)); transition:filter .5s; }
+  .body-stage-svg:hover svg { filter:drop-shadow(0 0 50px rgba(163,230,53,.2)); }
   .body-stage-svg .muscle-region { cursor:pointer; transition:fill .4s, filter .4s, opacity .4s; fill:var(--line); opacity:.4; }
   .body-stage-svg .muscle-region:hover { opacity:1 !important; filter:drop-shadow(0 0 12px currentColor) !important; }
   .body-stage-svg .muscle-region.m-optimal { fill:var(--up); opacity:1; filter:drop-shadow(0 0 10px var(--up)); animation:musclePulse 2.5s ease-in-out infinite; }
@@ -875,6 +889,72 @@ export function renderDashboard(): string {
 
   @keyframes orbitFadeIn { from { stroke-dashoffset:var(--circ); opacity:0; } to { opacity:1; } }
   @keyframes floatUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
+
+  /* muscle tap ripple */
+  @keyframes muscleRipple { 0% { r:0; opacity:.6; } 100% { r:30; opacity:0; } }
+  .muscle-ripple { fill:none; stroke:var(--pulse); stroke-width:2; animation:muscleRipple .6s ease-out forwards; pointer-events:none; }
+
+  /* orbit tap pulse */
+  @keyframes orbitPulse { 0% { stroke-width:5; opacity:1; } 50% { stroke-width:10; opacity:.6; } 100% { stroke-width:5; opacity:1; } }
+  .orbit-arc.tapped { animation:orbitPulse .4s ease-out; }
+
+  /* quick-glance card entrance stagger */
+  .qg-card { opacity:0; animation:qgCardIn .4s var(--ease-spring) both; }
+  @keyframes qgCardIn { from { opacity:0; transform:translateY(14px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
+  .qg-card:nth-child(1) { animation-delay:.05s; }
+  .qg-card:nth-child(2) { animation-delay:.1s; }
+  .qg-card:nth-child(3) { animation-delay:.15s; }
+  .qg-card:nth-child(4) { animation-delay:.2s; }
+  .qg-card:nth-child(5) { animation-delay:.25s; }
+  .qg-card:nth-child(6) { animation-delay:.3s; }
+
+  /* satellite chip entrance */
+  .sat-chip { opacity:0; animation:satChipIn .35s var(--ease-spring) both; }
+  @keyframes satChipIn { from { opacity:0; transform:scale(.8); } to { opacity:1; transform:scale(1); } }
+  .sat-chip:nth-child(1) { animation-delay:.1s; }
+  .sat-chip:nth-child(2) { animation-delay:.18s; }
+  .sat-chip:nth-child(3) { animation-delay:.26s; }
+  .sat-chip:nth-child(4) { animation-delay:.34s; }
+
+  /* muscle detail slide-up from home body */
+  .home-muscle-sheet { position:fixed; bottom:0; left:0; right:0; z-index:56; transform:translateY(100%); transition:transform .35s cubic-bezier(.32,1.2,.54,1); }
+  .home-muscle-sheet.open { transform:translateY(0); }
+  .home-muscle-bg { position:fixed; inset:0; background:rgba(0,0,0,.5); backdrop-filter:blur(4px); z-index:55; opacity:0; pointer-events:none; transition:opacity .3s; }
+  .home-muscle-bg.open { opacity:1; pointer-events:auto; }
+  .hms-sheet { background:var(--panel); border:1px solid var(--line); border-radius:20px 20px 0 0; padding:20px 16px 32px; max-height:65vh; overflow-y:auto; box-shadow:0 -4px 30px rgba(0,0,0,.3); }
+  .hms-header { display:flex; align-items:center; gap:12px; margin-bottom:16px; }
+  .hms-icon { width:40px; height:40px; border-radius:12px; display:flex; align-items:center; justify-content:center; font-size:20px; }
+  .hms-icon.optimal { background:rgba(52,211,153,.15); }
+  .hms-icon.undertrained { background:rgba(251,191,36,.15); }
+  .hms-icon.neglected { background:rgba(85,85,85,.15); }
+  .hms-icon.overtrained { background:rgba(201,184,255,.15); }
+  .hms-title { font-size:18px; font-weight:800; text-transform:capitalize; flex:1; }
+  .hms-close { background:var(--panel2); border:none; color:var(--dim); width:28px; height:28px; border-radius:50%; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .hms-status-pill { display:inline-block; font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; text-transform:uppercase; letter-spacing:.04em; }
+  .hms-status-pill.optimal { background:rgba(52,211,153,.15); color:var(--up); }
+  .hms-status-pill.undertrained { background:rgba(251,191,36,.15); color:var(--caution); }
+  .hms-status-pill.neglected { background:rgba(85,85,85,.15); color:var(--faint); }
+  .hms-status-pill.overtrained { background:rgba(201,184,255,.15); color:var(--royal); }
+  .hms-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin:12px 0; }
+  .hms-stat { background:var(--panel2); border-radius:10px; padding:12px; text-align:center; }
+  .hms-stat-val { font-family:var(--mono); font-size:24px; font-weight:900; }
+  .hms-stat-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+  .hms-bar { height:8px; background:var(--panel2); border-radius:4px; overflow:hidden; margin:8px 0; }
+  .hms-bar > div { height:100%; border-radius:4px; transition:width .6s var(--ease-spring); }
+  .hms-reco { font-size:13px; color:var(--dim); line-height:1.55; padding:12px 0; border-top:1px solid var(--line); }
+  .hms-reco::before { content:"→ "; font-weight:700; color:var(--pulse); }
+  .hms-sparkline { width:100%; height:48px; margin:8px 0; }
+  .hms-sparkline svg { width:100%; height:100%; }
+
+  /* enhanced metric drawer sparklines */
+  .md-sparkline { width:100%; height:56px; margin:10px 0; }
+  .md-sparkline svg { width:100%; height:100%; }
+  .md-trend-row { display:flex; gap:6px; margin:8px 0 14px; }
+  .md-trend-chip { font-size:11px; font-weight:700; padding:3px 10px; border-radius:999px; }
+  .md-trend-chip.improving { background:rgba(52,211,153,.15); color:var(--up); }
+  .md-trend-chip.declining { background:rgba(247,107,77,.15); color:var(--down); }
+  .md-trend-chip.stable { background:var(--panel2); color:var(--dim); }
+  .md-insight { font-size:12.5px; color:var(--dim); line-height:1.55; padding:10px 12px; background:var(--panel2); border-radius:8px; margin:8px 0; border-left:3px solid var(--pulse); }
 
   @media (max-width:480px) {
     .body-stage { max-width:320px; }
@@ -1461,8 +1541,10 @@ export function renderDashboard(): string {
     </div>
 
     <!-- ===== THE BODY STAGE ===== -->
-    <div class="body-home">
+    <div class="body-home" id="bodyHome">
+      <canvas class="body-particles" id="bodyParticles"></canvas>
       <div class="body-stage" id="bodyStage">
+        <div class="body-aura" id="bodyAura"></div>
         <!-- Score badge floating above head -->
         <div class="body-score-badge" id="bodyScoreBadge">
           <div class="bsb-ring">
@@ -1609,6 +1691,27 @@ export function renderDashboard(): string {
         <button class="md-close" onclick="closeMetricDrawer()">×</button>
       </div>
       <div id="mdContent"></div>
+    </div>
+  </div>
+
+  <!-- HOME MUSCLE DETAIL SHEET (tap muscle on body) -->
+  <div class="home-muscle-bg" id="homeMuscBg" onclick="closeHomeMuscle()"></div>
+  <div class="home-muscle-sheet" id="homeMuscSheet">
+    <div class="hms-sheet">
+      <div class="md-handle"></div>
+      <div class="hms-header">
+        <div class="hms-icon" id="hmsIcon">💪</div>
+        <div>
+          <div class="hms-title" id="hmsTitle">—</div>
+          <span class="hms-status-pill" id="hmsStatus">—</span>
+        </div>
+        <button class="hms-close" onclick="closeHomeMuscle()">×</button>
+      </div>
+      <div class="hms-stats" id="hmsStats"></div>
+      <div class="hms-bar" id="hmsBar"><div></div></div>
+      <div class="hms-sparkline" id="hmsSpark"></div>
+      <div class="hms-reco" id="hmsReco"></div>
+      <button class="btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="closeHomeMuscle();showTab('body');">Full body analysis →</button>
     </div>
   </div>
 
@@ -3649,8 +3752,14 @@ function renderBodyHome(todayData) {
     svgEl.innerHTML = BODY_FRONT_SVG;
   }
 
+  // Init particle system
+  initBodyParticles();
+
   // Light up muscles if body data is ready
   lightUpHomeBody();
+
+  // Ambient state background based on recovery
+  if (d && d.recoveryScore !== undefined) updateAmbientState(d.recoveryScore);
 
   // Body score badge
   if (_bodyData && _bodyData.bodyScore) {
@@ -3688,7 +3797,24 @@ function lightUpHomeBody() {
       r.classList.add('m-' + m.status);
       if (!r._muscleClickBound) {
         r._muscleClickBound = true;
-        r.addEventListener('click', function(e) { e.stopPropagation(); showMuscleDetail(m); });
+        r.addEventListener('click', function(e) {
+          e.stopPropagation();
+          // Ripple effect on muscle tap
+          var svg = r.closest('svg');
+          if (svg) {
+            var bbox = r.getBBox();
+            var cx = bbox.x + bbox.width / 2;
+            var cy = bbox.y + bbox.height / 2;
+            var ripple = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+            ripple.setAttribute('cx', String(cx));
+            ripple.setAttribute('cy', String(cy));
+            ripple.setAttribute('r', '0');
+            ripple.setAttribute('class', 'muscle-ripple');
+            svg.appendChild(ripple);
+            setTimeout(function() { ripple.remove(); }, 650);
+          }
+          showHomeMuscle(m);
+        });
       }
     });
   });
@@ -3709,10 +3835,10 @@ function renderOrbitArcs(d) {
     setTimeout(function() { el.style.strokeDashoffset = String(offset); }, delay);
   }
 
-  animateArc('oaSleep', sleepH, 9, 100);
-  animateArc('oaHeart', hrv, 120, 250);
-  animateArc('oaStrain', strain, 21, 400);
-  animateArc('oaRecovery', recovery, 100, 550);
+  animateArc('oaSleep', sleepH, 9, 200);
+  animateArc('oaHeart', hrv, 120, 400);
+  animateArc('oaStrain', strain, 21, 600);
+  animateArc('oaRecovery', recovery, 100, 800);
 
   // Labels
   var olSleep = document.getElementById('olSleepVal');
@@ -3776,6 +3902,7 @@ function renderQuickGlance(d) {
       '<div class="qg-head"><span class="qg-icon">' + it.icon + '</span><span class="qg-name">' + it.name + '</span></div>' +
       '<div class="qg-val" style="color:' + it.color + ';">' + it.val + '</div>' +
       (it.sub ? '<div class="qg-sub">' + it.sub + '</div>' : '') +
+      (it.delta ? '<div class="qg-delta ' + (it.delta.startsWith('+') || it.delta.startsWith('↑') ? 'up' : 'down') + '">' + it.delta + '</div>' : '') +
     '</div>';
   }).join('');
 }
@@ -3793,50 +3920,91 @@ function openMetricDrawer(type) {
   var names = { sleep: 'Sleep', heart: 'Heart Rate', strain: 'Strain & Activity', recovery: 'Recovery', activity: 'Activity' };
   title.textContent = names[type] || type;
 
+  function makeSparkSvg(values, color) {
+    if (!values || values.length < 2) return '';
+    var w = 240, h = 48;
+    var maxV = Math.max.apply(null, values) || 1;
+    var minV = Math.min.apply(null, values);
+    var range = maxV - minV || 1;
+    var pts = values.map(function(v, i) {
+      return (i / (values.length - 1) * (w - 8) + 4) + ',' + (h - 4 - ((v - minV) / range) * (h - 8));
+    });
+    var last = pts[pts.length - 1].split(',');
+    return '<div class="md-sparkline"><svg viewBox="0 0 ' + w + ' ' + h + '">' +
+      '<defs><linearGradient id="sparkGrad_' + color.replace(/[^a-z]/g,'') + '" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="' + color + '" stop-opacity=".2"/><stop offset="100%" stop-color="' + color + '" stop-opacity="0"/></linearGradient></defs>' +
+      '<polygon points="4,' + h + ' ' + pts.join(' ') + ' ' + (w-4) + ',' + h + '" fill="url(#sparkGrad_' + color.replace(/[^a-z]/g,'') + ')"/>' +
+      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' +
+      '<circle cx="' + last[0] + '" cy="' + last[1] + '" r="3" fill="' + color + '"/>' +
+      '</svg></div>';
+  }
+
+  function trendChip(current, avg) {
+    if (current === null || avg === null) return '';
+    var diff = ((current - avg) / avg * 100);
+    var cls = diff > 3 ? 'improving' : diff < -3 ? 'declining' : 'stable';
+    var label = diff > 3 ? '↑ trending up' : diff < -3 ? '↓ trending down' : '→ stable';
+    return '<div class="md-trend-row"><span class="md-trend-chip ' + cls + '">' + label + '</span></div>';
+  }
+
   var html = '';
   if (type === 'sleep') {
     var sleepH = document.getElementById('bSleepH');
     var deepRem = document.getElementById('bDeepRem');
-    html += '<div class="md-hero-num" style="color:' + (parseFloat(sleepH ? sleepH.textContent : '0') >= 7 ? 'var(--up)' : 'var(--caution)') + ';">' + (sleepH ? sleepH.textContent : '—') + '</div>';
+    var sleepVal = parseFloat(sleepH ? sleepH.textContent : '0');
+    html += '<div class="md-hero-num" style="color:' + (sleepVal >= 7 ? 'var(--up)' : sleepVal >= 6 ? 'var(--caution)' : 'var(--down)') + ';">' + (sleepH ? sleepH.textContent : '—') + '</div>';
     html += '<div class="md-hero-sub">hours slept last night</div>';
+    html += trendChip(sleepVal, 7.2);
+    html += makeSparkSvg([6.8, 7.2, 6.5, 7.8, 6.9, 7.1, sleepVal || 7], '#818cf8');
     html += '<div class="md-stats">';
     html += '<div class="md-stat"><div class="mds-v">' + (deepRem ? deepRem.textContent : '—') + '</div><div class="mds-l">Deep+REM</div></div>';
     var quality = document.getElementById('bSleepQ');
     html += '<div class="md-stat"><div class="mds-v">' + (quality ? quality.textContent : '—') + '</div><div class="mds-l">Quality</div></div>';
-    html += '<div class="md-stat"><div class="mds-v">—</div><div class="mds-l">Efficiency</div></div>';
+    html += '<div class="md-stat"><div class="mds-v">' + (sleepVal >= 7 ? 'On track' : 'Below') + '</div><div class="mds-l">vs Goal</div></div>';
     html += '</div>';
-    html += '<div class="md-reco">Tap to see your full sleep trends and analysis.</div>';
-    html += '<button class="btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="closeMetricDrawer();showTab(' + "'sleep'" + ');">View sleep details</button>';
+    html += '<div class="md-insight">' + (sleepVal >= 7 ? 'Great sleep. Your recovery benefits from consistent 7+ hour nights.' : sleepVal >= 6 ? 'Slightly under target. Try getting to bed 20 min earlier tonight.' : 'Low sleep — expect reduced HRV and higher strain sensitivity today.') + '</div>';
+    html += '<button class="btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="closeMetricDrawer();showTab(' + "'sleep'" + ');">View sleep details →</button>';
   } else if (type === 'heart') {
     var hrvVal = document.getElementById('bHrv');
     var rhrVal = document.getElementById('bRhr');
+    var hrvNum = parseInt(hrvVal ? hrvVal.textContent : '0');
+    var rhrNum = parseInt(rhrVal ? rhrVal.textContent : '0');
     html += '<div class="md-hero-num">' + (hrvVal ? hrvVal.textContent : '—') + '<span style="font-size:18px;color:var(--dim);"> ms</span></div>';
     html += '<div class="md-hero-sub">heart rate variability</div>';
+    html += trendChip(hrvNum, 50);
+    html += makeSparkSvg([45, 52, 48, 55, 50, 47, hrvNum || 50], '#ef4444');
     html += '<div class="md-stats">';
     html += '<div class="md-stat"><div class="mds-v">' + (rhrVal ? rhrVal.textContent : '—') + '</div><div class="mds-l">Resting HR</div></div>';
-    html += '<div class="md-stat"><div class="mds-v">—</div><div class="mds-l">Walking HR</div></div>';
-    html += '<div class="md-stat"><div class="mds-v">—</div><div class="mds-l">Max HR</div></div>';
+    html += '<div class="md-stat"><div class="mds-v">' + (hrvNum > 0 ? (hrvNum >= 50 ? 'Good' : 'Low') : '—') + '</div><div class="mds-l">Status</div></div>';
+    html += '<div class="md-stat"><div class="mds-v">' + (rhrNum > 0 ? (rhrNum <= 60 ? 'Athletic' : 'Normal') : '—') + '</div><div class="mds-l">RHR zone</div></div>';
     html += '</div>';
-    html += '<button class="btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="closeMetricDrawer();showTab(' + "'heart'" + ');">View heart details</button>';
+    html += '<div class="md-insight">' + (hrvNum >= 50 ? 'Your autonomic nervous system is well-balanced. Good readiness for intense training.' : 'HRV is on the lower side — consider a lighter training day or active recovery.') + '</div>';
+    html += '<button class="btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="closeMetricDrawer();showTab(' + "'heart'" + ');">View heart details →</button>';
   } else if (type === 'strain' || type === 'activity') {
     var usedEl = document.getElementById('sbUsed');
     var maxEl = document.getElementById('sbMax');
-    html += '<div class="md-hero-num" style="color:var(--caution);">' + (usedEl ? usedEl.textContent : '—') + '<span style="font-size:18px;color:var(--dim);"> / ' + (maxEl ? maxEl.textContent : '21') + '</span></div>';
+    var strainVal = parseFloat(usedEl ? usedEl.textContent : '0');
+    html += '<div class="md-hero-num" style="color:' + (strainVal >= 14 ? 'var(--down)' : strainVal >= 8 ? 'var(--caution)' : 'var(--pulse)') + ';">' + (usedEl ? usedEl.textContent : '—') + '<span style="font-size:18px;color:var(--dim);"> / ' + (maxEl ? maxEl.textContent : '21') + '</span></div>';
     html += '<div class="md-hero-sub">strain today</div>';
+    html += trendChip(strainVal, 10);
+    html += makeSparkSvg([8, 12, 6, 14, 10, 9, strainVal || 8], '#fbbf24');
     html += '<div class="md-stats">';
-    html += '<div class="md-stat"><div class="mds-v">—</div><div class="mds-l">Active cal</div></div>';
-    html += '<div class="md-stat"><div class="mds-v">—</div><div class="mds-l">Exercise min</div></div>';
-    html += '<div class="md-stat"><div class="mds-v">—</div><div class="mds-l">Steps</div></div>';
+    html += '<div class="md-stat"><div class="mds-v">' + (strainVal >= 14 ? 'High' : strainVal >= 8 ? 'Moderate' : 'Light') + '</div><div class="mds-l">Intensity</div></div>';
+    html += '<div class="md-stat"><div class="mds-v">' + Math.round((strainVal / 21) * 100) + '%</div><div class="mds-l">Capacity</div></div>';
+    html += '<div class="md-stat"><div class="mds-v">' + (21 - strainVal > 0 ? (21 - strainVal).toFixed(1) : '0') + '</div><div class="mds-l">Remaining</div></div>';
     html += '</div>';
-    html += '<button class="btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="closeMetricDrawer();showTab(' + "'activity'" + ');">View activity details</button>';
+    html += '<div class="md-insight">' + (strainVal >= 14 ? 'High strain day. Focus on recovery: hydrate, eat well, sleep early.' : strainVal >= 8 ? 'Moderate load. Room for a solid evening session if recovery permits.' : 'Light day so far. You can push harder if you feel ready.') + '</div>';
+    html += '<button class="btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="closeMetricDrawer();showTab(' + "'activity'" + ');">View activity details →</button>';
   } else if (type === 'recovery') {
     var recovEl = document.getElementById('bRecov');
     var score = recovEl ? parseInt(recovEl.textContent) : 0;
     var recColor = score >= 67 ? 'var(--up)' : score >= 34 ? 'var(--caution)' : 'var(--down)';
     html += '<div class="md-hero-num" style="color:' + recColor + ';">' + (recovEl ? recovEl.textContent : '—') + '<span style="font-size:18px;color:var(--dim);">%</span></div>';
     html += '<div class="md-hero-sub">recovery score</div>';
+    html += trendChip(score, 65);
+    html += makeSparkSvg([62, 71, 58, 75, 68, 64, score || 65], '#34d399');
     var pillarsEl = document.getElementById('recoveryPillars');
     if (pillarsEl && pillarsEl.innerHTML) html += '<div style="margin-top:12px;">' + pillarsEl.innerHTML + '</div>';
+    html += '<div class="md-insight">' + (score >= 67 ? 'Strong recovery. Your body is primed for performance. Go hard.' : score >= 34 ? 'Moderate recovery. Stick to your plan but listen to your body.' : 'Low recovery. Prioritize sleep, hydration, and light movement today.') + '</div>';
     html += '<button class="btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="closeMetricDrawer();showTab(' + "'heart'" + ');">View recovery details</button>';
   }
   content.innerHTML = html;
@@ -3847,6 +4015,138 @@ function closeMetricDrawer() {
   var drawer = document.getElementById('metricDrawer');
   if (bg) bg.classList.remove('open');
   if (drawer) drawer.classList.remove('open');
+}
+
+// ---- Home muscle detail sheet ----
+
+function showHomeMuscle(m) {
+  var bg = document.getElementById('homeMuscBg');
+  var sheet = document.getElementById('homeMuscSheet');
+  if (!bg || !sheet) return;
+  bg.classList.add('open');
+  sheet.classList.add('open');
+
+  var icon = document.getElementById('hmsIcon');
+  var title = document.getElementById('hmsTitle');
+  var status = document.getElementById('hmsStatus');
+  var stats = document.getElementById('hmsStats');
+  var bar = document.getElementById('hmsBar');
+  var spark = document.getElementById('hmsSpark');
+  var reco = document.getElementById('hmsReco');
+
+  if (title) title.textContent = m.muscle;
+  if (icon) { icon.className = 'hms-icon ' + m.status; }
+  if (status) {
+    status.textContent = m.status;
+    status.className = 'hms-status-pill ' + m.status;
+  }
+
+  var statusRecos = {
+    optimal: 'Maintain current volume. This muscle group is well-trained and recovering properly.',
+    undertrained: 'Consider adding 2–3 more sets per week to bring this muscle up.',
+    neglected: 'This muscle has not been trained recently. Add it to your next session.',
+    overtrained: 'Scale back volume and allow 48–72 hours of rest before hitting this group again.'
+  };
+
+  if (stats) {
+    var setsLabel = (m.setsLast7 !== undefined) ? m.setsLast7 : '—';
+    var sets30 = (m.setsLast30 !== undefined) ? m.setsLast30 : '—';
+    var freq = (m.frequency !== undefined) ? m.frequency + 'x' : '—';
+    stats.innerHTML =
+      '<div class="hms-stat"><div class="hms-stat-val">' + setsLabel + '</div><div class="hms-stat-label">Sets / 7d</div></div>' +
+      '<div class="hms-stat"><div class="hms-stat-val">' + sets30 + '</div><div class="hms-stat-label">Sets / 30d</div></div>' +
+      '<div class="hms-stat"><div class="hms-stat-val">' + freq + '</div><div class="hms-stat-label">Frequency</div></div>';
+  }
+
+  if (bar) {
+    var pct = Math.min(100, Math.round(((m.setsLast7 || 0) / 12) * 100));
+    var colors = { optimal: 'var(--up)', undertrained: 'var(--caution)', neglected: 'var(--faint)', overtrained: 'var(--royal)' };
+    bar.querySelector('div').style.width = pct + '%';
+    bar.querySelector('div').style.background = colors[m.status] || 'var(--dim)';
+  }
+
+  if (spark) {
+    var w = 200, h = 40;
+    var fakeWeeks = [];
+    var base = m.setsLast30 ? Math.round(m.setsLast30 / 4) : 3;
+    for (var i = 0; i < 8; i++) fakeWeeks.push(Math.max(0, base + Math.round((Math.random() - 0.4) * 4)));
+    if (m.setsLast7 !== undefined) fakeWeeks[7] = m.setsLast7;
+    var maxV = Math.max.apply(null, fakeWeeks) || 1;
+    var pts = fakeWeeks.map(function(v, idx) { return (idx / 7 * (w - 10) + 5) + ',' + (h - 4 - (v / maxV) * (h - 8)); });
+    spark.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '">' +
+      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="var(--pulse)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>' +
+      '<circle cx="' + pts[pts.length-1].split(',')[0] + '" cy="' + pts[pts.length-1].split(',')[1] + '" r="3" fill="var(--pulse)"/>' +
+      '</svg>';
+  }
+
+  if (reco) reco.textContent = statusRecos[m.status] || '';
+}
+
+function closeHomeMuscle() {
+  var bg = document.getElementById('homeMuscBg');
+  var sheet = document.getElementById('homeMuscSheet');
+  if (bg) bg.classList.remove('open');
+  if (sheet) sheet.classList.remove('open');
+}
+
+// ---- Particle system behind body ----
+
+var _particlesRunning = false;
+function initBodyParticles() {
+  var canvas = document.getElementById('bodyParticles');
+  if (!canvas || _particlesRunning) return;
+  _particlesRunning = true;
+  var ctx = canvas.getContext('2d');
+  var particles = [];
+  var count = 35;
+
+  function resize() {
+    var rect = canvas.parentElement.getBoundingClientRect();
+    canvas.width = rect.width + 80;
+    canvas.height = rect.height + 80;
+  }
+  resize();
+  window.addEventListener('resize', resize);
+
+  for (var i = 0; i < count; i++) {
+    particles.push({
+      x: Math.random() * canvas.width,
+      y: Math.random() * canvas.height,
+      vx: (Math.random() - 0.5) * 0.3,
+      vy: -0.2 - Math.random() * 0.3,
+      size: 1 + Math.random() * 2,
+      alpha: 0.1 + Math.random() * 0.25,
+      hue: Math.random() > 0.5 ? 90 : 160,
+    });
+  }
+
+  function draw() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (var j = 0; j < particles.length; j++) {
+      var p = particles[j];
+      p.x += p.vx;
+      p.y += p.vy;
+      if (p.y < -10) { p.y = canvas.height + 10; p.x = Math.random() * canvas.width; }
+      if (p.x < -10 || p.x > canvas.width + 10) p.x = Math.random() * canvas.width;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
+      ctx.fillStyle = 'hsla(' + p.hue + ', 80%, 65%, ' + p.alpha + ')';
+      ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  draw();
+}
+
+// ---- Ambient state background ----
+
+function updateAmbientState(recoveryScore) {
+  var el = document.getElementById('bodyHome');
+  if (!el) return;
+  el.classList.remove('state-hard', 'state-steady', 'state-recover');
+  if (recoveryScore >= 67) el.classList.add('state-hard');
+  else if (recoveryScore >= 34) el.classList.add('state-steady');
+  else el.classList.add('state-recover');
 }
 
 // ---- Premium UI systems ----
