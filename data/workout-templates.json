@@ -1,0 +1,23 @@
+{
+  "templates": [
+    {
+      "name": "test",
+      "type": "test",
+      "exercises": [
+        {
+          "name": "Arnold Press",
+          "defaultSets": 3,
+          "defaultReps": 10
+        },
+        {
+          "name": "Cable Crossover",
+          "defaultSets": 3,
+          "defaultReps": 10
+        }
+      ],
+      "id": "b09d72f2-7277-46ab-8c06-96ca1bdf057e",
+      "createdAt": "2026-10-29T15:20:58.049Z",
+      "useCount": 0
+    }
+  ]
+}
