@@ -306,8 +306,13 @@ export function renderDashboard(): string {
   .range-dot { position:absolute; top:-3px; width:10px; height:10px; border-radius:50%; background:var(--pulse); border:2px solid var(--panel); }
   .stat .baseline { font-family:var(--mono); font-size:11px; font-weight:700; margin-left:6px; }
   .ar-wrap { display:flex; gap:20px; align-items:center; padding:12px 0; }
-  .ar-svg { flex-shrink:0; }
-  .ar-svg circle { transition:stroke-dashoffset 1.5s var(--ease-spring); }
+  .ar-svg { flex-shrink:0; cursor:pointer; }
+  .ar-svg circle { transition:stroke-dashoffset 1.5s var(--ease-spring), opacity .3s, stroke-width .3s; }
+  .ar-svg circle.dimmed { opacity:.15; }
+  .ar-svg circle.ring-pop { stroke-width:12 !important; filter:drop-shadow(0 0 8px currentColor); }
+  .ar-row { cursor:pointer; transition:background .2s; border-radius:6px; padding:4px 6px; margin:-4px -6px; }
+  .ar-row:hover { background:var(--panel2); }
+  .ar-row.active { background:var(--panel2); }
   .ar-labels { flex:1; display:flex; flex-direction:column; gap:8px; }
   .ar-row { display:flex; align-items:center; gap:8px; }
   .ar-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
@@ -381,7 +386,12 @@ export function renderDashboard(): string {
   .ring-label .n.score-gold { color:var(--gold); }
   .multi-ring .ring-label { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
   .multi-ring .ring-label .n { font-size:44px; }
-  .score-arc { transition:stroke-dashoffset 1.5s var(--ease-spring); }
+  .score-arc { transition:stroke-dashoffset 1.5s var(--ease-spring), opacity .3s, stroke-width .3s; cursor:pointer; }
+  .score-arc.dimmed { opacity:.2; }
+  .score-arc.highlighted { stroke-width:14 !important; filter:drop-shadow(0 0 6px currentColor); }
+  .rl-row { cursor:pointer; transition:background .2s; border-radius:6px; padding:4px 6px; margin:-4px -6px; }
+  .rl-row:hover { background:var(--panel2); }
+  .rl-row.active { background:var(--panel2); outline:1px solid var(--line); }
   .multi-ring-info { min-width:0; }
   .ring-legend { display:flex; flex-direction:column; gap:6px; margin-top:12px; }
   .ring-legend .rl-row { display:flex; align-items:center; gap:8px; font-size:13px; }
@@ -849,9 +859,43 @@ export function renderDashboard(): string {
   .bid-reco { font-size:12.5px; color:var(--dim); line-height:1.5; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
   .bid-reco::before { content:"→ "; font-weight:700; color:var(--pulse); }
 
-  /* muscle tap ripple */
+  /* muscle tap ripple + active glow */
   @keyframes muscleRipple { 0% { r:0; opacity:.6; } 100% { r:30; opacity:0; } }
   .muscle-ripple { fill:none; stroke:var(--pulse); stroke-width:2; animation:muscleRipple .6s ease-out forwards; pointer-events:none; }
+  @keyframes muscleGlow { 0%,100% { filter:drop-shadow(0 0 4px var(--pulse)); } 50% { filter:drop-shadow(0 0 12px var(--pulse)); } }
+  .muscle-region.m-active { animation:muscleGlow 1.5s ease-in-out infinite; stroke:var(--pulse); stroke-width:1.5; }
+
+  /* heatmap day detail */
+  .hm-day-detail { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px 14px; margin-top:8px; animation:fadeSlideUp .2s ease both; }
+  .hm-day-detail .hmd-date { font-family:var(--mono); font-size:14px; font-weight:800; margin-bottom:8px; }
+  .hm-day-detail .hmd-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(90px,1fr)); gap:6px; }
+  .hm-day-detail .hmd-item { text-align:center; background:var(--panel2); border-radius:6px; padding:6px; }
+  .hm-day-detail .hmd-val { font-family:var(--mono); font-size:16px; font-weight:800; }
+  .hm-day-detail .hmd-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.03em; }
+  .hm-cell.hm-selected { outline:2px solid var(--pulse); outline-offset:1px; transform:scale(1.3); z-index:2; position:relative; }
+
+  /* strain budget inline detail */
+  .sb-detail { margin-top:8px; padding:10px; background:var(--panel2); border-radius:8px; animation:fadeSlideUp .2s ease both; }
+  .sb-zones { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; }
+  .sb-zone-item { text-align:center; padding:6px; border-radius:6px; border:1px solid var(--line); }
+  .sb-zone-item.current { border-color:var(--pulse); background:rgba(163,230,53,.06); }
+  .sb-zone-item .sbz-range { font-family:var(--mono); font-size:12px; font-weight:700; }
+  .sb-zone-item .sbz-name { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.03em; margin-top:2px; }
+
+  /* body score tap detail */
+  .bsb-detail { margin-top:8px; padding:10px; background:var(--panel); border:1px solid var(--line); border-radius:10px; animation:fadeSlideUp .2s ease both; text-align:center; }
+  .bsb-detail .bsbd-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:6px; margin-top:6px; }
+  .bsb-detail .bsbd-item { background:var(--panel2); border-radius:6px; padding:8px; }
+  .bsb-detail .bsbd-val { font-family:var(--mono); font-size:18px; font-weight:800; }
+  .bsb-detail .bsbd-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.03em; }
+
+  /* sparkline value tooltip */
+  .spark-tooltip { position:absolute; background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:4px 8px; font-family:var(--mono); font-size:12px; font-weight:700; pointer-events:none; white-space:nowrap; z-index:10; transform:translate(-50%,-120%); box-shadow:0 2px 8px rgba(0,0,0,.4); }
+
+  /* readiness factor detail */
+  .tr-factor { cursor:pointer; transition:background .2s; border-radius:6px; padding:4px; margin:-2px -4px; }
+  .tr-factor:hover { background:var(--panel2); }
+  .tr-factor-detail { font-size:12px; color:var(--dim); line-height:1.5; padding:6px 8px; margin:4px 0 8px; background:var(--panel2); border-radius:6px; border-left:3px solid var(--pulse); animation:fadeSlideUp .2s ease both; }
 
   /* quick-glance card entrance stagger */
   .qg-card { opacity:0; animation:qgCardIn .4s var(--ease-spring) both; }
@@ -1488,7 +1532,7 @@ export function renderDashboard(): string {
     <!-- Verdict banner -->
     <div class="verdict v-neutral" id="verdict">
       <div class="v-row">
-        <div class="v-ring" id="verdictRing">
+        <div class="v-ring" id="verdictRing" style="cursor:pointer;" onclick="toggleVerdictDetail()">
           <svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="4"/><circle cx="24" cy="24" r="20" fill="none" stroke="var(--pulse)" stroke-width="4" stroke-linecap="round" stroke-dasharray="126" stroke-dashoffset="126" id="vRingFill" style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset .8s ease"/></svg>
           <span class="v-ring-num num" id="verdictNum">—</span>
         </div>
@@ -1499,21 +1543,23 @@ export function renderDashboard(): string {
         <div class="v-stats" id="verdictStats"></div>
       </div>
       <div class="v-why" id="verdictWhy"></div>
+      <div id="verdictDetail" style="display:none"></div>
     </div>
 
     <!-- Quick-glance metric cards -->
     <div class="qg-row" id="quickGlanceRow"></div>
 
     <!-- Strain budget bar -->
-    <div class="card" id="strainBudgetCard" style="display:none">
+    <div class="card" id="strainBudgetCard" style="display:none;cursor:pointer;" onclick="toggleStrainDetail()">
       <div class="sb-label">Strain <span id="sbUsed2">0</span> / <span id="sbMax2">21</span></div>
       <div class="sb-track"><div class="sb-fill" id="sbFill2"></div><div class="sb-target" id="sbTarget2"></div></div>
+      <div id="strainDetailInline"></div>
     </div>
 
     <!-- Body silhouette -->
     <div class="body-home" id="bodyHome">
       <div class="body-stage" id="bodyStage">
-        <div class="body-score-badge" id="bodyScoreBadge">
+        <div class="body-score-badge" id="bodyScoreBadge" style="cursor:pointer;" onclick="toggleBodyScoreDetail()">
           <div class="bsb-ring">
             <svg viewBox="0 0 80 80">
               <defs><linearGradient id="bsbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--pulse)"/><stop offset="100%" stop-color="var(--up)"/></linearGradient></defs>
@@ -1528,6 +1574,7 @@ export function renderDashboard(): string {
         </div>
         <div class="body-stage-svg" id="bodyStageSvg"></div>
       </div>
+      <div id="bodyScoreDetail"></div>
       <div class="body-inline-detail" id="bodyInlineDetail" style="display:none"></div>
     </div>
 
@@ -3250,20 +3297,30 @@ function renderReadinessRing(r) {
   var circ = 2 * Math.PI * 68;
   var offset = circ - (r.score / 100) * circ;
   var html = '<div class="readiness-ring-wrap">';
-  html += '<svg viewBox="0 0 160 160"><circle class="rr-bg" cx="80" cy="80" r="68" />';
+  html += '<svg viewBox="0 0 160 160" style="cursor:pointer" onclick="toggleReadinessFactors()"><circle class="rr-bg" cx="80" cy="80" r="68" />';
   html += '<circle class="rr-fill" cx="80" cy="80" r="68" stroke="' + rawColor + '" stroke-dasharray="' + circ.toFixed(1) + '" stroke-dashoffset="' + circ.toFixed(1) + '" id="readinessArc" /></svg>';
   html += '<div class="readiness-ring-label">';
   html += '<div class="rr-num count-up" style="color:' + cssColor + ';" data-target="' + r.score + '">0</div>';
   html += '<div class="rr-text" style="color:' + cssColor + ';">' + r.label + '</div>';
   html += '</div></div>';
   html += '<div class="tr-factors">';
-  (r.factors || []).forEach(function (f) {
+  var factorDetails = {
+    'Sleep': 'Based on total sleep hours, deep+REM percentage, and sleep efficiency compared to your baseline.',
+    'Heart rate variability': 'Your HRV compared to your personal 30-day rolling baseline. Higher relative HRV = better recovery.',
+    'Resting heart rate': 'Lower RHR relative to baseline indicates good recovery. Elevated RHR can signal stress or incomplete recovery.',
+    'Activity balance': 'Strain vs recovery. Balanced training load means better adaptation without overreaching.',
+    'HRV': 'Your HRV compared to your personal 30-day rolling baseline. Higher relative HRV = better recovery.',
+    'Consistency': 'How regular your sleep schedule and training have been over the past week.'
+  };
+  (r.factors || []).forEach(function (f, fi) {
     var barColor = f.score >= 70 ? 'var(--up)' : f.score >= 45 ? 'var(--caution)' : 'var(--down)';
-    html += '<div class="tr-factor">' +
+    var detail = factorDetails[f.name] || 'This factor contributes to your overall readiness score.';
+    html += '<div class="tr-factor" onclick="toggleFactorDetail(this)">' +
       '<span class="tr-factor-name">' + f.name + '</span>' +
       '<div class="tr-factor-bar"><div style="width:0%;background:' + barColor + ';" data-width="' + f.score + '"></div></div>' +
       '<span class="tr-factor-score">' + f.score + '</span>' +
-    '</div>';
+    '</div>' +
+    '<div class="tr-factor-detail" style="display:none" data-factor="' + fi + '">' + detail + ' Score: <strong>' + f.score + '/100</strong></div>';
   });
   html += '</div>';
   html += '<div class="tr-rec">' + r.recommendation + '</div>';
@@ -3284,6 +3341,28 @@ function renderReadinessRing(r) {
   updateHeaderGlow(r.score);
 }
 
+function toggleReadinessFactors() {
+  var factors = document.querySelector('.tr-factors');
+  if (!factors) return;
+  var isHidden = factors.style.display === 'none';
+  factors.style.display = isHidden ? '' : 'none';
+  var rec = document.querySelector('.tr-rec');
+  if (rec) rec.style.display = isHidden ? '' : 'none';
+}
+
+function toggleFactorDetail(factorEl) {
+  var detail = factorEl.nextElementSibling;
+  if (!detail || !detail.classList.contains('tr-factor-detail')) return;
+  var isOpen = detail.style.display !== 'none';
+  // Close all factor details first
+  var all = document.querySelectorAll('.tr-factor-detail');
+  all.forEach(function(d) { d.style.display = 'none'; });
+  if (!isOpen) {
+    detail.style.display = '';
+    detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+}
+
 function renderActivityHeatmap(items) {
   var card = document.getElementById('heatmapCard');
   var el = document.getElementById('heatmapGrid');
@@ -3294,7 +3373,7 @@ function renderActivityHeatmap(items) {
   var cells = '';
   for (var pad = 0; pad < startDow; pad++) cells += '<div class="hm-cell hm-0"></div>';
   items.forEach(function (d) {
-    cells += '<div class="hm-cell hm-' + d.intensity + '" title="' + d.date + ': ' + d.tooltip + '"></div>';
+    cells += '<div class="hm-cell hm-' + d.intensity + '" data-date="' + d.date + '" title="' + d.date + ': ' + d.tooltip + '" onclick="showHeatmapDay(this,\\'' + d.date + '\\')" style="cursor:pointer"></div>';
   });
   var html = '<div class="hm-grid">' + cells + '</div>';
   html += '<div class="hm-legend">Less ';
@@ -4014,12 +4093,23 @@ function showHomeMuscle(m) {
   var detailEl = document.getElementById('bodyInlineDetail');
   if (!detailEl) return;
 
+  // Clear previous active glow
+  var svgEl = document.getElementById('bodyStageSvg');
+  if (svgEl) svgEl.querySelectorAll('.m-active').forEach(function(r) { r.classList.remove('m-active'); });
+
   if (detailEl.style.display !== 'none' && detailEl._currentMuscle === m.muscle) {
     detailEl.style.display = 'none';
     detailEl._currentMuscle = null;
     return;
   }
   detailEl._currentMuscle = m.muscle;
+
+  // Add active glow to tapped muscle
+  if (svgEl) {
+    svgEl.querySelectorAll('[data-muscle="' + m.muscle + '"]').forEach(function(r) {
+      r.classList.add('m-active');
+    });
+  }
 
   var statusRecos = {
     optimal: 'Maintain current volume. Well-trained and recovering properly.',
@@ -4050,6 +4140,55 @@ function closeHomeMuscle() {
   var sheet = document.getElementById('homeMuscSheet');
   if (bg) bg.classList.remove('open');
   if (sheet) sheet.classList.remove('open');
+}
+
+// ---- Strain budget inline detail toggle ----
+var _strainDetailOpen = false;
+function toggleStrainDetail() {
+  _strainDetailOpen = !_strainDetailOpen;
+  var el = document.getElementById('strainDetailInline');
+  if (!el) return;
+  if (!_strainDetailOpen) { el.innerHTML = ''; return; }
+  var strain = TODAY.strain || 0;
+  var recov = TODAY.readiness;
+  var maxStrain = recov !== null && recov >= 70 ? 18 : recov !== null && recov >= 45 ? 14 : 10;
+  var currentZone = strain <= maxStrain * 0.5 ? 0 : strain <= maxStrain ? 1 : 2;
+  var zones = [
+    { name: 'Recovery', range: '0–' + (maxStrain * 0.5).toFixed(0), desc: 'Light activity, lets body recover' },
+    { name: 'Productive', range: (maxStrain * 0.5).toFixed(0) + '–' + maxStrain, desc: 'Building fitness without overdoing it' },
+    { name: 'Overreach', range: maxStrain + '–21', desc: 'High load, may impair recovery' }
+  ];
+  el.innerHTML = '<div class="sb-detail" onclick="event.stopPropagation()">' +
+    '<div class="sb-zones">' + zones.map(function(z, i) {
+      return '<div class="sb-zone-item' + (i === currentZone ? ' current' : '') + '"><div class="sbz-range">' + z.range + '</div><div class="sbz-name">' + z.name + '</div></div>';
+    }).join('') + '</div>' +
+    '<div style="font-size:12px;color:var(--dim);margin-top:8px;line-height:1.5;">' + zones[currentZone].desc + '. Recovery score: <strong>' + (recov || '—') + '</strong></div>' +
+  '</div>';
+}
+
+// ---- Body score tap detail ----
+var _bodyScoreDetailOpen = false;
+function toggleBodyScoreDetail() {
+  _bodyScoreDetailOpen = !_bodyScoreDetailOpen;
+  var el = document.getElementById('bodyScoreDetail');
+  if (!el) return;
+  if (!_bodyScoreDetailOpen || !_bodyData || !_bodyData.bodyScore) { el.innerHTML = ''; _bodyScoreDetailOpen = false; return; }
+  var bs = _bodyData.bodyScore;
+  var comp = _bodyData.composition || {};
+  var mv = _bodyData.muscleVolume || [];
+  var optimal = mv.filter(function(m) { return m.status === 'optimal'; }).length;
+  var total = mv.length || 1;
+  el.innerHTML = '<div class="bsb-detail">' +
+    '<div style="font-size:12px;color:var(--dim);margin-bottom:4px;">Body score breakdown</div>' +
+    '<div class="bsbd-grid">' +
+      '<div class="bsbd-item"><div class="bsbd-val" style="color:var(--pulse);">' + bs.total + '</div><div class="bsbd-label">Overall</div></div>' +
+      '<div class="bsbd-item"><div class="bsbd-val">' + Math.round(optimal / total * 100) + '%</div><div class="bsbd-label">Muscles optimal</div></div>' +
+      (comp.currentWeight !== null && comp.currentWeight !== undefined ? '<div class="bsbd-item"><div class="bsbd-val">' + comp.currentWeight.toFixed(1) + '</div><div class="bsbd-label">Weight kg</div></div>' : '') +
+      (comp.bodyFatPct !== null && comp.bodyFatPct !== undefined ? '<div class="bsbd-item"><div class="bsbd-val">' + (comp.bodyFatPct * 100).toFixed(1) + '%</div><div class="bsbd-label">Body fat</div></div>' : '') +
+    '</div>' +
+    '<div style="font-size:12px;color:var(--dim);margin-top:8px;">' + bs.label + '</div>' +
+  '</div>';
+  el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 // ---- Particle system behind body ----
@@ -4638,6 +4777,38 @@ function renderActivityRings(today) {
   requestAnimationFrame(function () {
     el.querySelectorAll('circle[data-target]').forEach(function (c) { c.style.strokeDashoffset = c.dataset.target; });
   });
+  // Make rings + rows interactive
+  var arSvg = el.querySelector('.ar-svg');
+  var arRows = el.querySelectorAll('.ar-row');
+  if (arSvg) {
+    var arCircles = arSvg.querySelectorAll('circle[data-target]');
+    arCircles.forEach(function(c, i) {
+      c.style.cursor = 'pointer';
+      c.addEventListener('click', function(e) { e.stopPropagation(); toggleActivityRing(el, i); });
+    });
+  }
+  arRows.forEach(function(row, i) {
+    row.addEventListener('click', function() { toggleActivityRing(el, i); });
+  });
+}
+
+var _activeActivityRing = -1;
+function toggleActivityRing(container, idx) {
+  if (_activeActivityRing === idx) idx = -1;
+  _activeActivityRing = idx;
+  var circles = container.querySelectorAll('.ar-svg circle[data-target]');
+  var bgCircles = container.querySelectorAll('.ar-svg circle:not([data-target])');
+  var rows = container.querySelectorAll('.ar-row');
+  circles.forEach(function(c, i) {
+    c.classList.toggle('dimmed', idx >= 0 && i !== idx);
+    c.classList.toggle('ring-pop', i === idx);
+  });
+  bgCircles.forEach(function(c, i) {
+    c.classList.toggle('dimmed', idx >= 0 && i !== idx);
+  });
+  rows.forEach(function(r, i) {
+    r.classList.toggle('active', i === idx);
+  });
 }
 
 function renderMarkers(latest) {
@@ -4764,6 +4935,29 @@ function renderVerdict() {
     if (strainVal !== null && strainVal !== undefined) statsHtml += '<div class="vs-item"><div class="vs-val">' + (typeof strainVal === 'number' ? strainVal.toFixed(1) : strainVal) + '</div><div class="vs-label">Strain</div></div>';
     statsEl.innerHTML = statsHtml;
   }
+}
+
+var _verdictDetailOpen = false;
+function toggleVerdictDetail() {
+  _verdictDetailOpen = !_verdictDetailOpen;
+  var el = document.getElementById('verdictDetail');
+  if (!el) return;
+  if (!_verdictDetailOpen) { el.style.display = 'none'; return; }
+  var html = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:10px;animation:fadeSlideUp .2s ease both;">';
+  var today = GUIDE_DAYS.length ? GUIDE_DAYS[GUIDE_DAYS.length - 1] : null;
+  if (today) {
+    if (today.sleepHours !== null && today.sleepHours !== undefined)
+      html += '<div style="background:var(--panel2);border-radius:8px;padding:8px;text-align:center;"><div style="font-family:var(--mono);font-size:18px;font-weight:800;">' + today.sleepHours.toFixed(1) + 'h</div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;">Sleep</div></div>';
+    if (today.hrv !== null && today.hrv !== undefined)
+      html += '<div style="background:var(--panel2);border-radius:8px;padding:8px;text-align:center;"><div style="font-family:var(--mono);font-size:18px;font-weight:800;">' + Math.round(today.hrv) + 'ms</div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;">HRV</div></div>';
+    if (today.restingHeartRate !== null && today.restingHeartRate !== undefined)
+      html += '<div style="background:var(--panel2);border-radius:8px;padding:8px;text-align:center;"><div style="font-family:var(--mono);font-size:18px;font-weight:800;">' + today.restingHeartRate + '</div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;">RHR</div></div>';
+    if (today.strain !== null && today.strain !== undefined)
+      html += '<div style="background:var(--panel2);border-radius:8px;padding:8px;text-align:center;"><div style="font-family:var(--mono);font-size:18px;font-weight:800;">' + today.strain.toFixed(1) + '</div><div style="font-size:10px;color:var(--dim);text-transform:uppercase;">Strain</div></div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+  el.style.display = '';
 }
 
 // ---------- today: sleep brief, body state, strain budget, what moved ----------
@@ -4915,8 +5109,47 @@ function renderScore(score) {
   var legendEl = document.getElementById('ringLegend');
   if (legendEl) {
     legendEl.innerHTML = score.parts.map(function (p, i) {
-      return '<div class="rl-row"><div class="rl-dot" style="background:' + ringColors[i] + '"></div><span class="rl-name">' + p.label + '</span>' + pill(scoreStatus(p.score), p.word) + '<span class="rl-score" style="color:' + scoreColor(p.score) + '">' + (p.score === null ? '—' : p.score) + '</span></div>';
+      return '<div class="rl-row" data-ring-idx="' + i + '" onclick="highlightScoreRing(' + i + ')"><div class="rl-dot" style="background:' + ringColors[i] + '"></div><span class="rl-name">' + p.label + '</span>' + pill(scoreStatus(p.score), p.word) + '<span class="rl-score" style="color:' + scoreColor(p.score) + '">' + (p.score === null ? '—' : p.score) + '</span></div>';
     }).join('');
+  }
+  // Make SVG rings clickable
+  var multiRingSvg = document.querySelector('#multiRing svg');
+  if (multiRingSvg) {
+    var scoreArcs = multiRingSvg.querySelectorAll('.score-arc');
+    scoreArcs.forEach(function(arc, i) {
+      arc.addEventListener('click', function(e) { e.stopPropagation(); highlightScoreRing(i); });
+    });
+    multiRingSvg.closest('.scoreboard').addEventListener('click', function(e) {
+      if (e.target.closest('.rl-row') || e.target.closest('.score-arc')) return;
+      highlightScoreRing(-1);
+    });
+  }
+}
+
+var _activeScoreRing = -1;
+function highlightScoreRing(idx) {
+  var arcs = document.querySelectorAll('#multiRing .score-arc');
+  var rows = document.querySelectorAll('#ringLegend .rl-row');
+  var numEl = document.getElementById('scoreNum');
+  var wordEl = document.getElementById('scoreWord');
+  if (_activeScoreRing === idx) idx = -1; // toggle off
+  _activeScoreRing = idx;
+  arcs.forEach(function(a, i) {
+    a.classList.toggle('dimmed', idx >= 0 && i !== idx);
+    a.classList.toggle('highlighted', i === idx);
+  });
+  rows.forEach(function(r, i) {
+    r.classList.toggle('active', i === idx);
+  });
+  if (idx >= 0 && rows[idx]) {
+    var scoreVal = rows[idx].querySelector('.rl-score');
+    var nameVal = rows[idx].querySelector('.rl-name');
+    if (numEl && scoreVal) numEl.textContent = scoreVal.textContent;
+    if (wordEl && nameVal) wordEl.textContent = nameVal.textContent;
+  } else if (numEl && wordEl) {
+    numEl.textContent = TODAY.score !== null && TODAY.score !== undefined ? String(TODAY.score) : '—';
+    var w = TODAY.score !== null ? (TODAY.score >= 90 ? 'Royalty' : TODAY.score >= 80 ? 'Crushing it' : TODAY.score >= 65 ? 'Solid' : TODAY.scoreWord || '—') : '—';
+    wordEl.textContent = w;
   }
 }
 
@@ -6379,7 +6612,7 @@ function renderHeatmap(year) {
     var day = byDate[iso];
     var info = hmLevel(day, hmMetric);
     var onclick = hmMetric !== 'activity' ? ' onclick="openMetric(\\'' + hmMetric + '\\')"' : '';
-    cells.push('<div class="hm-cell' + (info.level ? ' hm-' + info.level : '') + '" title="' + iso + ': ' + (info.tip || 'no data') + '"' + onclick + ' style="cursor:pointer"></div>');
+    cells.push('<div class="hm-cell' + (info.level ? ' hm-' + info.level : '') + '" data-date="' + iso + '" title="' + iso + ': ' + (info.tip || 'no data') + '" onclick="showHeatmapDay(this,\\'' + iso + '\\')" style="cursor:pointer"></div>');
     d.setUTCDate(d.getUTCDate() + 1);
   }
   el.innerHTML = cells.join('');
@@ -6394,6 +6627,33 @@ function renderHeatmap(year) {
 
   var btns = document.querySelectorAll('#hmYears button');
   btns.forEach(function (b) { b.classList.toggle('active', Number(b.textContent) === year); });
+}
+
+function showHeatmapDay(cell, dateStr) {
+  var existing = document.querySelector('.hm-day-detail');
+  var prev = document.querySelector('.hm-selected');
+  if (prev) prev.classList.remove('hm-selected');
+  if (existing && existing.dataset.date === dateStr) { existing.remove(); return; }
+  if (existing) existing.remove();
+  cell.classList.add('hm-selected');
+  var day = null;
+  for (var i = 0; i < GUIDE_DAYS.length; i++) { if (GUIDE_DAYS[i].date === dateStr) { day = GUIDE_DAYS[i]; break; } }
+  if (!day) return;
+  var detail = document.createElement('div');
+  detail.className = 'hm-day-detail';
+  detail.dataset.date = dateStr;
+  var html = '<div class="hmd-date">' + niceDate(dateStr) + '</div><div class="hmd-grid">';
+  var show = [['steps','Steps'],['exerciseMinutes','Exercise'],['sleepHours','Sleep'],['activeEnergy','Calories'],['hrv','HRV'],['restingHeartRate','RHR'],['strain','Strain']];
+  show.forEach(function(pair) {
+    var v = day[pair[0]];
+    if (v === null || v === undefined) return;
+    html += '<div class="hmd-item"><div class="hmd-val">' + (typeof v === 'number' && v % 1 ? v.toFixed(1) : v) + '</div><div class="hmd-label">' + pair[1] + '</div></div>';
+  });
+  html += '</div>';
+  detail.innerHTML = html;
+  var wrap = cell.closest('.heatmap-wrap') || cell.closest('.hm-grid');
+  if (wrap && wrap.parentNode) wrap.parentNode.insertBefore(detail, wrap.nextSibling);
+  detail.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function changeHmMetric(metric) {
