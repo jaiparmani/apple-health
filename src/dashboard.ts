@@ -858,6 +858,54 @@ export function renderDashboard(): string {
   .freq-change.up { color:var(--up); }
   .freq-change.down { color:var(--down); }
 
+  /* ---- sleep protocol ---- */
+  .sp-card { background:linear-gradient(135deg, var(--royal)08, var(--panel2)); border:1px solid var(--royal)33; border-radius:10px; padding:16px; }
+  .sp-times { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:12px 0; }
+  .sp-time { text-align:center; padding:8px; background:var(--panel); border-radius:8px; }
+  .sp-time-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; margin-bottom:2px; }
+  .sp-time-val { font-family:var(--mono); font-weight:800; font-size:18px; }
+  .sp-deadlines { display:flex; flex-wrap:wrap; gap:8px; margin:10px 0; }
+  .sp-deadline { font-size:12px; padding:4px 10px; background:var(--panel); border:1px solid var(--line); border-radius:20px; }
+  .sp-deadline .dl-icon { margin-right:4px; }
+  .sp-steps { list-style:none; padding:0; margin:10px 0 0; }
+  .sp-steps li { font-size:13px; color:var(--dim); padding:4px 0; padding-left:20px; position:relative; }
+  .sp-steps li::before { content:''; position:absolute; left:0; top:10px; width:8px; height:8px; border-radius:50%; background:var(--royal); opacity:.5; }
+
+  /* ---- lifestyle impacts ---- */
+  .li-grid { display:flex; flex-direction:column; gap:10px; }
+  .li-card { padding:12px 14px; background:var(--panel2); border-radius:8px; border-left:3px solid var(--dim); }
+  .li-card.has-impact { border-left-color:var(--caution); }
+  .li-card.positive-impact { border-left-color:var(--up); }
+  .li-head { display:flex; align-items:center; gap:8px; margin-bottom:6px; }
+  .li-icon { font-size:18px; }
+  .li-name { font-weight:700; font-size:14px; }
+  .li-conf { font-size:10px; color:var(--faint); text-transform:uppercase; letter-spacing:.04em; }
+  .li-impacts { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:6px; }
+  .li-impact { font-family:var(--mono); font-size:12px; font-weight:600; padding:2px 8px; border-radius:12px; }
+  .li-impact.worse { background:var(--down)18; color:var(--down); }
+  .li-impact.better { background:var(--up)18; color:var(--up); }
+  .li-impact.neutral { background:var(--dim)12; color:var(--dim); }
+  .li-rec { font-size:12.5px; color:var(--dim); line-height:1.5; }
+
+  /* ---- recovery countdown ---- */
+  .rc-list { display:flex; flex-direction:column; gap:6px; }
+  .rc-item { display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--panel2); border-radius:8px; }
+  .rc-muscle { font-weight:700; font-size:13px; flex:1; text-transform:capitalize; }
+  .rc-bar-wrap { width:80px; height:6px; background:var(--line); border-radius:3px; }
+  .rc-bar-fill { height:100%; border-radius:3px; transition:width .4s; }
+  .rc-eta { font-family:var(--mono); font-weight:600; font-size:12px; color:var(--dim); text-align:right; min-width:50px; }
+
+  /* ---- smart check-in ---- */
+  .sci-card { background:linear-gradient(135deg, var(--gold)08, var(--panel2)); border:1px solid var(--gold)33; border-radius:10px; padding:16px; }
+  .sci-q { font-size:14px; font-weight:600; margin-bottom:8px; line-height:1.4; }
+  .sci-reason { font-size:11px; color:var(--dim); margin-bottom:10px; }
+  .sci-input { display:flex; gap:8px; align-items:center; }
+  .sci-input input { background:var(--void); border:1px solid var(--line); color:var(--ink); border-radius:6px; padding:8px 10px; font-size:14px; width:80px; }
+  .sci-input button { background:var(--gold); color:var(--void); border:none; border-radius:6px; padding:8px 14px; font-size:13px; font-weight:700; cursor:pointer; }
+  .sci-bool { display:flex; gap:8px; }
+  .sci-bool button { padding:8px 16px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid var(--line); background:var(--panel); color:var(--ink); }
+  .sci-bool button.yes { background:var(--gold); color:var(--void); border-color:var(--gold); }
+
   /* ---- progression & 1RM ---- */
   .e1rm-grid { display:flex; flex-direction:column; gap:8px; }
   .e1rm-card { display:flex; align-items:center; gap:12px; padding:10px 12px; background:var(--panel2); border-radius:8px; }
@@ -1045,6 +1093,8 @@ export function renderDashboard(): string {
       <div class="v-why" id="verdictWhy"></div>
     </div>
 
+    <div id="smartCheckInArea"></div>
+
     <div class="brief-row" id="sleepBrief">
       <div class="brief-item"><div class="brief-n" id="bSleepH">—</div><div class="brief-u">hours slept</div></div>
       <div class="brief-item"><div class="brief-n" id="bSleepQ">—</div><div class="brief-u">quality</div></div>
@@ -1224,6 +1274,24 @@ export function renderDashboard(): string {
       <h3>Performance predictions</h3>
       <div class="card-sub">Where you're heading at current trajectory</div>
       <div class="pred-list" id="predList"></div>
+    </div>
+
+    <div class="card" id="sleepProtocolCard" style="display:none">
+      <h3>Tonight's sleep protocol</h3>
+      <div class="card-sub">Personalized from your data and tomorrow's demands</div>
+      <div id="sleepProtocol"></div>
+    </div>
+
+    <div class="card" id="recoveryCountdownCard" style="display:none">
+      <h3>Recovery countdown</h3>
+      <div class="card-sub">Time until each muscle group is ready</div>
+      <div class="rc-list" id="recoveryCountdowns"></div>
+    </div>
+
+    <div class="card" id="lifestyleImpactsCard" style="display:none">
+      <h3>Your lifestyle impact scores</h3>
+      <div class="card-sub">How each behavior affects YOUR specific metrics</div>
+      <div class="li-grid" id="lifestyleImpacts"></div>
     </div>
 
     <div id="coachLoading" class="sub" style="text-align:center;padding:24px;">Loading coaching data…</div>
@@ -2403,6 +2471,123 @@ function renderMomentum(items) {
         '<div class="momentum-detail">' + a.detail + '</div>' +
       '</div></div>';
   }).join('');
+}
+
+// ---- Recommendations ----
+
+async function loadRecommendations() {
+  try {
+    var res = await authedFetch('/api/recommendations');
+    renderSleepProtocol(res.sleepProtocol);
+    renderLifestyleImpacts(res.lifestyleImpacts || []);
+    renderRecoveryCountdowns(res.recoveryCountdowns || []);
+    renderSmartCheckIn(res.smartCheckIn || []);
+  } catch (e) {}
+}
+
+function renderSleepProtocol(sp) {
+  var card = document.getElementById('sleepProtocolCard');
+  var el = document.getElementById('sleepProtocol');
+  if (!el || !sp) return;
+  card.style.display = 'block';
+  var html = '<div class="sp-card">';
+  html += '<div class="sp-times">';
+  html += '<div class="sp-time"><div class="sp-time-label">Bedtime</div><div class="sp-time-val">' + sp.bedtime + '</div></div>';
+  html += '<div class="sp-time"><div class="sp-time-label">Target</div><div class="sp-time-val">' + sp.targetHours + 'h</div></div>';
+  html += '<div class="sp-time"><div class="sp-time-label">Wake</div><div class="sp-time-val">' + sp.wakeTime + '</div></div>';
+  html += '</div>';
+  html += '<div class="sp-deadlines">';
+  html += '<span class="sp-deadline"><span class="dl-icon">☕</span>Caffeine by ' + sp.caffeineDeadline + '</span>';
+  html += '<span class="sp-deadline"><span class="dl-icon">🍽️</span>Last meal by ' + sp.lastMealBy + '</span>';
+  html += '<span class="sp-deadline"><span class="dl-icon">📱</span>Screens off ' + sp.screenCutoff + '</span>';
+  html += '</div>';
+  if (sp.windDownSteps && sp.windDownSteps.length) {
+    html += '<ul class="sp-steps">';
+    sp.windDownSteps.forEach(function (s) { html += '<li>' + s + '</li>'; });
+    html += '</ul>';
+  }
+  if (sp.alcoholAdvice) html += '<div style="font-size:12.5px;color:var(--dim);margin-top:8px;">🍷 ' + sp.alcoholAdvice + '</div>';
+  if (sp.supplementSuggestion) html += '<div style="font-size:12.5px;color:var(--dim);margin-top:4px;">💊 ' + sp.supplementSuggestion + '</div>';
+  if (sp.reasoning) html += '<div style="font-size:12px;color:var(--faint);margin-top:8px;">' + sp.reasoning + '</div>';
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderLifestyleImpacts(items) {
+  var card = document.getElementById('lifestyleImpactsCard');
+  var el = document.getElementById('lifestyleImpacts');
+  if (!el || items.length === 0) return;
+  card.style.display = 'block';
+  el.innerHTML = items.map(function (li) {
+    var confColor = li.confidence === 'high' ? 'var(--up)' : li.confidence === 'medium' ? 'var(--caution)' : 'var(--dim)';
+    var impactsHtml = (li.impacts || []).map(function (imp) {
+      var arrow = imp.direction === 'better' ? '↑' : imp.direction === 'worse' ? '↓' : '↔';
+      var color = imp.direction === 'better' ? 'var(--up)' : imp.direction === 'worse' ? 'var(--down)' : 'var(--dim)';
+      var dirClass = imp.direction === 'better' ? 'better' : imp.direction === 'worse' ? 'worse' : 'neutral';
+      return '<div class="li-impact ' + dirClass + '">' + arrow + ' ' + Math.abs(imp.delta).toFixed(1) + imp.unit + ' ' + imp.metric + '</div>';
+    }).join('');
+    var borderClass = li.impacts.some(function(i){return i.direction==='worse';}) ? ' has-impact' : li.impacts.some(function(i){return i.direction==='better';}) ? ' positive-impact' : '';
+    return '<div class="li-card' + borderClass + '">' +
+      '<div class="li-head">' +
+        '<span class="li-icon">' + li.icon + '</span>' +
+        '<span class="li-name">' + li.factor + '</span>' +
+        '<span class="li-conf">' + li.confidence + ' (' + li.sampleSize + ' days)</span>' +
+      '</div>' +
+      '<div class="li-impacts">' + impactsHtml + '</div>' +
+      '<div class="li-rec">' + li.recommendation + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderRecoveryCountdowns(items) {
+  var card = document.getElementById('recoveryCountdownCard');
+  var el = document.getElementById('recoveryCountdowns');
+  if (!el || items.length === 0) return;
+  card.style.display = 'block';
+  el.innerHTML = items.map(function (rc) {
+    var pct = Math.min(rc.currentPct, 100);
+    var color = pct >= 90 ? 'var(--up)' : pct >= 60 ? 'var(--caution)' : 'var(--down)';
+    var readyLabel = rc.hoursUntilRecovered <= 0 ? 'Ready now' : rc.hoursUntilRecovered + 'h to go';
+    return '<div class="rc-item">' +
+      '<div class="rc-muscle">' + rc.muscle + '</div>' +
+      '<div class="rc-bar-wrap"><div class="rc-bar-fill" style="width:' + pct + '%;background:' + color + ';"></div></div>' +
+      '<div class="rc-eta">' + readyLabel + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderSmartCheckIn(items) {
+  var el = document.getElementById('smartCheckInArea');
+  if (!el || items.length === 0) return;
+  el.innerHTML = items.map(function (ci) {
+    var input = '';
+    if (ci.type === 'boolean') {
+      input = '<div class="sci-bool"><button class="yes" onclick="submitCheckIn(\\''+ci.field+'\\', true)">Yes</button><button onclick="submitCheckIn(\\''+ci.field+'\\', false)">No</button></div>';
+    } else if (ci.type === 'number') {
+      input = '<div class="sci-input"><input type="number" min="' + (ci.min||1) + '" max="' + (ci.max||10) + '" placeholder="' + (ci.min||1) + '-' + (ci.max||10) + '" id="sci_'+ci.field+'" /><button onclick="submitCheckIn(\\''+ci.field+'\\', Number(document.getElementById(\\'sci_'+ci.field+'\\').value))">Save</button></div>';
+    } else {
+      input = '<div class="sci-input"><input type="text" placeholder="Type..." id="sci_'+ci.field+'" /><button onclick="submitCheckIn(\\''+ci.field+'\\', document.getElementById(\\'sci_'+ci.field+'\\').value)">Save</button></div>';
+    }
+    return '<div class="sci-card" data-field="' + ci.field + '">' +
+      '<div class="sci-q">' + ci.question + '</div>' +
+      '<div class="sci-reason">' + ci.reason + '</div>' +
+      input +
+    '</div>';
+  }).join('');
+}
+
+async function submitCheckIn(field, value) {
+  try {
+    var today = new Date().toISOString().slice(0, 10);
+    var payload = { date: today };
+    payload[field] = value;
+    await authedFetch('/api/knowledge/notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    var el = document.getElementById('smartCheckInArea');
+    if (el) {
+      var card = el.querySelector('.sci-card[data-field="' + field + '"]');
+      if (card) card.innerHTML = '<div class="sci-q">✅ Recorded</div>';
+    }
+  } catch (e) {}
 }
 
 function fmt(n, d) {
@@ -5007,6 +5192,7 @@ async function boot() {
   loadTemplates();
   loadUnloggedPrompts();
   loadProgression();
+  loadRecommendations();
   loadCoach();
   loadAlerts();
 }
