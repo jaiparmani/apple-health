@@ -253,3 +253,46 @@ export function computeStrain(day: DailyMetrics, age: number | null): number | n
   const strain = 21 * (1 - Math.exp(-rawLoad / 55));
   return Math.round(strain * 10) / 10;
 }
+
+export function computeWorkoutStrain(
+  avgHR: number,
+  restingHR: number,
+  durationMin: number,
+  age: number | null
+): number {
+  const maxHr = estimateMaxHeartRate(age ?? 35);
+  const reserve = Math.max(1, maxHr - restingHR);
+  const intensity = Math.max(0, Math.min(1, (avgHR - restingHR) / reserve));
+  const rawLoad = intensity * durationMin * 1.2;
+  return Math.round(21 * (1 - Math.exp(-rawLoad / 55)) * 10) / 10;
+}
+
+export function computeHRZoneSummary(day: DailyMetrics, age: number | null): {
+  zones: { zone: number; label: string; minHR: number; maxHR: number; minutes: number | null }[];
+  totalTrackedMin: number;
+} | null {
+  const maxHR = estimateMaxHeartRate(age ?? 35);
+  const zoneDefs = [
+    { zone: 1, label: "Very Light", pctLow: 0, pctHigh: 0.6 },
+    { zone: 2, label: "Light", pctLow: 0.6, pctHigh: 0.7 },
+    { zone: 3, label: "Aerobic", pctLow: 0.7, pctHigh: 0.8 },
+    { zone: 4, label: "Threshold", pctLow: 0.8, pctHigh: 0.9 },
+    { zone: 5, label: "Max Effort", pctLow: 0.9, pctHigh: 1.0 },
+  ];
+
+  const hasZoneData = day.hrZone1Min !== undefined || day.hrZone2Min !== undefined;
+  const zoneFields = [day.hrZone1Min, day.hrZone2Min, day.hrZone3Min, day.hrZone4Min, day.hrZone5Min];
+
+  return {
+    zones: zoneDefs.map((z, i) => ({
+      zone: z.zone,
+      label: z.label,
+      minHR: Math.round(maxHR * z.pctLow),
+      maxHR: Math.round(maxHR * z.pctHigh),
+      minutes: hasZoneData ? (zoneFields[i] ?? 0) : null,
+    })),
+    totalTrackedMin: hasZoneData
+      ? zoneFields.reduce((sum, v) => sum + (v ?? 0), 0)
+      : 0,
+  };
+}

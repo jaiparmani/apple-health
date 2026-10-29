@@ -37,6 +37,12 @@ export interface DailyMetrics {
   distanceCyclingKm?: number;
   daylightMinutes?: number;
   mindfulMinutes?: number;
+  // HR zone time (minutes in each zone)
+  hrZone1Min?: number; // zone 1: <60% max HR (very light)
+  hrZone2Min?: number; // zone 2: 60-70% max HR (light/fat burn)
+  hrZone3Min?: number; // zone 3: 70-80% max HR (aerobic)
+  hrZone4Min?: number; // zone 4: 80-90% max HR (threshold)
+  hrZone5Min?: number; // zone 5: >90% max HR (max effort)
   // Mobility / gait (strong aging biomarkers)
   walkingSpeed?: number; // m/s
   walkingStepLength?: number; // cm
@@ -64,6 +70,7 @@ export interface DailyMetrics {
   workoutEnergy?: number; // kcal
   workoutDistanceKm?: number;
   workoutType?: string; // most common HKWorkoutActivityType that day
+  workoutStrains?: { type: string; strain: number; minutes: number; avgHR?: number }[];
   // Activity Rings (from <ActivitySummary> elements, distinct from <Record>)
   activeEnergyGoal?: number; // kcal, the Move ring's goal that day
   exerciseMinutesGoal?: number; // the Exercise ring's goal that day
@@ -103,6 +110,14 @@ export interface KnowledgeNote {
   screenBeforeBed?: boolean;
   supplements?: string[]; // e.g. ["melatonin", "magnesium", "creatine"]
   hydrationLiters?: number;
+  sauna?: boolean;
+  coldPlunge?: boolean;
+  nap?: boolean;
+  napMinutes?: number;
+  travel?: boolean;
+  meditation?: boolean;
+  meditationMinutes?: number;
+  preWorkout?: boolean;
 }
 
 export interface RecoverySnapshot {

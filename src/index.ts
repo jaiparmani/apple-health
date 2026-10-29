@@ -14,7 +14,12 @@ import { generateReview, generatePlanJson, answerHealthQuestion, generateChartFr
 import { computeGoalProgress, currentValue, isGoalMetric, GOAL_METRICS, type Goal, type GoalProgress } from "./goals";
 import { buildTemplatePlan, mondayOf, parseAiPlan, viewPlan, type PlanView, type StoredPlan } from "./plan";
 import { computeWeekdayPattern } from "./overview";
-import { healthBriefMessage } from "./brief";
+import { healthBriefMessage, criticalAlertMessage, eveningBriefMessage, noonCheckInMessage } from "./brief";
+import { generateRecoveryCard, generateReportCard, generateStrainCard } from "./share";
+import { sanitizeMeasurement, mergeMeasurements } from "./measurements";
+import { analyzeMeasurements, type BodyMeasurement } from "./body";
+import { renderApiDocs } from "./apidocs";
+import { computeHRZoneSummary } from "./analytics";
 import { buildReviewContext } from "./reviewContext";
 import { computeFitnessReport, dailyLoad, computeLoadSeries } from "./fitness";
 import { computeOverview } from "./overview";
@@ -37,6 +42,7 @@ const GOALS_PATH = "data/goals.json";
 const PLAN_PATH = "data/plan.json";
 const WORKOUTS_PATH = "data/manual-workouts.json";
 const TEMPLATES_PATH = "data/workout-templates.json";
+const MEASUREMENTS_PATH = "data/measurements.json";
 const MAX_GOALS = 10;
 const MAX_SERIES_DAYS = 4000; // ~11 years, enough headroom for a full Apple Health export backfill
 const MAX_HISTORY_ENTRIES = 4000;
@@ -791,6 +797,14 @@ async function handlePostKnowledgeNote(req: Request, env: Env): Promise<Response
     screenBeforeBed: typeof body.screenBeforeBed === "boolean" ? body.screenBeforeBed : undefined,
     supplements: Array.isArray(body.supplements) ? body.supplements.filter((s: unknown) => typeof s === "string").slice(0, 10).map((s: string) => s.slice(0, 60)) : undefined,
     hydrationLiters: typeof body.hydrationLiters === "number" ? Math.max(0, Math.round(body.hydrationLiters * 10) / 10) : undefined,
+    sauna: typeof body.sauna === "boolean" ? body.sauna : undefined,
+    coldPlunge: typeof body.coldPlunge === "boolean" ? body.coldPlunge : undefined,
+    nap: typeof body.nap === "boolean" ? body.nap : undefined,
+    napMinutes: typeof body.napMinutes === "number" ? Math.max(0, Math.min(480, Math.round(body.napMinutes))) : undefined,
+    travel: typeof body.travel === "boolean" ? body.travel : undefined,
+    meditation: typeof body.meditation === "boolean" ? body.meditation : undefined,
+    meditationMinutes: typeof body.meditationMinutes === "number" ? Math.max(0, Math.min(480, Math.round(body.meditationMinutes))) : undefined,
+    preWorkout: typeof body.preWorkout === "boolean" ? body.preWorkout : undefined,
   };
 
   const { data: existing, sha } = await getJson<UserKnowledge>(env, KNOWLEDGE_PATH);
@@ -1232,6 +1246,231 @@ async function handleGetAlerts(req: Request, env: Env): Promise<Response> {
   return json({ alerts: generateAlerts(days, trends, goals, lastSyncDate, today) });
 }
 
+// ---------------- Critical alert endpoint ----------------
+
+async function handleTelegramCritical(req: Request, env: Env): Promise<Response> {
+  const auth = req.headers.get("Authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  const ok = !!token && (token === env.BRIEF_TOKEN || token === env.INGEST_TOKEN);
+  if (!ok) return unauthorized();
+
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const days = seriesData?.days ?? [];
+  if (days.length === 0) return json({ text: null });
+
+  const { data: knowledge } = await getJson<UserKnowledge>(env, KNOWLEDGE_PATH);
+  const sleepTarget = knowledge?.sleepTargetHours ?? 7.5;
+  const trends = computeTrends(days, sleepTarget);
+
+  const text = criticalAlertMessage({
+    illnessSignal: trends.illnessSignal,
+    recovery: trends.recovery,
+    readiness: trends.readinessScore,
+    dashboardUrl: env.PUBLIC_URL || "",
+  });
+  return json({ text });
+}
+
+// ---------------- Evening brief endpoint ----------------
+
+async function handleTelegramEvening(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  const auth = req.headers.get("Authorization") || "";
+  const token = auth.startsWith("Bearer ") ? auth.slice(7) : "";
+  const ok = !!token && (token === env.BRIEF_TOKEN || token === env.INGEST_TOKEN);
+  if (!ok) return unauthorized();
+
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const days = seriesData?.days ?? [];
+  if (days.length === 0) return json({ text: null });
+  const { data: profile } = await getJson<UserProfile>(env, PROFILE_PATH);
+  const { data: knowledge } = await getJson<UserKnowledge>(env, KNOWLEDGE_PATH);
+  const notes = knowledge?.notes ?? [];
+  const sleepTarget = knowledge?.sleepTargetHours ?? 7.5;
+  const trends = computeTrends(days, sleepTarget);
+  const age = profile ? chronologicalAge(profile.birthDate, days[days.length - 1].date) : null;
+
+  const plan = await loadPlan(env).catch(() => null);
+  const sleepProtocol = prescribeSleepProtocol(trends.sleepAnalysis, days, notes, sleepTarget, false);
+  const today = localToday(env);
+  const smartCheckIn = generateSmartCheckIn(days, notes, [], today);
+
+  const todayData = days.find((d) => d.date === today);
+  const todayStrain = todayData ? computeStrain(todayData, age) : null;
+
+  // Find tomorrow's session from the plan days array
+  const todayIdx = plan?.days.findIndex((d) => d.date === today) ?? -1;
+  const tomorrowSession = todayIdx >= 0 && plan ? plan.days[todayIdx + 1] ?? null : null;
+
+  const text = eveningBriefMessage({
+    today,
+    lastDataDate: days[days.length - 1].date,
+    sleepProtocol,
+    session: tomorrowSession,
+    smartCheckIn,
+    readiness: trends.readinessScore,
+    todayStrain,
+    dashboardUrl: env.PUBLIC_URL || "",
+  });
+  return json({ text });
+}
+
+// ---------------- Mid-day check-in endpoint ----------------
+
+async function handleGetCheckIn(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const [{ data: seriesData }, { data: profile }, { data: knowledge }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<UserProfile>(env, PROFILE_PATH),
+    getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
+  ]);
+  const days = seriesData?.days ?? [];
+  const sleepTarget = knowledge?.sleepTargetHours ?? 7.5;
+  const stepGoal = knowledge?.stepGoal ?? 10000;
+  const today = localToday(env);
+  const todayData = days.find((d) => d.date === today);
+  const age = profile ? chronologicalAge(profile.birthDate, today) : null;
+  const trends = computeTrends(days, sleepTarget);
+
+  const series = computeLoadSeries(days, age);
+  const last7 = series.slice(-7).map((p) => p.load);
+  const last28 = series.slice(-28).map((p) => p.load);
+  const mean = (v: number[]) => v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  const acuteLd = mean(last7);
+  const chronicLd = mean(last28);
+  const acwr = acuteLd !== null && chronicLd !== null && chronicLd > 0.5 ? acuteLd / chronicLd : null;
+  const form = series.length ? series[series.length - 1]?.form ?? null : null;
+  let daysSinceRest = 0;
+  for (let i = series.length - 1; i >= 0 && series[i].load >= 8; i--) daysSinceRest++;
+
+  const strainBudget = computeStrainBudget(days, trends.readinessScore, trends.recovery?.score ?? null, acwr, form, daysSinceRest);
+  const currentStrain = todayData ? computeStrain(todayData, age) : null;
+  const hydrationReminder = !todayData || (todayData.exerciseMinutes ?? 0) > 30;
+
+  const text = noonCheckInMessage({
+    today,
+    currentStrain,
+    strainBudget,
+    steps: todayData?.steps ?? null,
+    stepGoal,
+    exerciseMinutes: todayData?.exerciseMinutes ?? null,
+    hydrationReminder,
+    readiness: trends.readinessScore,
+  });
+  return json({ text, strain: currentStrain, readiness: trends.readinessScore, steps: todayData?.steps ?? null, stepGoal, strainBudget });
+}
+
+// ---------------- Body measurements CRUD ----------------
+
+async function handleGetMeasurements(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const { data } = await getJson<{ measurements: BodyMeasurement[] }>(env, MEASUREMENTS_PATH);
+  const measurements = data?.measurements ?? [];
+  const analysis = analyzeMeasurements(measurements);
+  return json({ measurements, analysis });
+}
+
+async function handlePostMeasurement(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  let body: unknown;
+  try {
+    body = await req.json();
+  } catch {
+    return json({ error: "invalid json body" }, 400);
+  }
+  const measurement = sanitizeMeasurement(body);
+  if (!measurement) return json({ error: "date (YYYY-MM-DD) and at least one measurement are required" }, 400);
+
+  const { data: existing, sha } = await getJson<{ measurements: BodyMeasurement[] }>(env, MEASUREMENTS_PATH);
+  const measurements = mergeMeasurements(existing?.measurements ?? [], measurement);
+  await putJson(env, MEASUREMENTS_PATH, { measurements }, `measurements: ${measurement.date}`, sha);
+  return json({ ok: true, measurement });
+}
+
+async function handleDeleteMeasurement(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const date = new URL(req.url).searchParams.get("date");
+  if (!date) return json({ error: "?date=YYYY-MM-DD is required" }, 400);
+  const { data: existing, sha } = await getJson<{ measurements: BodyMeasurement[] }>(env, MEASUREMENTS_PATH);
+  const measurements = (existing?.measurements ?? []).filter((m) => m.date !== date);
+  await putJson(env, MEASUREMENTS_PATH, { measurements }, `measurements: delete ${date}`, sha);
+  return json({ ok: true });
+}
+
+// ---------------- Shareable health cards ----------------
+
+async function handleShareRecovery(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const { data: knowledge } = await getJson<UserKnowledge>(env, KNOWLEDGE_PATH);
+  const days = seriesData?.days ?? [];
+  const sleepTarget = knowledge?.sleepTargetHours ?? 7.5;
+  const trends = computeTrends(days, sleepTarget);
+  if (!trends.recovery) return json({ error: "no recovery data" }, 400);
+  const svg = generateRecoveryCard(trends.recovery, trends.readinessScore);
+  return new Response(svg, { headers: { "Content-Type": "image/svg+xml", "Cache-Control": "no-cache" } });
+}
+
+async function handleShareReportCard(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+  const { data: knowledge } = await getJson<UserKnowledge>(env, KNOWLEDGE_PATH);
+  const days = seriesData?.days ?? [];
+  const sleepTarget = knowledge?.sleepTargetHours ?? 7.5;
+  const rc = computeWeeklyReportCard(days, sleepTarget);
+  if (!rc) return json({ error: "not enough data for report card" }, 400);
+  const svg = generateReportCard(rc);
+  return new Response(svg, { headers: { "Content-Type": "image/svg+xml", "Cache-Control": "no-cache" } });
+}
+
+async function handleShareStrain(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const [{ data: seriesData }, { data: profile }, { data: knowledge }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<UserProfile>(env, PROFILE_PATH),
+    getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
+  ]);
+  const days = seriesData?.days ?? [];
+  const sleepTarget = knowledge?.sleepTargetHours ?? 7.5;
+  const today = localToday(env);
+  const todayData = days.find((d) => d.date === today);
+  const age = profile ? chronologicalAge(profile.birthDate, today) : null;
+  const strain = todayData ? computeStrain(todayData, age) : null;
+  if (strain === null) return json({ error: "no strain data for today" }, 400);
+
+  const trends = computeTrends(days, sleepTarget);
+  const series = computeLoadSeries(days, age);
+  const last7 = series.slice(-7).map((p) => p.load);
+  const last28 = series.slice(-28).map((p) => p.load);
+  const mean = (v: number[]) => v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  const acuteLd = mean(last7);
+  const chronicLd = mean(last28);
+  const acwr = acuteLd !== null && chronicLd !== null && chronicLd > 0.5 ? acuteLd / chronicLd : null;
+  const form = series.length ? series[series.length - 1]?.form ?? null : null;
+  let daysSinceRest = 0;
+  for (let i = series.length - 1; i >= 0 && series[i].load >= 8; i--) daysSinceRest++;
+  const budget = computeStrainBudget(days, trends.readinessScore, trends.recovery?.score ?? null, acwr, form, daysSinceRest);
+
+  const svg = generateStrainCard(strain, today, budget);
+  return new Response(svg, { headers: { "Content-Type": "image/svg+xml", "Cache-Control": "no-cache" } });
+}
+
+// ---------------- HR zone summary ----------------
+
+async function handleGetHRZones(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const [{ data: seriesData }, { data: profile }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<UserProfile>(env, PROFILE_PATH),
+  ]);
+  const days = seriesData?.days ?? [];
+  if (days.length === 0) return json({ zones: null });
+  const today = localToday(env);
+  const todayData = days.find((d) => d.date === today) ?? days[days.length - 1];
+  const age = profile ? chronologicalAge(profile.birthDate, todayData.date) : null;
+  const summary = computeHRZoneSummary(todayData, age);
+  return json({ date: todayData.date, ...summary });
+}
+
 async function handlePutProfile(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   let body: Partial<UserProfile>;
@@ -1311,22 +1550,48 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/alerts") return await handleGetAlerts(req, env);
       if (req.method === "GET" && url.pathname === "/api/coach") return await handleGetCoach(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
+      // Telegram endpoints
+      if (req.method === "POST" && url.pathname === "/telegram/evening") return await handleTelegramEvening(req, env, ctx);
+      if (req.method === "GET" && url.pathname === "/telegram/critical") return await handleTelegramCritical(req, env);
+      // Mid-day check-in
+      if (req.method === "GET" && url.pathname === "/api/checkin") return await handleGetCheckIn(req, env);
+      // Body measurements CRUD
+      if (req.method === "GET" && url.pathname === "/api/measurements") return await handleGetMeasurements(req, env);
+      if (req.method === "POST" && url.pathname === "/api/measurements") return await handlePostMeasurement(req, env);
+      if (req.method === "DELETE" && url.pathname === "/api/measurements") return await handleDeleteMeasurement(req, env);
+      // Shareable cards
+      if (req.method === "GET" && url.pathname === "/api/share/recovery") return await handleShareRecovery(req, env);
+      if (req.method === "GET" && url.pathname === "/api/share/report-card") return await handleShareReportCard(req, env);
+      if (req.method === "GET" && url.pathname === "/api/share/strain") return await handleShareStrain(req, env);
+      // HR zones
+      if (req.method === "GET" && url.pathname === "/api/hr-zones") return await handleGetHRZones(req, env);
+      // API docs
+      if (req.method === "GET" && url.pathname === "/docs") {
+        return new Response(renderApiDocs(), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+      }
       if (req.method === "GET" && url.pathname === "/manifest.json") {
         return new Response(JSON.stringify({
           name: "Health Dashboard",
           short_name: "Health",
+          description: "Your personal health analytics dashboard — recovery, strain, sleep, training.",
           start_url: "/",
           display: "standalone",
+          orientation: "portrait",
           background_color: "#0a0a0a",
           theme_color: "#0a0a0a",
-          icons: [{ src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⌁</text></svg>", sizes: "any", type: "image/svg+xml" }]
+          categories: ["health", "fitness"],
+          icons: [
+            { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⌁</text></svg>", sizes: "any", type: "image/svg+xml" },
+            { src: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⌁</text></svg>", sizes: "any", type: "image/svg+xml", purpose: "maskable" },
+          ],
         }), { headers: { "Content-Type": "application/manifest+json" } });
       }
       if (req.method === "GET" && url.pathname === "/sw.js") {
-        return new Response(
-          "self.addEventListener('install',e=>self.skipWaiting());" +
-          "self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));" +
-          "self.addEventListener('fetch',e=>{});",
+        return new Response(`const CACHE='health-v1';
+const PRECACHE=['/'];
+self.addEventListener('install',e=>{e.waitUntil(caches.open(CACHE).then(c=>c.addAll(PRECACHE)).then(()=>self.skipWaiting()))});
+self.addEventListener('activate',e=>{e.waitUntil(caches.keys().then(ks=>Promise.all(ks.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim()))});
+self.addEventListener('fetch',e=>{const r=e.request;if(r.method!=='GET')return;const u=new URL(r.url);if(u.pathname.startsWith('/api/')||u.pathname.startsWith('/telegram/'))return;e.respondWith(fetch(r).then(res=>{if(res.ok){const c=res.clone();caches.open(CACHE).then(ca=>ca.put(r,c))}return res}).catch(()=>caches.match(r)))});`,
           { headers: { "Content-Type": "application/javascript" } }
         );
       }
