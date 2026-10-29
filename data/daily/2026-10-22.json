@@ -5,7 +5,7 @@
   "steps": 1213,
   "activeEnergy": 53.94,
   "exerciseMinutes": 2,
-  "receivedAt": "2026-10-28T18:13:12.953Z",
+  "receivedAt": "2026-10-29T04:45:59.004Z",
   "heartRateAvg": 80.8,
   "heartRateMin": 67,
   "heartRateMax": 95,
@@ -23,6 +23,7 @@
   "extra": {
     "HeadphoneAudioExposure": 53.863,
     "PhysicalEffort": 3.145,
-    "AppleStandHourCount": 4
+    "AppleStandHourCount": 4,
+    "AppleWalkingSteadiness": 0.985
   }
 }
