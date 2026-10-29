@@ -200,6 +200,63 @@ export function renderDashboard(): string {
   .scroll-observe { opacity:0; transform:translateY(20px); transition:opacity .5s var(--ease-smooth), transform .5s var(--ease-smooth); transition-delay:var(--stagger, 0ms); }
   .scroll-observe.in-view { opacity:1; transform:translateY(0); }
 
+  /* ---- premium: animated readiness ring ---- */
+  .readiness-ring-wrap { position:relative; width:160px; height:160px; margin:0 auto 12px; }
+  .readiness-ring-wrap svg { width:100%; height:100%; transform:rotate(-90deg); }
+  .readiness-ring-wrap .rr-bg { fill:none; stroke:var(--panel2); stroke-width:10; }
+  .readiness-ring-wrap .rr-fill { fill:none; stroke-width:10; stroke-linecap:round; transition:stroke-dashoffset 1.5s var(--ease-spring), stroke 0.5s; filter:drop-shadow(0 0 8px var(--up)); }
+  .readiness-ring-label { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .readiness-ring-label .rr-num { font-family:var(--mono); font-size:52px; font-weight:900; line-height:1; letter-spacing:-.02em; }
+  .readiness-ring-label .rr-text { font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.08em; margin-top:4px; }
+
+  /* ---- premium: count-up number ---- */
+  .count-up { display:inline-block; }
+  @keyframes countPulse { 0% { transform:scale(1); } 50% { transform:scale(1.08); } 100% { transform:scale(1); } }
+  .count-up.done { animation:countPulse .3s var(--ease-spring); }
+
+  /* ---- premium: confetti ---- */
+  .confetti-container { position:fixed; top:0; left:0; width:100%; height:100%; pointer-events:none; z-index:9999; overflow:hidden; }
+  .confetti-piece { position:absolute; width:8px; height:8px; border-radius:2px; opacity:0; animation:confettiFall 2.5s ease-out forwards; }
+  @keyframes confettiFall {
+    0% { opacity:1; transform:translateY(-10px) rotate(0deg) scale(1); }
+    50% { opacity:1; }
+    100% { opacity:0; transform:translateY(100vh) rotate(720deg) scale(0.3); }
+  }
+
+  /* ---- premium: toast notifications ---- */
+  .toast-container { position:fixed; top:20px; left:50%; transform:translateX(-50%); z-index:10000; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+  .toast { padding:12px 20px; border-radius:10px; background:var(--panel-glass); backdrop-filter:blur(20px) saturate(1.4); -webkit-backdrop-filter:blur(20px) saturate(1.4); border:1px solid rgba(255,255,255,.1); color:var(--ink); font-size:14px; font-weight:600; box-shadow:var(--depth-3); animation:toastIn .4s var(--ease-spring) both; pointer-events:auto; display:flex; align-items:center; gap:8px; }
+  .toast.success { border-left:3px solid var(--up); }
+  .toast.info { border-left:3px solid var(--pulse); }
+  .toast.warning { border-left:3px solid var(--caution); }
+  @keyframes toastIn { from { opacity:0; transform:translateY(-20px) scale(.95); } to { opacity:1; transform:translateY(0) scale(1); } }
+  @keyframes toastOut { from { opacity:1; transform:translateY(0) scale(1); } to { opacity:0; transform:translateY(-10px) scale(.95); } }
+
+  /* ---- premium: live countdown ---- */
+  .live-countdown { font-family:var(--mono); font-weight:700; font-size:14px; color:var(--pulse); }
+  .live-countdown .cd-label { font-family:var(--sans); font-weight:600; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; }
+  .live-countdown .cd-time { font-size:22px; letter-spacing:.02em; }
+
+  /* ---- premium: tab slide ---- */
+  .section { transition:opacity .25s var(--ease-smooth), transform .25s var(--ease-smooth); }
+  .section.slide-out { opacity:0; transform:translateX(-20px); pointer-events:none; }
+  .section.slide-in { opacity:0; transform:translateX(20px); }
+  .section.active { opacity:1; transform:translateX(0); }
+
+  /* ---- premium: dynamic header glow ---- */
+  .header-glow { position:absolute; inset:0; pointer-events:none; opacity:.15; transition:background 1s; border-radius:0; }
+
+  /* ---- premium: pulse dot for live data ---- */
+  .live-dot { width:6px; height:6px; border-radius:50%; background:var(--up); display:inline-block; margin-right:6px; animation:livePulse 2s ease-in-out infinite; }
+  @keyframes livePulse { 0%,100% { opacity:1; box-shadow:0 0 0 0 rgba(52,211,153,.4); } 50% { opacity:.7; box-shadow:0 0 0 6px rgba(52,211,153,0); } }
+
+  /* ---- premium: skeleton shimmer cards ---- */
+  .skel-card { padding:18px; margin-bottom:12px; background:var(--panel-glass); border:1px solid rgba(255,255,255,.06); border-radius:10px; }
+  .skel-line { height:12px; border-radius:4px; background:linear-gradient(90deg,var(--panel2) 25%,rgba(255,255,255,.06) 50%,var(--panel2) 75%); background-size:400% 100%; animation:shimmer 1.4s infinite; margin:8px 0; }
+  .skel-circle { width:60px; height:60px; border-radius:50%; background:linear-gradient(90deg,var(--panel2) 25%,rgba(255,255,255,.06) 50%,var(--panel2) 75%); background-size:400% 100%; animation:shimmer 1.4s infinite; margin:0 auto 12px; }
+  .skel-row { display:flex; gap:12px; }
+  .skel-row .skel-line { flex:1; }
+
   /* ---- bests / markers ---- */
   .bests { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:0; border-top:1px solid var(--line); }
   .best { padding:12px 14px 12px 0; border-bottom:1px solid var(--line); }
@@ -1137,7 +1194,7 @@ export function renderDashboard(): string {
   <header class="top">
     <div class="row">
       <h1>Health</h1>
-      <div class="sub" id="lastUpdated">—</div>
+      <div class="sub" id="lastUpdated"><span class="live-dot"></span>—</div>
     </div>
     <nav class="tabs primary" id="primaryNav">
       <button class="tab" data-view="today" onclick="showView('today')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Today</span></button>
@@ -1200,11 +1257,11 @@ export function renderDashboard(): string {
     <button class="btn-ghost btn-sm" id="allVitalsBtn" onclick="toggleAllVitals()" style="margin-bottom:12px">Show all vitals</button>
     <div class="compact-grid" id="allVitals" style="display:none"></div>
 
-    <div class="card session-card" id="todaySession"><h3>Up next</h3><div class="sub">Loading your plan…</div></div>
+    <div class="card session-card" id="todaySession"><h3>Up next</h3><div class="skel-line" style="width:60%;"></div><div class="skel-line" style="width:80%;"></div></div>
 
     <div class="card" id="whatMoved">
       <h3>What moved</h3>
-      <div class="sub" id="whatMovedList">Checking…</div>
+      <div id="whatMovedList"><div class="skel-line" style="width:70%;"></div><div class="skel-line" style="width:50%;"></div></div>
     </div>
 
     ${reviewCard("today", "Coach’s note")}
@@ -1389,7 +1446,10 @@ export function renderDashboard(): string {
       <div class="li-grid" id="lifestyleImpacts"></div>
     </div>
 
-    <div id="coachLoading" class="sub" style="text-align:center;padding:24px;">Loading coaching data…</div>
+    <div id="coachLoading" style="padding:12px 0;">
+      <div class="skel-card"><div class="skel-circle"></div><div class="skel-line" style="width:60%;margin:0 auto;"></div><div class="skel-line" style="width:80%;margin:4px auto;"></div></div>
+      <div class="skel-card"><div class="skel-row"><div class="skel-line"></div><div class="skel-line"></div></div><div class="skel-line" style="width:70%;"></div></div>
+    </div>
   </section>
 
   <!-- AI ANALYST -->
@@ -2176,6 +2236,7 @@ async function saveWorkout() {
   try {
     await authedFetch('/api/workouts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
     closeWorkoutLogger();
+    showToast('🏋️ Workout saved!', 'success');
     await loadWorkouts();
   } catch (e) {
     alert('Failed to save: ' + e.message);
@@ -2584,6 +2645,7 @@ async function loadRecommendations() {
     renderLifestyleImpacts(res.lifestyleImpacts || []);
     renderRecoveryCountdowns(res.recoveryCountdowns || []);
     renderSmartCheckIn(res.smartCheckIn || []);
+    if (res.sleepProtocol) startSleepCountdown();
   } catch (e) {}
 }
 
@@ -2594,10 +2656,11 @@ function renderSleepProtocol(sp) {
   card.style.display = 'block';
   var html = '<div class="sp-card">';
   html += '<div class="sp-times">';
-  html += '<div class="sp-time"><div class="sp-time-label">Bedtime</div><div class="sp-time-val">' + sp.bedtime + '</div></div>';
+  html += '<div class="sp-time"><div class="sp-time-label">Bedtime</div><div class="sp-time-val" data-bedtime="' + sp.bedtime + '">' + sp.bedtime + '</div></div>';
   html += '<div class="sp-time"><div class="sp-time-label">Target</div><div class="sp-time-val">' + sp.targetHours + 'h</div></div>';
   html += '<div class="sp-time"><div class="sp-time-label">Wake</div><div class="sp-time-val">' + sp.wakeTime + '</div></div>';
   html += '</div>';
+  html += '<div class="live-countdown" id="sleepCountdown"></div>';
   html += '<div class="sp-deadlines">';
   html += '<span class="sp-deadline"><span class="dl-icon">☕</span>Caffeine by ' + sp.caffeineDeadline + '</span>';
   html += '<span class="sp-deadline"><span class="dl-icon">🍽️</span>Last meal by ' + sp.lastMealBy + '</span>';
@@ -2689,6 +2752,7 @@ async function submitCheckIn(field, value) {
       var card = el.querySelector('.sci-card[data-field="' + field + '"]');
       if (card) card.innerHTML = '<div class="sci-q">✅ Recorded</div>';
     }
+    showToast('✅ ' + field + ' logged', 'success');
   } catch (e) {}
 }
 
@@ -2697,46 +2761,77 @@ async function submitCheckIn(field, value) {
 async function loadPremium() {
   try {
     var res = await authedFetch('/api/premium');
-    renderReadiness(res.readiness);
-    renderHeatmap(res.heatmap || []);
+    renderReadinessRing(res.readiness);
+    renderActivityHeatmap(res.heatmap || []);
     renderStreaks(res.streaks || []);
     renderWeeklyComparison(res.weeklyComparison || []);
     renderPersonalRecords(res.personalRecords || []);
+    // Confetti for new PRs
+    if (res.personalRecords && res.personalRecords.some(function(p) { return p.isNewPR; })) {
+      setTimeout(function() { fireConfetti(); showToast('🏆 New personal record!', 'success'); }, 800);
+    }
+    // Confetti for milestone streaks
+    if (res.streaks) {
+      res.streaks.forEach(function(s) {
+        if (s.streakActive && (s.currentStreak === 7 || s.currentStreak === 14 || s.currentStreak === 30 || s.currentStreak === 50 || s.currentStreak === 100)) {
+          setTimeout(function() { fireConfetti(); showToast('🔥 ' + s.currentStreak + '-day ' + s.type + ' streak!', 'success'); }, 1200);
+        }
+      });
+    }
   } catch (e) {}
 }
 
-function renderReadiness(r) {
+function renderReadinessRing(r) {
   var card = document.getElementById('readinessCard');
   var el = document.getElementById('readinessGauge');
   if (!el || !r) return;
   card.style.display = 'block';
-  var scoreColor = r.score >= 80 ? 'var(--up)' : r.score >= 65 ? 'var(--pulse)' : r.score >= 45 ? 'var(--caution)' : 'var(--down)';
-  var html = '<div class="tr-gauge">';
-  html += '<div class="tr-score" style="color:' + scoreColor + ';">' + r.score + '</div>';
-  html += '<div class="tr-label ' + r.label.toLowerCase() + '">' + r.label + '</div>';
+  var rawColor = r.score >= 80 ? '#34d399' : r.score >= 65 ? '#a3e635' : r.score >= 45 ? '#fbbf24' : '#f76b4d';
+  var cssColor = r.score >= 80 ? 'var(--up)' : r.score >= 65 ? 'var(--pulse)' : r.score >= 45 ? 'var(--caution)' : 'var(--down)';
+  var circ = 2 * Math.PI * 68;
+  var offset = circ - (r.score / 100) * circ;
+  var html = '<div class="readiness-ring-wrap">';
+  html += '<svg viewBox="0 0 160 160"><circle class="rr-bg" cx="80" cy="80" r="68" />';
+  html += '<circle class="rr-fill" cx="80" cy="80" r="68" stroke="' + rawColor + '" stroke-dasharray="' + circ.toFixed(1) + '" stroke-dashoffset="' + circ.toFixed(1) + '" id="readinessArc" /></svg>';
+  html += '<div class="readiness-ring-label">';
+  html += '<div class="rr-num count-up" style="color:' + cssColor + ';" data-target="' + r.score + '">0</div>';
+  html += '<div class="rr-text" style="color:' + cssColor + ';">' + r.label + '</div>';
+  html += '</div></div>';
   html += '<div class="tr-factors">';
   (r.factors || []).forEach(function (f) {
     var barColor = f.score >= 70 ? 'var(--up)' : f.score >= 45 ? 'var(--caution)' : 'var(--down)';
     html += '<div class="tr-factor">' +
       '<span class="tr-factor-name">' + f.name + '</span>' +
-      '<div class="tr-factor-bar"><div style="width:' + f.score + '%;background:' + barColor + ';"></div></div>' +
+      '<div class="tr-factor-bar"><div style="width:0%;background:' + barColor + ';" data-width="' + f.score + '"></div></div>' +
       '<span class="tr-factor-score">' + f.score + '</span>' +
     '</div>';
   });
   html += '</div>';
   html += '<div class="tr-rec">' + r.recommendation + '</div>';
-  html += '</div>';
   el.innerHTML = html;
+  // Animate ring + bars after render
+  requestAnimationFrame(function() {
+    var arc = document.getElementById('readinessArc');
+    if (arc) arc.setAttribute('stroke-dashoffset', offset.toFixed(1));
+    // Animate factor bars
+    el.querySelectorAll('.tr-factor-bar > div').forEach(function(bar) {
+      var w = bar.getAttribute('data-width');
+      requestAnimationFrame(function() { bar.style.width = w + '%'; });
+    });
+    // Count up the score number
+    animateCountUp(el.querySelector('.count-up'));
+  });
+  // Update dynamic header glow
+  updateHeaderGlow(r.score);
 }
 
-function renderHeatmap(items) {
+function renderActivityHeatmap(items) {
   var card = document.getElementById('heatmapCard');
   var el = document.getElementById('heatmapGrid');
   if (!el || items.length === 0) return;
   card.style.display = 'block';
-  // Fill gaps to align to weekday grid
   var first = new Date(items[0].date + 'T12:00:00Z');
-  var startDow = first.getUTCDay(); // 0=Sun
+  var startDow = first.getUTCDay();
   var cells = '';
   for (var pad = 0; pad < startDow; pad++) cells += '<div class="hm-cell hm-0"></div>';
   items.forEach(function (d) {
@@ -2817,6 +2912,130 @@ function toggleFab() {
   if (menu) menu.classList.toggle('open');
 }
 
+// ---- Premium UI systems ----
+
+function animateCountUp(el) {
+  if (!el) return;
+  var target = parseInt(el.getAttribute('data-target') || '0');
+  var start = 0;
+  var duration = 1200;
+  var startTime = null;
+  function step(ts) {
+    if (!startTime) startTime = ts;
+    var progress = Math.min((ts - startTime) / duration, 1);
+    var eased = 1 - Math.pow(1 - progress, 3); // ease-out cubic
+    var current = Math.round(start + (target - start) * eased);
+    el.textContent = current;
+    if (progress < 1) requestAnimationFrame(step);
+    else el.classList.add('done');
+  }
+  requestAnimationFrame(step);
+}
+
+function fireConfetti() {
+  var container = document.createElement('div');
+  container.className = 'confetti-container';
+  document.body.appendChild(container);
+  var colors = ['#a3e635', '#34d399', '#fbbf24', '#d4a853', '#c9b8ff', '#f76b4d', '#ff6b9d', '#4dc9f6'];
+  for (var i = 0; i < 60; i++) {
+    var piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.left = (Math.random() * 100) + '%';
+    piece.style.background = colors[Math.floor(Math.random() * colors.length)];
+    piece.style.animationDelay = (Math.random() * 0.8) + 's';
+    piece.style.animationDuration = (1.5 + Math.random() * 1.5) + 's';
+    piece.style.width = (4 + Math.random() * 6) + 'px';
+    piece.style.height = (4 + Math.random() * 6) + 'px';
+    piece.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    container.appendChild(piece);
+  }
+  setTimeout(function() { container.remove(); }, 4000);
+}
+
+var toastContainer = null;
+function showToast(message, type) {
+  if (!toastContainer) {
+    toastContainer = document.createElement('div');
+    toastContainer.className = 'toast-container';
+    document.body.appendChild(toastContainer);
+  }
+  var toast = document.createElement('div');
+  toast.className = 'toast ' + (type || 'info');
+  toast.textContent = message;
+  toastContainer.appendChild(toast);
+  setTimeout(function() {
+    toast.style.animation = 'toastOut .3s ease forwards';
+    setTimeout(function() { toast.remove(); }, 300);
+  }, 3000);
+}
+
+function updateHeaderGlow(readinessScore) {
+  var header = document.querySelector('header.top');
+  if (!header) return;
+  var glow = header.querySelector('.header-glow');
+  if (!glow) {
+    glow = document.createElement('div');
+    glow.className = 'header-glow';
+    header.style.position = 'sticky';
+    header.insertBefore(glow, header.firstChild);
+  }
+  var color = readinessScore >= 80 ? '52,211,153' : readinessScore >= 65 ? '163,230,53' : readinessScore >= 45 ? '251,191,36' : '247,107,77';
+  glow.style.background = 'radial-gradient(ellipse at 50% 100%, rgba(' + color + ',.2) 0%, transparent 70%)';
+}
+
+function switchTabAnimated(tabId) {
+  var current = document.querySelector('.section.active');
+  var next = document.getElementById('tab-' + tabId);
+  if (!next || current === next) return;
+  if (current) {
+    current.classList.add('slide-out');
+    current.classList.remove('active');
+  }
+  next.classList.add('slide-in');
+  next.style.display = 'block';
+  requestAnimationFrame(function() {
+    requestAnimationFrame(function() {
+      if (current) { current.style.display = 'none'; current.classList.remove('slide-out'); }
+      next.classList.remove('slide-in');
+      next.classList.add('active');
+      // Stagger card entrances
+      var cards = next.querySelectorAll('.card, .fit, .stat');
+      cards.forEach(function(c, i) {
+        c.style.opacity = '0';
+        c.style.transform = 'translateY(16px)';
+        c.style.transition = 'opacity .35s ease, transform .35s ease';
+        c.style.transitionDelay = (i * 40) + 'ms';
+        requestAnimationFrame(function() { c.style.opacity = '1'; c.style.transform = 'translateY(0)'; });
+      });
+    });
+  });
+}
+
+// Live countdown timer for sleep protocol
+var countdownInterval = null;
+function startSleepCountdown() {
+  if (countdownInterval) clearInterval(countdownInterval);
+  countdownInterval = setInterval(function() {
+    var el = document.querySelector('.sp-time-val[data-bedtime]');
+    if (!el) return;
+    var bedtime = el.getAttribute('data-bedtime');
+    if (!bedtime) return;
+    var now = new Date();
+    var parts = bedtime.split(':');
+    var bedDate = new Date();
+    bedDate.setHours(parseInt(parts[0]), parseInt(parts[1]), 0, 0);
+    if (bedDate < now) bedDate.setDate(bedDate.getDate() + 1);
+    var diff = bedDate - now;
+    if (diff <= 0) return;
+    var h = Math.floor(diff / 3600000);
+    var m = Math.floor((diff % 3600000) / 60000);
+    var countdownEl = document.getElementById('sleepCountdown');
+    if (countdownEl) {
+      countdownEl.innerHTML = '<span class="cd-label">Bedtime in</span> <span class="cd-time">' + h + 'h ' + m + 'm</span>';
+    }
+  }, 60000);
+}
+
 function fmt(n, d) {
   d = d || 0;
   return (n === null || n === undefined) ? '—' : Number(n).toFixed(d);
@@ -2867,6 +3086,17 @@ function showTab(id) {
   activeSection.classList.add('active');
   void activeSection.offsetWidth;
   activeSection.classList.add('tab-enter');
+  // Stagger card entrances on tab switch
+  var cards = activeSection.querySelectorAll('.card, .fit');
+  cards.forEach(function(c, i) {
+    c.style.opacity = '0';
+    c.style.transform = 'translateY(12px)';
+    c.style.transition = 'opacity .3s ease, transform .3s ease';
+    c.style.transitionDelay = (i * 35) + 'ms';
+    requestAnimationFrame(function() {
+      requestAnimationFrame(function() { c.style.opacity = '1'; c.style.transform = 'translateY(0)'; });
+    });
+  });
   document.querySelectorAll('#primaryNav .tab').forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-view') === view); });
   var subs = VIEWS[view];
   document.getElementById('subNav').innerHTML = subs.length < 2 ? '' : subs.map(function (x) {
@@ -3419,8 +3649,12 @@ function renderBodyState(today, baselines) {
   var hrv = today ? today.hrv : null;
   var rhr = today ? today.restingHeartRate : null;
   var recov = TODAY.readiness;
-  document.getElementById('bHrv').textContent = hrv !== null ? String(Math.round(hrv)) : '—';
-  document.getElementById('bRhr').textContent = rhr !== null ? String(Math.round(rhr)) : '—';
+  var bHrv = document.getElementById('bHrv');
+  var bRhr = document.getElementById('bRhr');
+  if (hrv !== null) { bHrv.setAttribute('data-target', String(Math.round(hrv))); bHrv.textContent = '0'; animateCountUp(bHrv); }
+  else { bHrv.textContent = '—'; }
+  if (rhr !== null) { bRhr.setAttribute('data-target', String(Math.round(rhr))); bRhr.textContent = '0'; animateCountUp(bRhr); }
+  else { bRhr.textContent = '—'; }
   document.getElementById('bRecov').textContent = recov !== null ? recov + '/100' : '—';
   if (baselines) {
     var hrvB = baselines.hrv, rhrB = baselines.restingHeartRate;
@@ -6018,6 +6252,7 @@ function saveCheckin() {
   }).catch(function () {});
 
   closeCheckin();
+  showToast('📝 Check-in saved', 'success');
 }
 function showCheckinFab() {
   var fab = document.getElementById('checkinFab');
