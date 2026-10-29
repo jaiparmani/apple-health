@@ -135,3 +135,148 @@ export function healthBriefMessage(b: BriefInput): string | null {
   if (b.dashboardUrl) lines.push(`[Open dashboard](${b.dashboardUrl.replace(/[)\\]/g, (c) => `\\${c}`)})`);
   return lines.join("\n");
 }
+
+// ---- Critical Alert Push (Feature 2) ----
+
+export interface CriticalAlertInput {
+  illnessSignal: IllnessSignal | null;
+  recovery: RecoverySnapshot | null;
+  readiness: number | null;
+  dashboardUrl: string;
+}
+
+export function criticalAlertMessage(a: CriticalAlertInput): string | null {
+  const e = escapeMarkdown;
+  const lines: string[] = [];
+
+  if (a.illnessSignal && a.illnessSignal.likelihood === "high") {
+    lines.push("⚠️ *HEALTH ALERT: Possible Illness Detected*");
+    lines.push(e(`Illness likelihood: HIGH (${a.illnessSignal.score}/100)`));
+    lines.push(e(a.illnessSignal.detail));
+    lines.push(e("Action: Rest today. Monitor symptoms. Skip training."));
+  }
+
+  if (a.recovery && a.recovery.score < 25) {
+    if (lines.length) lines.push("");
+    lines.push("🔴 *RECOVERY CRITICALLY LOW*");
+    lines.push(e(`Recovery score: ${a.recovery.score}/100`));
+    const parts: string[] = [];
+    if (a.recovery.hrvZ !== null) parts.push(`HRV ${a.recovery.hrvZ > 0 ? "+" : ""}${a.recovery.hrvZ.toFixed(1)}σ`);
+    if (a.recovery.rhrZ !== null) parts.push(`RHR ${a.recovery.rhrZ > 0 ? "+" : ""}${a.recovery.rhrZ.toFixed(1)}σ`);
+    if (parts.length) lines.push(e(parts.join(", ")));
+    lines.push(e("Action: No training today. Prioritize sleep and hydration."));
+  }
+
+  if (lines.length === 0) return null;
+
+  if (a.dashboardUrl) lines.push(`[Open dashboard](${a.dashboardUrl.replace(/[)\\]/g, (c) => `\\${c}`)})`);
+  return lines.join("\n");
+}
+
+// ---- Evening Telegram Brief (Feature 3) ----
+
+export interface EveningBriefInput {
+  today: string;
+  lastDataDate: string | null;
+  sleepProtocol: { targetHours: number; bedtime: string; wakeTime: string; caffeineDeadline: string; screenCutoff: string; lastMealBy: string; windDownSteps: string[]; reasoning: string } | null;
+  session: PlanDayView | null;
+  smartCheckIn: { question: string; field: string }[];
+  readiness: number | null;
+  todayStrain: number | null;
+  dashboardUrl: string;
+}
+
+export function eveningBriefMessage(b: EveningBriefInput): string | null {
+  if (!b.lastDataDate) return null;
+  const e = escapeMarkdown;
+  const lines: string[] = [];
+
+  lines.push("*Evening Check\\-in*");
+
+  if (b.todayStrain !== null) {
+    lines.push(e(`Today's strain: ${b.todayStrain.toFixed(1)}/21`));
+  }
+
+  if (b.sleepProtocol) {
+    const sp = b.sleepProtocol;
+    lines.push("");
+    lines.push("*Tonight's Sleep Rx*");
+    lines.push(e(`🛏 Bedtime: ${sp.bedtime} → Wake: ${sp.wakeTime} (${sp.targetHours}h)`));
+    lines.push(e(`📱 Screens off by ${sp.screenCutoff}`));
+    lines.push(e(`🍽 Last meal by ${sp.lastMealBy}`));
+    if (sp.windDownSteps.length > 0) {
+      lines.push(e(`💡 ${sp.windDownSteps[0]}`));
+    }
+  }
+
+  if (b.session) {
+    const s = b.session;
+    lines.push("");
+    lines.push("*Tomorrow's Session*");
+    if (s.type === "rest") {
+      lines.push(e("Rest day planned. Recovery is the goal."));
+    } else {
+      lines.push(e(`${s.title} · ${s.minutes} min — ${s.detail}`));
+    }
+  }
+
+  if (b.smartCheckIn.length > 0) {
+    lines.push("");
+    lines.push("*Quick Journal*");
+    for (const q of b.smartCheckIn.slice(0, 2)) {
+      lines.push(`• _${e(q.question)}_`);
+    }
+  }
+
+  if (b.dashboardUrl) lines.push(`[Log in dashboard](${b.dashboardUrl.replace(/[)\\]/g, (c) => `\\${c}`)})`);
+  return lines.join("\n");
+}
+
+// ---- Noon Check-in (Feature 4) ----
+
+export interface NoonCheckInInput {
+  today: string;
+  currentStrain: number | null;
+  strainBudget: { maxStrain: number; zone: string } | null;
+  steps: number | null;
+  stepGoal: number;
+  exerciseMinutes: number | null;
+  hydrationReminder: boolean;
+  readiness: number | null;
+}
+
+export function noonCheckInMessage(b: NoonCheckInInput): string | null {
+  const e = escapeMarkdown;
+  const lines: string[] = [];
+
+  lines.push("*Midday Check\\-in*");
+
+  if (b.readiness !== null) {
+    const emoji = b.readiness >= 70 ? "🟢" : b.readiness >= 45 ? "🟡" : "🔴";
+    lines.push(`${emoji} ${e(`Readiness: ${b.readiness}/100`)}`);
+  }
+
+  if (b.currentStrain !== null) {
+    lines.push(e(`Strain so far: ${b.currentStrain.toFixed(1)}/21`));
+    if (b.strainBudget) {
+      const remaining = Math.max(0, b.strainBudget.maxStrain - b.currentStrain);
+      lines.push(e(`Budget remaining: ${remaining.toFixed(1)} (${b.strainBudget.zone} zone)`));
+    }
+  }
+
+  if (b.steps !== null) {
+    const pct = Math.round((b.steps / b.stepGoal) * 100);
+    lines.push(e(`Steps: ${b.steps.toLocaleString("en-US")} / ${b.stepGoal.toLocaleString("en-US")} (${pct}%)`));
+  }
+
+  if (b.exerciseMinutes !== null && b.exerciseMinutes > 0) {
+    lines.push(e(`Active minutes: ${Math.round(b.exerciseMinutes)}`));
+  }
+
+  if (b.hydrationReminder) {
+    lines.push("");
+    lines.push(e("💧 Hydration check — have you had enough water today?"));
+  }
+
+  return lines.length > 1 ? lines.join("\n") : null;
+}
