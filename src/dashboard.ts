@@ -745,7 +745,7 @@ export function renderDashboard(): string {
   /* status-based muscle coloring */
   .ab-body-view .muscle-region.m-optimal { fill:var(--up); opacity:1; filter:drop-shadow(0 0 8px var(--up)); }
   .ab-body-view .muscle-region.m-undertrained { fill:var(--caution); opacity:.6; filter:drop-shadow(0 0 4px var(--caution)); }
-  .ab-body-view .muscle-region.m-neglected { fill:var(--line); opacity:.35; }
+  .ab-body-view .muscle-region.m-neglected { fill:var(--faint); opacity:.3; }
   .ab-body-view .muscle-region.m-overtrained { fill:var(--royal); opacity:1; filter:drop-shadow(0 0 8px var(--royal)); }
 
   /* pulse animation for recovering muscles */
@@ -797,8 +797,16 @@ export function renderDashboard(): string {
 
   /* central body stage */
   .body-stage { position:relative; width:100%; max-width:380px; margin:0 auto; }
-  .body-stage-svg { position:relative; z-index:2; width:220px; margin:0 auto; display:block; }
-  .body-stage-svg svg { width:100%; height:auto; filter:drop-shadow(0 0 20px rgba(163,230,53,.08)); }
+  .body-stage-svg { position:relative; z-index:2; width:260px; margin:0 auto; display:block; }
+  .body-stage-svg svg { width:100%; height:auto; filter:drop-shadow(0 0 30px rgba(163,230,53,.12)); }
+  .body-stage-svg .muscle-region { cursor:pointer; transition:fill .4s, filter .4s, opacity .4s; fill:var(--line); opacity:.4; }
+  .body-stage-svg .muscle-region:hover { opacity:1 !important; filter:drop-shadow(0 0 12px currentColor) !important; }
+  .body-stage-svg .muscle-region.m-optimal { fill:var(--up); opacity:1; filter:drop-shadow(0 0 10px var(--up)); animation:musclePulse 2.5s ease-in-out infinite; }
+  .body-stage-svg .muscle-region.m-undertrained { fill:var(--caution); opacity:.6; filter:drop-shadow(0 0 5px var(--caution)); }
+  .body-stage-svg .muscle-region.m-neglected { fill:var(--faint); opacity:.3; }
+  .body-stage-svg .muscle-region.m-overtrained { fill:var(--royal); opacity:1; filter:drop-shadow(0 0 10px var(--royal)); animation:muscleGlow 2s ease-in-out infinite; }
+  .body-stage-svg .body-deco { fill:var(--faint); opacity:.2; }
+  .body-stage-svg .body-outline { fill:none; stroke:var(--faint); stroke-width:.5; opacity:.25; }
 
   /* orbital ring system around the body */
   .orbit-system { position:absolute; inset:-30px; z-index:1; pointer-events:none; }
@@ -2673,6 +2681,7 @@ async function loadTemplates() {
     TMPL_LIST = res.templates || [];
     renderTemplateGrid();
     populateTemplateSelector();
+    loadUnloggedPrompts();
   } catch (e) {}
 }
 
@@ -2870,13 +2879,23 @@ function renderUnloggedPrompts(unlogged) {
     var detail = '';
     if (u.durationMin) detail += u.durationMin + ' min';
     if (u.activeEnergy) detail += (detail ? ' \\u00B7 ' : '') + u.activeEnergy + ' kcal';
+    var templateBtns = '';
+    if (TMPL_LIST && TMPL_LIST.length > 0) {
+      templateBtns = '<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;">' +
+        TMPL_LIST.slice(0, 4).map(function(t) {
+          return '<button class="unlogged-dismiss" style="border-color:var(--pulse);color:var(--pulse);font-weight:600;" onclick="logUnloggedFromTemplate(' + "'" + u.date + "'" + ',' + "'" + t.id + "'" + ')">' + t.name + '</button>';
+        }).join('') +
+      '</div>';
+    }
     return '<div class="unlogged-card">' +
       '<div class="unlogged-head"><span class="unlogged-icon">\\uD83C\\uDFCB\\uFE0F</span><span class="unlogged-title">Strength session detected</span></div>' +
       '<div class="unlogged-body">' + niceDate(u.date) + (detail ? ' \\u00B7 ' + detail : '') + '<br>What exercises did you do? Log it to track your progress.</div>' +
       '<div class="unlogged-actions">' +
-        '<button class="unlogged-log" onclick="logUnloggedWorkout(\\''+u.date+'\\',\\''+u.workoutType+'\\')">Log workout</button>' +
-        '<button class="unlogged-dismiss" onclick="dismissUnlogged(\\''+u.date+'\\')">Dismiss</button>' +
-      '</div></div>';
+        '<button class="unlogged-log" onclick="logUnloggedWorkout(' + "'" + u.date + "'" + ',' + "'" + u.workoutType + "'" + ')">Log workout</button>' +
+        '<button class="unlogged-dismiss" onclick="dismissUnlogged(' + "'" + u.date + "'" + ')">Dismiss</button>' +
+      '</div>' +
+      templateBtns +
+    '</div>';
   }).join('');
 }
 
@@ -2886,6 +2905,14 @@ function logUnloggedWorkout(date, workoutType) {
   var typeName = workoutName(workoutType.split(',')[0].trim());
   document.getElementById('wlType').value = typeName || 'Strength';
   wlLoadAppleSessions();
+  dismissUnlogged(date);
+}
+
+function logUnloggedFromTemplate(date, templateId) {
+  startFromTemplate(templateId);
+  setTimeout(function() {
+    document.getElementById('wlDate').value = date;
+  }, 200);
   dismissUnlogged(date);
 }
 
@@ -3340,13 +3367,14 @@ async function loadBody() {
     renderAbScoreRing(res.bodyScore);
     renderAbHeroStats(res.bodyScore, res.composition);
     renderAbBody(res.muscleVolume);
-    renderBodyOverviewMini(res.bodyScore, res.muscleVolume, res.composition);
     renderBodyComposition(res.composition);
     renderMuscleVolume(res.muscleVolume);
     renderSymmetry(res.symmetry);
     renderPhysique(res.physique);
     renderMobility(res.mobility);
     renderImbalances(res.symmetry);
+    // Light up the home screen body silhouette
+    lightUpHomeBody();
   } catch (e) {
     var hero = document.getElementById('abHero');
     if (hero) hero.innerHTML = '<div class="card"><div class="sub">Body data loading…</div></div>';
@@ -3615,20 +3643,14 @@ function renderImbalances(sym) {
 
 function renderBodyHome(todayData) {
   var d = todayData;
-  // Render the central body silhouette with muscles lit
+  // Render the central body silhouette
   var svgEl = document.getElementById('bodyStageSvg');
-  if (svgEl) {
+  if (svgEl && !svgEl.querySelector('svg')) {
     svgEl.innerHTML = BODY_FRONT_SVG;
-    if (_bodyData && _bodyData.muscleVolume) {
-      _bodyData.muscleVolume.forEach(function(m) {
-        var regions = svgEl.querySelectorAll('[data-muscle="' + m.muscle + '"]');
-        regions.forEach(function(r) {
-          r.classList.add('m-' + m.status);
-          r.addEventListener('click', function(e) { e.stopPropagation(); showMuscleDetail(m); });
-        });
-      });
-    }
   }
+
+  // Light up muscles if body data is ready
+  lightUpHomeBody();
 
   // Body score badge
   if (_bodyData && _bodyData.bodyScore) {
@@ -3654,6 +3676,22 @@ function renderBodyHome(todayData) {
 
   // Quick glance row
   renderQuickGlance(d);
+}
+
+function lightUpHomeBody() {
+  var svgEl = document.getElementById('bodyStageSvg');
+  if (!svgEl || !_bodyData || !_bodyData.muscleVolume) return;
+  _bodyData.muscleVolume.forEach(function(m) {
+    var regions = svgEl.querySelectorAll('[data-muscle="' + m.muscle + '"]');
+    regions.forEach(function(r) {
+      r.classList.remove('m-optimal', 'm-undertrained', 'm-neglected', 'm-overtrained');
+      r.classList.add('m-' + m.status);
+      if (!r._muscleClickBound) {
+        r._muscleClickBound = true;
+        r.addEventListener('click', function(e) { e.stopPropagation(); showMuscleDetail(m); });
+      }
+    });
+  });
 }
 
 function renderOrbitArcs(d) {
