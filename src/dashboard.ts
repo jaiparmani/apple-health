@@ -858,6 +858,28 @@ export function renderDashboard(): string {
   .freq-change.up { color:var(--up); }
   .freq-change.down { color:var(--down); }
 
+  /* ---- workout templates ---- */
+  .tmpl-grid { display:flex; flex-direction:column; gap:8px; }
+  .tmpl-card { display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--panel2); border-radius:8px; border-left:3px solid var(--pulse); cursor:pointer; transition:transform .1s; }
+  .tmpl-card:active { transform:scale(.98); }
+  .tmpl-info { flex:1; min-width:0; }
+  .tmpl-name { font-weight:700; font-size:14px; }
+  .tmpl-meta { font-size:12px; color:var(--dim); margin-top:2px; }
+  .tmpl-actions { display:flex; gap:6px; }
+  .tmpl-use { background:var(--pulse); color:#fff; border:none; border-radius:6px; padding:6px 12px; font-size:12px; font-weight:700; cursor:pointer; }
+  .tmpl-edit, .tmpl-del { background:none; border:1px solid var(--line); color:var(--dim); border-radius:6px; padding:5px 8px; font-size:11px; cursor:pointer; }
+  .tmpl-empty { text-align:center; padding:20px; color:var(--dim); font-size:13px; }
+
+  /* ---- unlogged prompt ---- */
+  .unlogged-card { background:linear-gradient(135deg, var(--pulse)12, var(--panel2)); border:1px solid var(--pulse)44; border-radius:10px; padding:14px; margin-bottom:10px; }
+  .unlogged-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .unlogged-icon { font-size:20px; }
+  .unlogged-title { font-weight:700; font-size:14px; }
+  .unlogged-body { font-size:13px; color:var(--dim); margin-bottom:10px; }
+  .unlogged-actions { display:flex; gap:8px; }
+  .unlogged-log { background:var(--pulse); color:#fff; border:none; border-radius:6px; padding:8px 16px; font-size:13px; font-weight:700; cursor:pointer; }
+  .unlogged-dismiss { background:none; border:1px solid var(--line); color:var(--dim); border-radius:6px; padding:7px 12px; font-size:12px; cursor:pointer; }
+
   /* ---- coach directive ---- */
   .coach-headline { font-family:var(--mono); font-weight:800; font-size:22px; line-height:1.2; margin-bottom:8px; }
   .coach-body { font-size:13.5px; color:var(--dim); line-height:1.6; margin-bottom:12px; }
@@ -1332,6 +1354,15 @@ export function renderDashboard(): string {
 
   <!-- WORKOUTS (manual log) -->
   <section class="section" id="tab-workouts">
+    <div id="unloggedPrompts"></div>
+    <div class="card" id="templatesCard">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+        <h3 style="margin:0">Workout templates</h3>
+        <button class="wl-log-btn" onclick="openTemplateEditor()">+ New template</button>
+      </div>
+      <div class="card-sub" style="margin-bottom:10px;">Create routines, start logging from them.</div>
+      <div class="tmpl-grid" id="tmplGrid"><div class="tmpl-empty">No templates yet. Create one to speed up logging.</div></div>
+    </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
         <h3 style="margin:0">Your workouts</h3>
@@ -1513,6 +1544,11 @@ export function renderDashboard(): string {
   <div class="wl-overlay" id="wlOverlay" onclick="if(event.target===this)closeWorkoutLogger()">
     <div class="wl-sheet">
       <h3 id="wlTitle">Log workout</h3>
+      <div id="wlTemplateBar" style="display:none;margin-bottom:10px;">
+        <select id="wlTemplateSel" onchange="wlApplyTemplate(this.value)" style="width:100%;background:var(--void);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:8px 10px;font-size:13px;">
+          <option value="">Start from template…</option>
+        </select>
+      </div>
       <div class="wl-row">
         <input type="date" id="wlDate" />
         <input type="text" id="wlType" placeholder="Workout type (e.g. Gym, Push, Legs)" style="flex:1" />
@@ -1537,6 +1573,29 @@ export function renderDashboard(): string {
       <div class="wl-actions">
         <button class="wl-cancel" onclick="closeWorkoutLogger()">Cancel</button>
         <button class="wl-save" id="wlSaveBtn" onclick="saveWorkout()">Save workout</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wl-overlay" id="tmplOverlay" onclick="if(event.target===this)closeTemplateEditor()">
+    <div class="wl-sheet">
+      <h3 id="tmplTitle">New template</h3>
+      <div class="wl-row">
+        <input type="text" id="tmplName" placeholder="Template name (e.g. Push Day)" style="flex:1" />
+        <input type="text" id="tmplType" placeholder="Type (e.g. Gym)" style="width:100px" />
+      </div>
+      <div id="tmplExercises"></div>
+      <button class="wl-add-ex" onclick="tmplShowExPicker()">+ Add exercise</button>
+      <div id="tmplExPicker" style="display:none;margin-bottom:12px;">
+        <div class="wl-ac">
+          <input type="text" id="tmplExSearch" placeholder="Search exercises…" oninput="tmplSearchExercises()" onfocus="tmplSearchExercises()" autocomplete="off" style="width:100%;box-sizing:border-box;background:var(--void);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:8px 10px;font-size:14px;" />
+          <div class="wl-ac-list" id="tmplAcList"></div>
+        </div>
+      </div>
+      <div class="wl-row"><textarea id="tmplNotes" placeholder="Notes (optional)" rows="2" style="flex:1;background:var(--void);border:1px solid var(--line);color:var(--ink);border-radius:6px;padding:8px 10px;font-family:inherit;font-size:14px;resize:vertical;"></textarea></div>
+      <div class="wl-actions">
+        <button class="wl-cancel" onclick="closeTemplateEditor()">Cancel</button>
+        <button class="wl-save" id="tmplSaveBtn" onclick="saveTemplate()">Save template</button>
       </div>
     </div>
   </div>
@@ -1883,10 +1942,245 @@ async function deleteWorkout(id) {
 document.addEventListener('click', function (e) {
   var acList = document.getElementById('wlAcList');
   if (acList && !e.target.closest('.wl-ac')) acList.classList.remove('show');
+  var tmplAc = document.getElementById('tmplAcList');
+  if (tmplAc && !e.target.closest('.wl-ac')) tmplAc.classList.remove('show');
 });
 document.addEventListener('change', function (e) {
   if (e.target && e.target.id === 'wlDate') wlLoadAppleSessions();
 });
+
+// ---- Workout templates ----
+var TMPL_LIST = [];
+var TMPL_EXERCISES = [];
+var TMPL_EDIT_ID = null;
+
+async function loadTemplates() {
+  try {
+    var res = await authedFetch('/api/workout-templates');
+    TMPL_LIST = res.templates || [];
+    renderTemplateGrid();
+    populateTemplateSelector();
+  } catch (e) {}
+}
+
+function renderTemplateGrid() {
+  var el = document.getElementById('tmplGrid');
+  if (!el) return;
+  if (TMPL_LIST.length === 0) {
+    el.innerHTML = '<div class="tmpl-empty">No templates yet. Create one to speed up logging.</div>';
+    return;
+  }
+  el.innerHTML = TMPL_LIST.map(function (t) {
+    var exNames = t.exercises.map(function (e) { return e.name; }).join(' \\u00B7 ');
+    var meta = t.exercises.length + ' exercises';
+    if (t.useCount > 0) meta += ' \\u00B7 used ' + t.useCount + 'x';
+    if (t.lastUsed) meta += ' \\u00B7 last ' + niceDate(t.lastUsed);
+    return '<div class="tmpl-card">' +
+      '<div class="tmpl-info">' +
+        '<div class="tmpl-name">' + t.name + '</div>' +
+        '<div class="tmpl-meta">' + t.type + ' \\u00B7 ' + meta + '</div>' +
+        '<div style="font-size:12px;color:var(--faint);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + exNames + '</div>' +
+      '</div>' +
+      '<div class="tmpl-actions">' +
+        '<button class="tmpl-use" onclick="event.stopPropagation();startFromTemplate(\\''+t.id+'\\')">Use</button>' +
+        '<button class="tmpl-edit" onclick="event.stopPropagation();editTemplate(\\''+t.id+'\\')">Edit</button>' +
+        '<button class="tmpl-del" onclick="event.stopPropagation();deleteTemplate(\\''+t.id+'\\')">\\u00D7</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function populateTemplateSelector() {
+  var sel = document.getElementById('wlTemplateSel');
+  if (!sel) return;
+  var bar = document.getElementById('wlTemplateBar');
+  if (TMPL_LIST.length === 0) { bar.style.display = 'none'; return; }
+  bar.style.display = 'block';
+  sel.innerHTML = '<option value="">Start from template\\u2026</option>' +
+    TMPL_LIST.map(function (t) { return '<option value="'+t.id+'">' + t.name + ' (' + t.exercises.length + ' ex)</option>'; }).join('');
+}
+
+async function startFromTemplate(id) {
+  try {
+    var res = await authedFetch('/api/workout-templates/use', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id }) });
+    if (!res.ok) return;
+    var tmpl = res.template;
+    openWorkoutLogger();
+    document.getElementById('wlType').value = tmpl.type || '';
+    WL_EXERCISES = res.exercises.map(function (ex) {
+      var lib = EXERCISES.find(function (e) { return e.n.toLowerCase() === ex.name.toLowerCase(); });
+      return { name: ex.name, sets: ex.sets.map(function (s) { return { reps: s.reps || 0, weightKg: s.weightKg || 0 }; }), primary: lib ? lib.p : [], secondary: lib ? lib.s : [] };
+    });
+    wlRenderExercises();
+    wlHighlightMuscles();
+    loadTemplates();
+  } catch (e) { alert('Failed: ' + e.message); }
+}
+
+function wlApplyTemplate(id) {
+  if (!id) return;
+  startFromTemplate(id);
+  document.getElementById('wlTemplateSel').value = '';
+}
+
+function openTemplateEditor(editId) {
+  TMPL_EDIT_ID = editId || null;
+  TMPL_EXERCISES = [];
+  document.getElementById('tmplTitle').textContent = editId ? 'Edit template' : 'New template';
+  var nameEl = document.getElementById('tmplName');
+  var typeEl = document.getElementById('tmplType');
+  var notesEl = document.getElementById('tmplNotes');
+  if (editId) {
+    var t = TMPL_LIST.find(function (x) { return x.id === editId; });
+    if (t) {
+      nameEl.value = t.name;
+      typeEl.value = t.type;
+      notesEl.value = t.notes || '';
+      TMPL_EXERCISES = t.exercises.map(function (e) { return { name: e.name, defaultSets: e.defaultSets, defaultReps: e.defaultReps, defaultWeightKg: e.defaultWeightKg || 0 }; });
+    }
+  } else {
+    nameEl.value = '';
+    typeEl.value = '';
+    notesEl.value = '';
+  }
+  tmplRenderExercises();
+  document.getElementById('tmplOverlay').classList.add('open');
+  document.getElementById('tmplExPicker').style.display = 'none';
+}
+function closeTemplateEditor() { document.getElementById('tmplOverlay').classList.remove('open'); TMPL_EXERCISES = []; TMPL_EDIT_ID = null; }
+function editTemplate(id) { openTemplateEditor(id); }
+async function deleteTemplate(id) {
+  if (!confirm('Delete this template?')) return;
+  try { await authedFetch('/api/workout-templates?id=' + id, { method: 'DELETE' }); await loadTemplates(); } catch (e) { alert('Failed: ' + e.message); }
+}
+
+function tmplRenderExercises() {
+  var el = document.getElementById('tmplExercises');
+  el.innerHTML = TMPL_EXERCISES.map(function (ex, i) {
+    return '<div class="wl-exercise">' +
+      '<button class="wl-ex-rm" onclick="tmplRemoveEx('+i+')">&times;</button>' +
+      '<div class="wl-ex-head"><div class="wl-ex-name">' + ex.name + '</div></div>' +
+      '<div class="wl-sets-head"><div>Sets</div><div>Reps</div><div>Weight (kg)</div></div>' +
+      '<div class="wl-set-row">' +
+        '<input type="number" min="1" max="20" value="'+(ex.defaultSets||3)+'" onchange="tmplUpdateEx('+i+',\\'defaultSets\\',this.value)" />' +
+        '<input type="number" min="1" max="100" value="'+(ex.defaultReps||10)+'" onchange="tmplUpdateEx('+i+',\\'defaultReps\\',this.value)" />' +
+        '<input type="number" min="0" step="0.5" value="'+(ex.defaultWeightKg||'')+'" onchange="tmplUpdateEx('+i+',\\'defaultWeightKg\\',this.value)" placeholder="opt" />' +
+      '</div></div>';
+  }).join('');
+}
+
+function tmplRemoveEx(i) { TMPL_EXERCISES.splice(i, 1); tmplRenderExercises(); }
+function tmplUpdateEx(i, field, val) { TMPL_EXERCISES[i][field] = parseFloat(val) || 0; }
+
+function tmplShowExPicker() {
+  document.getElementById('tmplExPicker').style.display = 'block';
+  var input = document.getElementById('tmplExSearch');
+  input.value = '';
+  input.focus();
+  tmplSearchExercises();
+}
+
+function tmplSearchExercises() {
+  var q = document.getElementById('tmplExSearch').value;
+  var results = wlSearchLib(q);
+  var list = document.getElementById('tmplAcList');
+  if (results.length === 0 && !q.trim()) {
+    list.innerHTML = EXERCISES.slice(0, 10).map(function (ex) {
+      return '<div class="wl-ac-item" onclick="tmplPickEx(\\''+ex.n.replace(/'/g,"\\\\'")+'\\')"><span>'+ex.n+'</span><span class="wl-ac-cat">'+ex.c+'</span></div>';
+    }).join('');
+    list.classList.add('show');
+    return;
+  }
+  if (results.length === 0) {
+    list.innerHTML = '<div class="wl-ac-item" onclick="tmplAddCustomEx()"><span>Add "'+q+'" as custom</span></div>';
+    list.classList.add('show');
+    return;
+  }
+  list.innerHTML = results.map(function (ex) {
+    return '<div class="wl-ac-item" onclick="tmplPickEx(\\''+ex.n.replace(/'/g,"\\\\'")+'\\')"><span>'+ex.n+'</span><span class="wl-ac-cat">'+ex.c+'</span></div>';
+  }).join('');
+  list.classList.add('show');
+}
+
+function tmplPickEx(name) {
+  TMPL_EXERCISES.push({ name: name, defaultSets: 3, defaultReps: 10, defaultWeightKg: 0 });
+  document.getElementById('tmplExPicker').style.display = 'none';
+  document.getElementById('tmplAcList').classList.remove('show');
+  tmplRenderExercises();
+}
+function tmplAddCustomEx() {
+  var name = document.getElementById('tmplExSearch').value.trim();
+  if (!name) return;
+  TMPL_EXERCISES.push({ name: name, defaultSets: 3, defaultReps: 10, defaultWeightKg: 0 });
+  document.getElementById('tmplExPicker').style.display = 'none';
+  document.getElementById('tmplAcList').classList.remove('show');
+  tmplRenderExercises();
+}
+
+async function saveTemplate() {
+  var name = document.getElementById('tmplName').value.trim();
+  var type = document.getElementById('tmplType').value.trim();
+  var notes = document.getElementById('tmplNotes').value.trim() || undefined;
+  if (!name || !type || TMPL_EXERCISES.length === 0) { alert('Name, type, and at least one exercise are required.'); return; }
+  var body = { name: name, type: type, notes: notes, exercises: TMPL_EXERCISES };
+  if (TMPL_EDIT_ID) body.id = TMPL_EDIT_ID;
+  document.getElementById('tmplSaveBtn').disabled = true;
+  document.getElementById('tmplSaveBtn').textContent = 'Saving\\u2026';
+  try {
+    await authedFetch('/api/workout-templates', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    closeTemplateEditor();
+    await loadTemplates();
+  } catch (e) {
+    alert('Failed: ' + e.message);
+  } finally {
+    document.getElementById('tmplSaveBtn').disabled = false;
+    document.getElementById('tmplSaveBtn').textContent = 'Save template';
+  }
+}
+
+// ---- Unlogged workout prompts ----
+var DISMISSED_UNLOGGED = {};
+try { DISMISSED_UNLOGGED = JSON.parse(localStorage.getItem('dismissedUnlogged') || '{}'); } catch (e) {}
+
+async function loadUnloggedPrompts() {
+  try {
+    var res = await authedFetch('/api/workouts/unlogged');
+    var unlogged = (res.unlogged || []).filter(function (u) { return !DISMISSED_UNLOGGED[u.date]; });
+    renderUnloggedPrompts(unlogged);
+  } catch (e) {}
+}
+
+function renderUnloggedPrompts(unlogged) {
+  var el = document.getElementById('unloggedPrompts');
+  if (!el) return;
+  if (unlogged.length === 0) { el.innerHTML = ''; return; }
+  el.innerHTML = unlogged.map(function (u) {
+    var detail = '';
+    if (u.durationMin) detail += u.durationMin + ' min';
+    if (u.activeEnergy) detail += (detail ? ' \\u00B7 ' : '') + u.activeEnergy + ' kcal';
+    return '<div class="unlogged-card">' +
+      '<div class="unlogged-head"><span class="unlogged-icon">\\uD83C\\uDFCB\\uFE0F</span><span class="unlogged-title">Strength session detected</span></div>' +
+      '<div class="unlogged-body">' + niceDate(u.date) + (detail ? ' \\u00B7 ' + detail : '') + '<br>What exercises did you do? Log it to track your progress.</div>' +
+      '<div class="unlogged-actions">' +
+        '<button class="unlogged-log" onclick="logUnloggedWorkout(\\''+u.date+'\\',\\''+u.workoutType+'\\')">Log workout</button>' +
+        '<button class="unlogged-dismiss" onclick="dismissUnlogged(\\''+u.date+'\\')">Dismiss</button>' +
+      '</div></div>';
+  }).join('');
+}
+
+function logUnloggedWorkout(date, workoutType) {
+  openWorkoutLogger();
+  document.getElementById('wlDate').value = date;
+  var typeName = workoutName(workoutType.split(',')[0].trim());
+  document.getElementById('wlType').value = typeName || 'Strength';
+  wlLoadAppleSessions();
+  dismissUnlogged(date);
+}
+
+function dismissUnlogged(date) {
+  DISMISSED_UNLOGGED[date] = true;
+  try { localStorage.setItem('dismissedUnlogged', JSON.stringify(DISMISSED_UNLOGGED)); } catch (e) {}
+  loadUnloggedPrompts();
+}
 
 function fmt(n, d) {
   d = d || 0;
@@ -4487,6 +4781,8 @@ async function boot() {
   loadExperiments();
   loadWorkouts();
   loadWorkoutAnalytics();
+  loadTemplates();
+  loadUnloggedPrompts();
   loadCoach();
   loadAlerts();
 }

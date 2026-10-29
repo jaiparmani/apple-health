@@ -309,3 +309,97 @@ function addDaysStr(date: string, n: number): string {
   dt.setUTCDate(dt.getUTCDate() + n);
   return dt.toISOString().slice(0, 10);
 }
+
+// ---- Workout templates ----
+
+export interface TemplateExercise {
+  name: string;
+  defaultSets: number;
+  defaultReps: number;
+  defaultWeightKg?: number;
+}
+
+export interface WorkoutTemplate {
+  id: string;
+  name: string; // e.g. "Push Day", "Pull Day A"
+  type: string; // e.g. "Gym", "Strength"
+  exercises: TemplateExercise[];
+  notes?: string;
+  createdAt: string;
+  lastUsed?: string;
+  useCount: number;
+}
+
+export function sanitizeTemplate(raw: unknown): Omit<WorkoutTemplate, "id" | "createdAt" | "useCount"> | null {
+  if (typeof raw !== "object" || raw === null) return null;
+  const r = raw as Record<string, unknown>;
+  if (typeof r.name !== "string" || !r.name.trim()) return null;
+  if (typeof r.type !== "string" || !r.type.trim()) return null;
+
+  const exercises: TemplateExercise[] = Array.isArray(r.exercises)
+    ? r.exercises
+        .filter((e): e is Record<string, unknown> => typeof e === "object" && e !== null && typeof (e as Record<string, unknown>).name === "string")
+        .map((e) => ({
+          name: String(e.name).trim().slice(0, 100),
+          defaultSets: typeof e.defaultSets === "number" ? Math.max(1, Math.min(e.defaultSets, 20)) : 3,
+          defaultReps: typeof e.defaultReps === "number" ? Math.max(1, Math.min(e.defaultReps, 100)) : 10,
+          defaultWeightKg: typeof e.defaultWeightKg === "number" && e.defaultWeightKg > 0 ? e.defaultWeightKg : undefined,
+        }))
+        .slice(0, 20)
+    : [];
+
+  if (exercises.length === 0) return null;
+
+  return {
+    name: r.name.trim().slice(0, 80),
+    type: r.type.trim().slice(0, 60),
+    exercises,
+    notes: typeof r.notes === "string" ? r.notes.slice(0, 500) : undefined,
+    lastUsed: typeof r.lastUsed === "string" ? r.lastUsed : undefined,
+  };
+}
+
+export function templateToWorkoutExercises(template: WorkoutTemplate): LoggedExercise[] {
+  return template.exercises.map((te) => ({
+    name: te.name,
+    sets: Array.from({ length: te.defaultSets }, () => ({
+      reps: te.defaultReps,
+      weightKg: te.defaultWeightKg,
+    })),
+  }));
+}
+
+// ---- Unlogged workout detection ----
+
+export interface UnloggedSession {
+  date: string;
+  workoutType: string;
+  durationMin: number | null;
+  activeEnergy: number | null;
+}
+
+export function findUnloggedStrengthSessions(
+  days: { date: string; workoutType?: string; workoutMinutes?: number; activeEnergy?: number }[],
+  loggedWorkouts: ManualWorkout[],
+  lookbackDays = 7
+): UnloggedSession[] {
+  const loggedDates = new Set(loggedWorkouts.map((w) => w.date));
+  const strengthTypes = ["traditionalstrengthtraining", "functionalstrengthtraining", "coretraining", "highintensityintervaltraining", "crosstraining"];
+  const recent = days.slice(-lookbackDays);
+  const result: UnloggedSession[] = [];
+
+  for (const d of recent) {
+    if (!d.workoutType || loggedDates.has(d.date)) continue;
+    const types = d.workoutType.toLowerCase().split(",").map((t) => t.trim());
+    const hasStrength = types.some((t) => strengthTypes.includes(t));
+    if (hasStrength) {
+      result.push({
+        date: d.date,
+        workoutType: d.workoutType,
+        durationMin: d.workoutMinutes ? Math.round(d.workoutMinutes) : null,
+        activeEnergy: d.activeEnergy ? Math.round(d.activeEnergy) : null,
+      });
+    }
+  }
+  return result.sort((a, b) => b.date.localeCompare(a.date));
+}

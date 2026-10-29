@@ -18,7 +18,7 @@ import { healthBriefMessage } from "./brief";
 import { buildReviewContext } from "./reviewContext";
 import { computeFitnessReport, dailyLoad, computeLoadSeries } from "./fitness";
 import { computeOverview } from "./overview";
-import { sanitizeManualWorkout, computePRs, computeMuscleBalance, computeWorkoutFrequency, type ManualWorkout } from "./manualWorkouts";
+import { sanitizeManualWorkout, sanitizeTemplate, templateToWorkoutExercises, findUnloggedStrengthSessions, computePRs, computeMuscleBalance, computeWorkoutFrequency, type ManualWorkout, type WorkoutTemplate } from "./manualWorkouts";
 import { renderDashboard } from "./dashboard";
 import { generateAlerts } from "./alerts";
 import { discoverPatterns, buildCoachDirective, computeWeeklyReportCard, computePerformancePredictions } from "./patterns";
@@ -33,6 +33,7 @@ const EXPERIMENTS_PATH = "data/experiments.json";
 const GOALS_PATH = "data/goals.json";
 const PLAN_PATH = "data/plan.json";
 const WORKOUTS_PATH = "data/manual-workouts.json";
+const TEMPLATES_PATH = "data/workout-templates.json";
 const MAX_GOALS = 10;
 const MAX_SERIES_DAYS = 4000; // ~11 years, enough headroom for a full Apple Health export backfill
 const MAX_HISTORY_ENTRIES = 4000;
@@ -953,6 +954,83 @@ async function handleDeleteWorkout(req: Request, env: Env): Promise<Response> {
   return json({ ok: true });
 }
 
+// ---------------- workout templates ----------------
+
+async function handleGetTemplates(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const { data } = await getJson<{ templates: WorkoutTemplate[] }>(env, TEMPLATES_PATH);
+  const templates = (data?.templates ?? []).sort((a, b) => (b.lastUsed ?? b.createdAt).localeCompare(a.lastUsed ?? a.createdAt));
+  return json({ templates });
+}
+
+async function handlePostTemplate(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const body = await req.json();
+  const sanitized = sanitizeTemplate(body);
+  if (!sanitized) return json({ error: "name, type, and at least one exercise are required" }, 400);
+
+  const existingId = typeof (body as Record<string, unknown>).id === "string" ? (body as Record<string, unknown>).id as string : null;
+  const { data: existing, sha } = await getJson<{ templates: WorkoutTemplate[] }>(env, TEMPLATES_PATH);
+  const templates = existing?.templates ?? [];
+
+  const template: WorkoutTemplate = {
+    ...sanitized,
+    id: existingId && templates.some((t) => t.id === existingId) ? existingId : crypto.randomUUID(),
+    createdAt: existingId && templates.some((t) => t.id === existingId)
+      ? templates.find((t) => t.id === existingId)!.createdAt
+      : new Date().toISOString(),
+    useCount: existingId ? (templates.find((t) => t.id === existingId)?.useCount ?? 0) : 0,
+  };
+
+  const idx = templates.findIndex((t) => t.id === template.id);
+  if (idx >= 0) templates[idx] = template;
+  else templates.push(template);
+
+  await putJson(env, TEMPLATES_PATH, { templates }, `templates: ${idx >= 0 ? "update" : "add"} ${template.name}`, sha);
+  return json({ ok: true, template });
+}
+
+async function handleDeleteTemplate(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const id = new URL(req.url).searchParams.get("id");
+  if (!id) return json({ error: "?id= is required" }, 400);
+  const { data: existing, sha } = await getJson<{ templates: WorkoutTemplate[] }>(env, TEMPLATES_PATH);
+  const templates = (existing?.templates ?? []).filter((t) => t.id !== id);
+  await putJson(env, TEMPLATES_PATH, { templates }, `templates: delete ${id}`, sha);
+  return json({ ok: true });
+}
+
+async function handleUseTemplate(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const { id } = (await req.json()) as { id: string };
+  if (!id) return json({ error: "id is required" }, 400);
+  const { data: existing, sha } = await getJson<{ templates: WorkoutTemplate[] }>(env, TEMPLATES_PATH);
+  const templates = existing?.templates ?? [];
+  const tmpl = templates.find((t) => t.id === id);
+  if (!tmpl) return json({ error: "template not found" }, 404);
+
+  tmpl.useCount++;
+  tmpl.lastUsed = new Date().toISOString().slice(0, 10);
+  await putJson(env, TEMPLATES_PATH, { templates }, `templates: use ${tmpl.name}`, sha);
+
+  const exercises = templateToWorkoutExercises(tmpl);
+  return json({ ok: true, template: tmpl, exercises });
+}
+
+// ---------------- unlogged workout detection ----------------
+
+async function handleGetUnlogged(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const [{ data: seriesData }, { data: workoutData }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<{ workouts: ManualWorkout[] }>(env, WORKOUTS_PATH),
+  ]);
+  const days = seriesData?.days ?? [];
+  const workouts = workoutData?.workouts ?? [];
+  const unlogged = findUnloggedStrengthSessions(days, workouts);
+  return json({ unlogged });
+}
+
 async function handleGetCoach(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   const [{ data: seriesData }, { data: profile }, { data: knowledge }] = await Promise.all([
@@ -1080,6 +1158,11 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/workouts/analytics") return await handleGetWorkoutAnalytics(req, env);
       if (req.method === "POST" && url.pathname === "/api/workouts") return await handlePostWorkout(req, env);
       if (req.method === "DELETE" && url.pathname === "/api/workouts") return await handleDeleteWorkout(req, env);
+      if (req.method === "GET" && url.pathname === "/api/workout-templates") return await handleGetTemplates(req, env);
+      if (req.method === "POST" && url.pathname === "/api/workout-templates") return await handlePostTemplate(req, env);
+      if (req.method === "DELETE" && url.pathname === "/api/workout-templates") return await handleDeleteTemplate(req, env);
+      if (req.method === "POST" && url.pathname === "/api/workout-templates/use") return await handleUseTemplate(req, env);
+      if (req.method === "GET" && url.pathname === "/api/workouts/unlogged") return await handleGetUnlogged(req, env);
       if (req.method === "GET" && url.pathname === "/api/alerts") return await handleGetAlerts(req, env);
       if (req.method === "GET" && url.pathname === "/api/coach") return await handleGetCoach(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
