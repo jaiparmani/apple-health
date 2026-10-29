@@ -858,6 +858,68 @@ export function renderDashboard(): string {
   .freq-change.up { color:var(--up); }
   .freq-change.down { color:var(--down); }
 
+  /* ---- coach directive ---- */
+  .coach-headline { font-family:var(--mono); font-weight:800; font-size:22px; line-height:1.2; margin-bottom:8px; }
+  .coach-body { font-size:13.5px; color:var(--dim); line-height:1.6; margin-bottom:12px; }
+  .strain-budget { display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--panel2); border-radius:10px; margin-bottom:10px; }
+  .sb-dial { position:relative; width:64px; height:64px; flex-shrink:0; }
+  .sb-dial svg { width:100%; height:100%; transform:rotate(-90deg); }
+  .sb-dial .bg { fill:none; stroke:var(--line); stroke-width:6; }
+  .sb-dial .fg { fill:none; stroke-width:6; stroke-linecap:round; transition:stroke-dashoffset .6s var(--ease-smooth); }
+  .sb-num { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-weight:800; font-size:18px; }
+  .sb-info { flex:1; }
+  .sb-zone { font-family:var(--mono); font-weight:700; font-size:14px; text-transform:uppercase; letter-spacing:.06em; }
+  .sb-zone.recovery { color:var(--down); }
+  .sb-zone.easy { color:var(--caution); }
+  .sb-zone.moderate { color:var(--dim); }
+  .sb-zone.push { color:var(--up); }
+  .sb-zone.peak { color:var(--pulse); }
+  .sb-rationale { font-size:12px; color:var(--dim); margin-top:2px; }
+  .coach-rx { display:flex; flex-direction:column; gap:6px; margin-top:10px; }
+  .coach-rx-item { display:flex; align-items:flex-start; gap:8px; font-size:13px; color:var(--dim); }
+  .coach-rx-icon { font-size:14px; flex-shrink:0; margin-top:1px; }
+  .injury-bar { height:6px; border-radius:3px; background:var(--line); margin:8px 0 4px; }
+  .injury-fill { height:100%; border-radius:3px; transition:width .5s var(--ease-smooth); }
+  .injury-factors { font-size:12px; color:var(--dim); }
+
+  /* ---- patterns ---- */
+  .pattern-list { display:flex; flex-direction:column; gap:8px; }
+  .pattern-item { padding:10px 12px; background:var(--panel2); border-radius:8px; border-left:3px solid var(--pulse); }
+  .pattern-item.recovery { border-left-color:var(--up); }
+  .pattern-item.sleep { border-left-color:var(--royal); }
+  .pattern-item.training { border-left-color:var(--caution); }
+  .pattern-item.lifestyle { border-left-color:var(--gold); }
+  .pattern-title { font-weight:700; font-size:13px; margin-bottom:4px; }
+  .pattern-insight { font-size:12.5px; color:var(--dim); line-height:1.5; }
+  .pattern-meta { font-size:11px; color:var(--faint); margin-top:4px; }
+
+  /* ---- report card ---- */
+  .rc-overall { font-family:var(--mono); font-weight:800; font-size:48px; text-align:center; margin:8px 0; }
+  .rc-overall.a { color:var(--pulse); }
+  .rc-overall.b { color:var(--up); }
+  .rc-overall.c { color:var(--caution); }
+  .rc-overall.d { color:var(--down); }
+  .rc-domains { display:grid; grid-template-columns:repeat(5,1fr); gap:6px; margin:12px 0; }
+  .rc-domain { text-align:center; padding:8px 4px; background:var(--panel2); border-radius:8px; }
+  .rc-domain-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; margin-bottom:4px; }
+  .rc-domain-grade { font-family:var(--mono); font-weight:700; font-size:20px; }
+  .rc-highlights { list-style:none; padding:0; margin:8px 0 0; }
+  .rc-highlights li { font-size:12.5px; padding:3px 0; color:var(--dim); }
+  .rc-highlights li::before { content:''; display:inline-block; width:6px; height:6px; border-radius:50%; margin-right:8px; vertical-align:middle; }
+  .rc-highlights li.good::before { background:var(--up); }
+  .rc-highlights li.improve::before { background:var(--caution); }
+
+  /* ---- predictions ---- */
+  .pred-list { display:flex; flex-direction:column; gap:8px; }
+  .pred-item { padding:10px 12px; background:var(--panel2); border-radius:8px; }
+  .pred-header { display:flex; justify-content:space-between; align-items:center; margin-bottom:4px; }
+  .pred-label { font-weight:600; font-size:13px; }
+  .pred-trajectory { font-family:var(--mono); font-weight:700; font-size:12px; text-transform:uppercase; letter-spacing:.04em; }
+  .pred-trajectory.improving { color:var(--up); }
+  .pred-trajectory.declining { color:var(--down); }
+  .pred-trajectory.flat { color:var(--dim); }
+  .pred-detail { font-size:12.5px; color:var(--dim); line-height:1.5; }
+
   footer { color:var(--faint); font-size:11.5px; text-align:left; padding:28px 0 10px; border-top:1px solid var(--line); margin-top:10px; }
 
   @media (max-width:560px) {
@@ -1036,6 +1098,57 @@ export function renderDashboard(): string {
 
     <h2 class="sec">Year in review<span id="yirYear"></span></h2>
     <div class="yir-grid" id="yirGrid"></div>
+  </section>
+
+  <!-- COACH DIRECTIVE -->
+  <section class="section" id="tab-directive">
+    <div class="card" id="coachDirectiveCard" style="display:none;">
+      <div class="coach-headline" id="coachHeadline"></div>
+      <div class="coach-body" id="coachBody"></div>
+
+      <h3 style="margin-top:16px;">Strain budget</h3>
+      <div class="strain-budget">
+        <div class="sb-dial">
+          <svg viewBox="0 0 64 64"><circle class="bg" cx="32" cy="32" r="28"/><circle class="fg" id="sbArc" cx="32" cy="32" r="28"/></svg>
+          <div class="sb-num" id="sbNum">—</div>
+        </div>
+        <div class="sb-info">
+          <div class="sb-zone" id="sbZone">—</div>
+          <div class="sb-rationale" id="sbRationale"></div>
+        </div>
+      </div>
+
+      <h3>Injury risk</h3>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span id="irLabel" style="font-family:var(--mono);font-weight:700;font-size:14px;">—</span>
+        <span id="irScore" style="font-size:12px;color:var(--dim);"></span>
+      </div>
+      <div class="injury-bar"><div class="injury-fill" id="irFill"></div></div>
+      <div class="injury-factors" id="irFactors"></div>
+
+      <div class="coach-rx" id="coachRx"></div>
+    </div>
+
+    <div class="card" id="coachPatternsCard" style="display:none;">
+      <h3>Your patterns</h3>
+      <div class="card-sub">Discovered from your personal data</div>
+      <div class="pattern-list" id="patternList"></div>
+    </div>
+
+    <div class="card" id="coachReportCard" style="display:none;">
+      <h3>Weekly report card</h3>
+      <div class="rc-overall" id="rcOverall">—</div>
+      <div class="rc-domains" id="rcDomains"></div>
+      <ul class="rc-highlights" id="rcHighlights"></ul>
+    </div>
+
+    <div class="card" id="coachPredictionsCard" style="display:none;">
+      <h3>Performance predictions</h3>
+      <div class="card-sub">Where you're heading at current trajectory</div>
+      <div class="pred-list" id="predList"></div>
+    </div>
+
+    <div id="coachLoading" class="sub" style="text-align:center;padding:24px;">Loading coaching data…</div>
   </section>
 
   <!-- AI ANALYST -->
@@ -1803,7 +1916,7 @@ var VIEWS = {
   today: [['overview', 'Today']],
   plan: [['plan', 'Week and goals'], ['training', 'Training load']],
   trends: [['heart', 'Heart'], ['activity', 'Activity'], ['workouts', 'Workouts'], ['sleep', 'Sleep and body'], ['longview', 'Long view'], ['insights', 'Insights'], ['dayexplorer', 'Day explorer'], ['allmetrics', 'All metrics']],
-  coach: [['ai', 'Ask and reviews'], ['discoveries', 'Discoveries'], ['story', 'Weekly story']],
+  coach: [['directive', 'Coach'], ['ai', 'Ask AI'], ['discoveries', 'Discoveries'], ['story', 'Weekly story']],
   you: [['age', 'Biological age'], ['records', 'Records'], ['more', 'More data'], ['settings', 'Settings']],
 };
 function viewOf(sectionId) {
@@ -4183,6 +4296,109 @@ function renderAlertBanner(alert) {
   verdict.parentNode.insertBefore(el, verdict.nextSibling.nextSibling);
 }
 
+async function loadCoach() {
+  try {
+    var res = await authedFetch('/api/coach');
+    document.getElementById('coachLoading').style.display = 'none';
+
+    // Directive card
+    if (res.directive) {
+      var d = res.directive;
+      document.getElementById('coachHeadline').textContent = d.headline || 'Coach Directive';
+      document.getElementById('coachBody').textContent = d.paragraph || '';
+
+      // Strain dial
+      var max = d.strainBudget ? d.strainBudget.maxStrain : 0;
+      var circ = 2 * Math.PI * 28;
+      var arc = document.getElementById('sbArc');
+      arc.setAttribute('stroke-dasharray', circ);
+      arc.setAttribute('stroke-dashoffset', circ - (max / 21) * circ);
+      var zoneColors = { recovery: 'var(--down)', easy: 'var(--caution)', moderate: 'var(--dim)', push: 'var(--up)', peak: 'var(--pulse)' };
+      var zone = d.strainBudget ? d.strainBudget.zone : 'moderate';
+      arc.style.stroke = zoneColors[zone] || 'var(--dim)';
+      document.getElementById('sbNum').textContent = max.toFixed(1);
+      var zEl = document.getElementById('sbZone');
+      zEl.textContent = zone;
+      zEl.className = 'sb-zone ' + zone;
+      var rationale = [];
+      if (d.strainBudget && d.strainBudget.timeCapMin) rationale.push(d.strainBudget.timeCapMin + ' min max session');
+      if (d.strainBudget && d.strainBudget.rationale) rationale.push(d.strainBudget.rationale);
+      document.getElementById('sbRationale').textContent = rationale.join(' · ');
+
+      // Injury risk
+      var ir = d.injuryRisk || { score: 0, level: 'low', factors: [] };
+      var irLabel = document.getElementById('irLabel');
+      irLabel.textContent = ir.level.toUpperCase();
+      irLabel.style.color = ir.level === 'high' ? 'var(--down)' : ir.level === 'moderate' ? 'var(--caution)' : 'var(--up)';
+      document.getElementById('irScore').textContent = ir.score + '/100';
+      var fill = document.getElementById('irFill');
+      fill.style.width = ir.score + '%';
+      fill.style.background = ir.level === 'high' ? 'var(--down)' : ir.level === 'moderate' ? 'var(--caution)' : 'var(--up)';
+      document.getElementById('irFactors').textContent = ir.factors.map(function (f) { return f.detail; }).join(' · ');
+
+      // Rx items
+      var rxEl = document.getElementById('coachRx');
+      var rxItems = [];
+      if (d.sleepRx) rxItems.push({ icon: '💤', text: d.sleepRx });
+      if (d.nutritionCue) rxItems.push({ icon: '🍽', text: d.nutritionCue });
+      if (d.mentalNote) rxItems.push({ icon: '🧠', text: d.mentalNote });
+      rxEl.innerHTML = rxItems.map(function (r) { return '<div class="coach-rx-item"><span class="coach-rx-icon">' + r.icon + '</span><span>' + r.text + '</span></div>'; }).join('');
+
+      document.getElementById('coachDirectiveCard').style.display = 'block';
+    }
+
+    // Patterns card
+    if (res.patterns && res.patterns.length) {
+      var pl = document.getElementById('patternList');
+      pl.innerHTML = res.patterns.map(function (p) {
+        return '<div class="pattern-item ' + (p.category || '') + '">' +
+          '<div class="pattern-title">' + (p.label || p.metric) + '</div>' +
+          '<div class="pattern-insight">' + (p.insight || '') + '</div>' +
+          '<div class="pattern-meta">confidence ' + Math.round((p.confidence || 0) * 100) + '% · ' + (p.sampleSize || 0) + ' data points</div>' +
+          '</div>';
+      }).join('');
+      document.getElementById('coachPatternsCard').style.display = 'block';
+    }
+
+    // Report card
+    if (res.reportCard) {
+      var rc = res.reportCard;
+      var rcO = document.getElementById('rcOverall');
+      rcO.textContent = rc.overall;
+      rcO.className = 'rc-overall ' + rc.overall.charAt(0).toLowerCase();
+      var doms = document.getElementById('rcDomains');
+      var domainOrder = ['training', 'recovery', 'sleep', 'activity', 'consistency'];
+      doms.innerHTML = domainOrder.map(function (k) {
+        return '<div class="rc-domain"><div class="rc-domain-label">' + k + '</div><div class="rc-domain-grade">' + (rc.domains[k] || '—') + '</div></div>';
+      }).join('');
+      var hl = document.getElementById('rcHighlights');
+      var items = (rc.highlights || []).map(function (h) { return '<li class="good">' + h + '</li>'; })
+        .concat((rc.improvements || []).map(function (i) { return '<li class="improve">' + i + '</li>'; }));
+      hl.innerHTML = items.join('');
+      document.getElementById('coachReportCard').style.display = 'block';
+    }
+
+    // Predictions
+    if (res.predictions && res.predictions.length) {
+      var predEl = document.getElementById('predList');
+      predEl.innerHTML = res.predictions.map(function (p) {
+        var dir = (p.trajectory || 'flat').toLowerCase();
+        return '<div class="pred-item">' +
+          '<div class="pred-header"><span class="pred-label">' + (p.label || p.metric) + '</span>' +
+          '<span class="pred-trajectory ' + dir + '">' + dir + '</span></div>' +
+          '<div class="pred-detail">' +
+            'Current: ' + (p.current != null ? p.current.toFixed(1) : '—') +
+            (p.ratePerMonth != null ? ' · ' + (p.ratePerMonth > 0 ? '+' : '') + p.ratePerMonth.toFixed(2) + '/mo' : '') +
+            (p.predictedValue != null ? ' · Predicted: ' + p.predictedValue.toFixed(1) + ' in 90d' : '') +
+          '</div></div>';
+      }).join('');
+      document.getElementById('coachPredictionsCard').style.display = 'block';
+    }
+  } catch (e) {
+    document.getElementById('coachLoading').textContent = 'Could not load coaching data.';
+  }
+}
+
 async function boot() {
   document.getElementById('gateError').textContent = '';
   var series, analytics, trends;
@@ -4271,6 +4487,7 @@ async function boot() {
   loadExperiments();
   loadWorkouts();
   loadWorkoutAnalytics();
+  loadCoach();
   loadAlerts();
 }
 

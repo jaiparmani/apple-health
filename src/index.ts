@@ -16,11 +16,12 @@ import { buildTemplatePlan, mondayOf, parseAiPlan, viewPlan, type PlanView, type
 import { computeWeekdayPattern } from "./overview";
 import { healthBriefMessage } from "./brief";
 import { buildReviewContext } from "./reviewContext";
-import { computeFitnessReport } from "./fitness";
+import { computeFitnessReport, dailyLoad, computeLoadSeries } from "./fitness";
 import { computeOverview } from "./overview";
 import { sanitizeManualWorkout, computePRs, computeMuscleBalance, computeWorkoutFrequency, type ManualWorkout } from "./manualWorkouts";
 import { renderDashboard } from "./dashboard";
 import { generateAlerts } from "./alerts";
+import { discoverPatterns, buildCoachDirective, computeWeeklyReportCard, computePerformancePredictions } from "./patterns";
 
 const SERIES_PATH = "data/series.json";
 const PROFILE_PATH = "data/profile.json";
@@ -39,7 +40,7 @@ const ANALYTICS_WINDOW_DAYS = 7;
 function insightsCacheKey(domain: ReviewDomain): string {
   // v4: crisper voice. v3: plainer voice + weekly/longterm domains. v2: snapshots carry domain-specific computed context (fitness
   // report, recent rows...) — don't serve reviews generated without it.
-  return `insights:v6:${domain}`;
+  return `insights:v7:${domain}`;
 }
 // Kept in KV well past "fresh" so a flaky llm-gateway call can fall back to
 // the last good review (flagged stale) instead of an empty error card.
@@ -543,8 +544,37 @@ async function handleTelegramBrief(req: Request, env: Env, ctx: ExecutionContext
       return getReview(env, "today", { force });
     })().catch(() => null),
   ]);
-  const fitness = computeFitnessReport(days, profile, 7.5);
-  const trends = computeTrends(days, 7.5);
+  const sleepTarget = 7.5;
+  const fitness = computeFitnessReport(days, profile, sleepTarget);
+  const trends = computeTrends(days, sleepTarget);
+  const notes = (await getJson<UserKnowledge>(env, KNOWLEDGE_PATH)).data?.notes ?? [];
+
+  // Coach directive
+  const age = profile ? chronologicalAge(profile.birthDate, days[days.length - 1].date) : null;
+  const series = computeLoadSeries(days, age);
+  const last7Loads = series.slice(-7).map((p) => p.load);
+  const last28Loads = series.slice(-28).map((p) => p.load);
+  const meanFn = (v: number[]) => v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  const sdFn = (v: number[]) => {
+    if (v.length < 2) return 0;
+    const m = v.reduce((a, b) => a + b, 0) / v.length;
+    return Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / v.length);
+  };
+  const acuteBrief = meanFn(last7Loads);
+  const chronicBrief = meanFn(last28Loads);
+  const acwrBrief = acuteBrief !== null && chronicBrief !== null && chronicBrief > 0.5 ? acuteBrief / chronicBrief : null;
+  const monoBrief = last7Loads.length >= 7 && sdFn(last7Loads) > 0 ? meanFn(last7Loads)! / sdFn(last7Loads) : null;
+  const lastPt = series[series.length - 1];
+  const formBrief = lastPt?.form ?? null;
+  let daysSinceRestBrief = 0;
+  for (let i = series.length - 1; i >= 0 && series[i].load >= 8; i--) daysSinceRestBrief++;
+
+  const coachDirective = buildCoachDirective(
+    days, notes, trends.readinessScore, trends.recovery?.score ?? null,
+    trends.sleepAnalysis, acwrBrief, formBrief, monoBrief, daysSinceRestBrief, sleepTarget
+  );
+  const reportCard = computeWeeklyReportCard(days, sleepTarget);
+
   const text = healthBriefMessage({
     today: localToday(env),
     lastDataDate: days[days.length - 1].date,
@@ -557,6 +587,8 @@ async function handleTelegramBrief(req: Request, env: Env, ctx: ExecutionContext
     actionItems: fitness.actionItems,
     goals,
     dashboardUrl: env.PUBLIC_URL || "",
+    coachDirective,
+    reportCard,
   });
   // The 7am call doubles as the daily warm-up: pre-write every other review
   // so the dashboard opens ready.
@@ -921,6 +953,51 @@ async function handleDeleteWorkout(req: Request, env: Env): Promise<Response> {
   return json({ ok: true });
 }
 
+async function handleGetCoach(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const [{ data: seriesData }, { data: profile }, { data: knowledge }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<UserProfile>(env, PROFILE_PATH),
+    getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
+  ]);
+  const days = seriesData?.days ?? [];
+  if (days.length === 0) return json({ error: "no data yet" }, 400);
+
+  const notes = knowledge?.notes ?? [];
+  const sleepTarget = knowledge?.sleepTargetHours ?? 7.5;
+  const trends = computeTrends(days, sleepTarget);
+  const age = profile ? chronologicalAge(profile.birthDate, days[days.length - 1].date) : null;
+  const fitness = computeFitnessReport(days, profile, sleepTarget);
+  const series = computeLoadSeries(days, age);
+  const last7Loads = series.slice(-7).map((p) => p.load);
+  const last28Loads = series.slice(-28).map((p) => p.load);
+  const meanFn = (v: number[]) => v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  const sdFn = (v: number[]) => {
+    if (v.length < 2) return 0;
+    const m = v.reduce((a, b) => a + b, 0) / v.length;
+    return Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / v.length);
+  };
+  const acute = meanFn(last7Loads);
+  const chronic = meanFn(last28Loads);
+  const acwr = acute !== null && chronic !== null && chronic > 0.5 ? acute / chronic : null;
+  const mono = last7Loads.length >= 7 && sdFn(last7Loads) > 0 ? meanFn(last7Loads)! / sdFn(last7Loads) : null;
+  const lastPoint = series[series.length - 1];
+  const form = lastPoint?.form ?? null;
+
+  let daysSinceRest = 0;
+  for (let i = series.length - 1; i >= 0 && series[i].load >= 8; i--) daysSinceRest++;
+
+  const directive = buildCoachDirective(
+    days, notes, trends.readinessScore, trends.recovery?.score ?? null,
+    trends.sleepAnalysis, acwr, form, mono, daysSinceRest, sleepTarget
+  );
+  const patterns = discoverPatterns(days, notes);
+  const reportCard = computeWeeklyReportCard(days, sleepTarget);
+  const predictions = computePerformancePredictions(days);
+
+  return json({ directive, patterns, reportCard, predictions });
+}
+
 async function handleGetAlerts(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   const [{ data: seriesData }, { data: knowledge }] = await Promise.all([
@@ -1004,6 +1081,7 @@ export default {
       if (req.method === "POST" && url.pathname === "/api/workouts") return await handlePostWorkout(req, env);
       if (req.method === "DELETE" && url.pathname === "/api/workouts") return await handleDeleteWorkout(req, env);
       if (req.method === "GET" && url.pathname === "/api/alerts") return await handleGetAlerts(req, env);
+      if (req.method === "GET" && url.pathname === "/api/coach") return await handleGetCoach(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
       if (req.method === "GET" && url.pathname === "/manifest.json") {
         return new Response(JSON.stringify({

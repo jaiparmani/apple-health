@@ -2,13 +2,14 @@ import type { BiologicalAgeResult, DailyMetrics, UserKnowledge, UserProfile } fr
 import type { GoalProgress } from "./goals";
 import type { ReviewDomain } from "./ai";
 import { chronologicalAge } from "./analytics";
-import { computeFitnessReport, dailyLoad, type FitnessReport } from "./fitness";
-import { computeCorrelations } from "./correlations";
+import { computeFitnessReport, dailyLoad, computeLoadSeries, type FitnessReport } from "./fitness";
+import { computeCorrelations, computeJournalCorrelations } from "./correlations";
 import { detectAnomalies } from "./anomalies";
 import { computeBaselines } from "./baselines";
 import { computePeriodReport } from "./report";
 import { computeTrends } from "./trends";
 import { computeHighlights, computeHealthScore, computeMonthly, computeWeek, computeWeekdayPattern } from "./overview";
+import { discoverPatterns, computeStrainBudget, computeInjuryRisk, computeWeeklyReportCard, computePerformancePredictions, buildCoachDirective } from "./patterns";
 
 /**
  * Builds the domain-specific half of an AI review's snapshot — the numbers
@@ -56,26 +57,54 @@ export function buildReviewContext(domain: ReviewDomain, input: ReviewInputs): R
   const sleepTarget = knowledge?.sleepTargetHours ?? 7.5;
   const fitness = computeFitnessReport(days, profile, sleepTarget);
   const load = (d: DailyMetrics): Row => ({ load: dailyLoad(d, age) });
+  const notes = knowledge?.notes ?? [];
   const userContext = {
     goals: knowledge?.goals || undefined,
     preferences: knowledge?.preferences || undefined,
     sleepTargetHours: sleepTarget,
-    recentCheckIns: (knowledge?.notes ?? []).slice(-7),
+    recentCheckIns: notes.slice(-7),
     goalProgress: (input.goals ?? []).map((g) => ({ goal: g.goal.title, current: g.current, target: g.goal.target, deadline: g.goal.deadline, status: g.status, summary: g.summary })),
   };
 
+  // Coaching context shared across domains
+  const series = computeLoadSeries(days, age);
+  const last7Loads = series.slice(-7).map((p) => p.load);
+  const last28Loads = series.slice(-28).map((p) => p.load);
+  const meanArr = (v: number[]) => v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  const sdArr = (v: number[]) => {
+    if (v.length < 2) return 0;
+    const m = v.reduce((a, b) => a + b, 0) / v.length;
+    return Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / v.length);
+  };
+  const acuteLd = meanArr(last7Loads);
+  const chronicLd = meanArr(last28Loads);
+  const acwr = acuteLd !== null && chronicLd !== null && chronicLd > 0.5 ? acuteLd / chronicLd : null;
+  const mono = last7Loads.length >= 7 && sdArr(last7Loads) > 0 ? meanArr(last7Loads)! / sdArr(last7Loads) : null;
+  const lastPt = series[series.length - 1];
+  const form = lastPt?.form ?? null;
+  let daysSinceRest = 0;
+  for (let i = series.length - 1; i >= 0 && series[i].load >= 8; i--) daysSinceRest++;
+  const trends = computeTrends(days, sleepTarget);
+
+  const strainBudget = computeStrainBudget(days, trends.readinessScore, trends.recovery?.score ?? null, acwr, form, daysSinceRest);
+  const injuryRisk = computeInjuryRisk(acwr, mono, daysSinceRest, trends.recovery?.score ?? null, null);
+  const personalPatterns = discoverPatterns(days, notes).slice(0, 5);
+  const reportCard = computeWeeklyReportCard(days, sleepTarget);
+  const predictions = computePerformancePredictions(days).slice(0, 3);
+
   switch (domain) {
     case "overview":
-      return { user: userContext, fitnessMetrics: pickMetrics(fitness), actionItems: fitness.actionItems };
+      return { user: userContext, fitnessMetrics: pickMetrics(fitness), actionItems: fitness.actionItems, strainBudget, injuryRisk, personalPatterns };
     case "today":
       return {
         user: userContext,
-        fitnessMetrics: pickMetrics(fitness, ["form", "acwr", "hrvVsBaseline", "rhrDrift", "daysSinceRest", "sleepDebt", "weeklyMinutes"]),
+        fitnessMetrics: pickMetrics(fitness, ["form", "acwr", "hrvVsBaseline", "rhrDrift", "daysSinceRest", "sleepDebt", "weeklyMinutes", "sleepPerformance", "sleepNeed", "illnessLikelihood"]),
         actionItems: fitness.actionItems,
+        strainBudget,
+        injuryRisk,
         last3Days: rows(days.slice(-3), ["hrv", "restingHeartRate", "sleepHours", "steps", "exerciseMinutes", "workoutType", "workoutMinutes"], load),
       };
     case "weekly": {
-      const trends = computeTrends(days);
       return {
         user: userContext,
         healthScore: computeHealthScore(days, trends, fitness, profile, sleepTarget),
@@ -83,6 +112,7 @@ export function buildReviewContext(domain: ReviewDomain, input: ReviewInputs): R
         thisWeekByDay: computeWeek(days, age),
         thisWeekVsLastWeek: computePeriodReport(days, "week")?.metricChanges.filter((m) => m.direction === "up" || m.direction === "down"),
         actionItems: fitness.actionItems,
+        weeklyReportCard: reportCard,
       };
     }
     case "longterm": {
@@ -95,6 +125,7 @@ export function buildReviewContext(domain: ReviewDomain, input: ReviewInputs): R
         bioAgeDeltaByMonth: [...bioByMonth.entries()].slice(-12).map(([month, deltaYears]) => ({ month, deltaYears })),
         weekdayPattern12Weeks: computeWeekdayPattern(days),
         fitnessMetrics: pickMetrics(fitness, ["fitness", "vo2Category", "vo2Trend", "consistency", "weightTrend"]),
+        performancePredictions: predictions,
       };
     }
     case "training":
@@ -105,13 +136,16 @@ export function buildReviewContext(domain: ReviewDomain, input: ReviewInputs): R
         weeklyTotals: fitness.weekly,
         fitnessFatigueForm: fitness.loadSeries.slice(-28).filter((_, i, a) => i % 7 === 6 || i === a.length - 1),
         last28Days: rows(days.slice(-28), ["exerciseMinutes", "activeEnergy", "workoutType", "workoutMinutes", "workoutDistanceKm", "heartRateMax"], load),
+        strainBudget,
+        injuryRisk,
       };
     case "recovery":
       return {
         user: userContext,
-        fitnessMetrics: pickMetrics(fitness, ["hrvVsBaseline", "rhrDrift", "form", "daysSinceRest", "monotony", "sleepDebt"]),
+        fitnessMetrics: pickMetrics(fitness, ["hrvVsBaseline", "rhrDrift", "form", "daysSinceRest", "monotony", "sleepDebt", "sleepPerformance", "illnessLikelihood"]),
         baselines30d: computeBaselines(days, 30).filter((b) => ["hrv", "restingHeartRate", "walkingHeartRateAvg", "respiratoryRate"].includes(b.metric as string)),
         last30Days: rows(days.slice(-30), ["hrv", "restingHeartRate", "walkingHeartRateAvg", "respiratoryRate", "sleepHours"], load),
+        personalPatterns: personalPatterns.filter((p) => p.category === "recovery"),
       };
     case "activity":
       return {
@@ -136,8 +170,10 @@ export function buildReviewContext(domain: ReviewDomain, input: ReviewInputs): R
       return {
         user: userContext,
         nightsWithSleepDataLast30: sleepDays.length,
-        fitnessMetrics: pickMetrics(fitness, ["sleepDebt", "hrvVsBaseline", "rhrDrift"]),
+        fitnessMetrics: pickMetrics(fitness, ["sleepDebt", "sleepPerformance", "sleepConsistency", "sleepNeed", "sleepLatency", "hrvVsBaseline", "rhrDrift"]),
         last30Nights: rows(days.slice(-30), ["sleepHours", "sleepEfficiency", "sleepCoreHours", "sleepDeepHours", "sleepRemHours", "sleepAwakeHours", "hrv", "restingHeartRate"]),
+        personalPatterns: personalPatterns.filter((p) => p.category === "sleep"),
+        sleepAnalysis: trends.sleepAnalysis,
       };
     }
     case "body": {
@@ -148,14 +184,18 @@ export function buildReviewContext(domain: ReviewDomain, input: ReviewInputs): R
         fitnessMetrics: pickMetrics(fitness, ["vo2Category", "vo2Trend", "bmi", "weightTrend", "gaitSpeed"]),
         bioAgeHistoryWeekly: hist.slice(-180).filter((_, i, a) => (a.length - 1 - i) % 7 === 0).map((h) => ({ date: h.date, biologicalAge: h.biologicalAge, deltaYears: h.deltaYears })),
         bodyReadings: rows(days.slice(-90), ["weightKg", "bodyFatPct", "vo2max"]),
+        performancePredictions: predictions,
       };
     }
     case "discoveries": {
       const correlations = computeCorrelations(days).filter((c) => c.strength !== "negligible" && c.strength !== "insufficient_data");
+      const journalCorrelations = computeJournalCorrelations(days, notes).filter((c) => c.strength !== "negligible");
       return {
         user: userContext,
         correlations,
+        journalCorrelations: journalCorrelations.slice(0, 5),
         anomalies: detectAnomalies(days).slice(0, 10),
+        personalPatterns,
         weekVsPriorWeek: computePeriodReport(days, "week")?.metricChanges.filter((m) => m.direction === "up" || m.direction === "down"),
       };
     }

@@ -3,6 +3,7 @@ import type { ActionItem } from "./fitness";
 import type { GoalProgress } from "./goals";
 import type { PlanDayView } from "./plan";
 import type { RecoverySnapshot, IllnessSignal, SleepAnalysis } from "./types";
+import type { CoachDirective, InjuryRisk, StrainBudget, WeeklyReportCard, PersonalPattern } from "./patterns";
 
 /**
  * The health section of the 7am Telegram brief. Rendered here, as
@@ -27,6 +28,8 @@ export interface BriefInput {
   actionItems: ActionItem[];
   goals: GoalProgress[];
   dashboardUrl: string;
+  coachDirective: CoachDirective | null;
+  reportCard: WeeklyReportCard | null;
 }
 
 const GOAL_WORD: Record<GoalProgress["status"], string> = {
@@ -52,25 +55,50 @@ export function healthBriefMessage(b: BriefInput): string | null {
   if (word) lines.push(e(`You're ${word}.`));
   if (b.review) lines.push(`_${e(b.review.headline)}_`);
 
-  if (b.illnessSignal && b.illnessSignal.likelihood !== "low") {
-    const sev = b.illnessSignal.likelihood === "high" ? "⚠️" : "🟡";
-    lines.push(`${sev} _${e(`Illness likelihood: ${b.illnessSignal.likelihood} (${b.illnessSignal.score}/100). ${b.illnessSignal.detail}`)}_`);
+  // Coach directive — the premium coaching line
+  if (b.coachDirective) {
+    const cd = b.coachDirective;
+    lines.push(`*${e(cd.headline)}*`);
+    lines.push(e(`Strain cap: ${cd.strainBudget.maxStrain}/21 · Zone: ${cd.strainBudget.zone}${cd.strainBudget.timeCapMin ? ` · ${cd.strainBudget.timeCapMin}min max` : ""}`));
+    if (cd.injuryRisk.level !== "low") {
+      lines.push(`⚠️ _${e(`Injury risk: ${cd.injuryRisk.level} (${cd.injuryRisk.score}/100)${cd.injuryRisk.factors.length ? " — " + cd.injuryRisk.factors[0].detail : ""}`)}_`);
+    }
+    lines.push(e(`💤 ${cd.sleepRx}`));
+    if (cd.nutritionCue) lines.push(e(`🍽 ${cd.nutritionCue}`));
+    if (cd.mentalNote) lines.push(`_${e(cd.mentalNote)}_`);
+  } else {
+    // Fallback to legacy format
+    if (b.illnessSignal && b.illnessSignal.likelihood !== "low") {
+      const sev = b.illnessSignal.likelihood === "high" ? "⚠️" : "🟡";
+      lines.push(`${sev} _${e(`Illness likelihood: ${b.illnessSignal.likelihood} (${b.illnessSignal.score}/100). ${b.illnessSignal.detail}`)}_`);
+    }
+
+    if (b.recovery) {
+      const parts: string[] = [];
+      if (b.recovery.hrvZ !== null) parts.push(`HRV ${b.recovery.hrvZ > 0 ? "+" : ""}${b.recovery.hrvZ.toFixed(1)}σ`);
+      if (b.recovery.rhrZ !== null) parts.push(`RHR ${b.recovery.rhrZ > 0 ? "+" : ""}${b.recovery.rhrZ.toFixed(1)}σ`);
+      if (b.recovery.sleepScore !== null) parts.push(`Sleep ${b.recovery.sleepScore}/100`);
+      if (parts.length) lines.push(e(`Recovery ${b.recovery.score}/100 — ${parts.join(", ")}`));
+    }
+
+    if (b.sleepAnalysis && b.sleepAnalysis.performanceScore !== null) {
+      const sa = b.sleepAnalysis;
+      const parts: string[] = [`perf ${sa.performanceScore}/100`];
+      if (sa.debtHours !== null && sa.debtHours > 0.5) parts.push(`debt ${sa.debtHours}h`);
+      if (sa.dynamicNeedHours !== null) parts.push(`need ${sa.dynamicNeedHours}h tonight`);
+      lines.push(e(`Sleep: ${parts.join(" · ")}`));
+    }
   }
 
-  if (b.recovery) {
-    const parts: string[] = [];
-    if (b.recovery.hrvZ !== null) parts.push(`HRV ${b.recovery.hrvZ > 0 ? "+" : ""}${b.recovery.hrvZ.toFixed(1)}σ`);
-    if (b.recovery.rhrZ !== null) parts.push(`RHR ${b.recovery.rhrZ > 0 ? "+" : ""}${b.recovery.rhrZ.toFixed(1)}σ`);
-    if (b.recovery.sleepScore !== null) parts.push(`Sleep ${b.recovery.sleepScore}/100`);
-    if (parts.length) lines.push(e(`Recovery ${b.recovery.score}/100 — ${parts.join(", ")}`));
-  }
-
-  if (b.sleepAnalysis && b.sleepAnalysis.performanceScore !== null) {
-    const sa = b.sleepAnalysis;
-    const parts: string[] = [`perf ${sa.performanceScore}/100`];
-    if (sa.debtHours !== null && sa.debtHours > 0.5) parts.push(`debt ${sa.debtHours}h`);
-    if (sa.dynamicNeedHours !== null) parts.push(`need ${sa.dynamicNeedHours}h tonight`);
-    lines.push(e(`Sleep: ${parts.join(" · ")}`));
+  // Weekly report card (Monday brief)
+  if (b.reportCard) {
+    const rc = b.reportCard;
+    lines.push("");
+    lines.push(`*Weekly Report Card: ${rc.overall}*`);
+    const grades = rc.domains;
+    lines.push(e(`Training ${grades.training} · Recovery ${grades.recovery} · Sleep ${grades.sleep} · Activity ${grades.activity}`));
+    if (rc.highlights.length) lines.push(e(`✓ ${rc.highlights[0]}`));
+    if (rc.improvements.length) lines.push(e(`→ ${rc.improvements[0]}`));
   }
 
   if (b.session) {

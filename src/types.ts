@@ -171,6 +171,13 @@ export interface UserKnowledge {
   notes: KnowledgeNote[];
 }
 
+export interface CoachSnapshot {
+  directive: import("./patterns").CoachDirective;
+  patterns: import("./patterns").PersonalPattern[];
+  reportCard: import("./patterns").WeeklyReportCard | null;
+  predictions: import("./patterns").PerformancePrediction[];
+}
+
 export interface MarkerAgeResult {
   marker: string;
   value: number;
