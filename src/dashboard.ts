@@ -713,20 +713,14 @@ export function renderDashboard(): string {
   .ab-body-view.active { display:block; }
   .ab-body-view svg { width:100%; height:auto; }
 
-  /* muscle region interactive styles */
-  .ab-body-view .muscle-region { cursor:pointer; transition:fill .4s, filter .4s, opacity .4s; fill:var(--line); opacity:.5; }
+  .ab-body-view .muscle-region { cursor:pointer; transition:fill .4s, opacity .4s; fill:var(--dim); opacity:.5; }
   .ab-body-view .muscle-region:hover { opacity:1 !important; }
-
-  /* status-based muscle coloring */
   .ab-body-view .muscle-region.m-optimal { fill:var(--up); opacity:1; }
-  .ab-body-view .muscle-region.m-undertrained { fill:var(--caution); opacity:.6; }
-  .ab-body-view .muscle-region.m-neglected { fill:var(--faint); opacity:.3; }
+  .ab-body-view .muscle-region.m-undertrained { fill:var(--caution); opacity:.65; }
+  .ab-body-view .muscle-region.m-neglected { fill:var(--faint); opacity:.35; }
   .ab-body-view .muscle-region.m-overtrained { fill:var(--royal); opacity:1; }
-
-
-  /* decorative body outline */
-  .ab-body-view .body-outline { fill:none; stroke:var(--faint); stroke-width:.5; opacity:.25; }
-  .ab-body-view .body-deco { fill:var(--faint); opacity:.2; }
+  .ab-body-view .body-outline { fill:none; stroke:var(--dim); stroke-width:1; opacity:.45; }
+  .ab-body-view .body-deco { fill:var(--dim); opacity:.4; }
 
   .ab-body-legend { display:flex; justify-content:center; gap:14px; margin-top:12px; flex-wrap:wrap; }
   .ab-leg { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--dim); font-weight:600; }
@@ -765,46 +759,20 @@ export function renderDashboard(): string {
   /* ==== BODY-CENTRIC HOME ==== */
   .body-home { display:flex; flex-direction:column; align-items:center; position:relative; }
 
-  /* ambient state background — shifts with recovery */
-  .body-home::before { content:''; position:absolute; top:-60px; left:50%; transform:translateX(-50%); width:500px; height:500px; border-radius:50%; pointer-events:none; z-index:0; opacity:.06; transition:background 1.5s ease; background:radial-gradient(circle, var(--up) 0%, transparent 70%); }
-  .body-home.state-hard::before { background:radial-gradient(circle, #34d399 0%, transparent 70%); opacity:.08; }
-  .body-home.state-steady::before { background:radial-gradient(circle, #fbbf24 0%, transparent 70%); opacity:.06; }
-  .body-home.state-recover::before { background:radial-gradient(circle, #f76b4d 0%, transparent 70%); opacity:.05; }
-
-  /* breathing aura behind the body */
-  .body-aura { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%); width:320px; height:420px; border-radius:50%; pointer-events:none; z-index:1; opacity:.12; animation:bodyBreathe 4s ease-in-out infinite; background:radial-gradient(ellipse, rgba(163,230,53,.25) 0%, rgba(52,211,153,.1) 40%, transparent 70%); }
-  @keyframes bodyBreathe { 0%,100% { transform:translate(-50%,-50%) scale(1); opacity:.1; } 50% { transform:translate(-50%,-50%) scale(1.08); opacity:.18; } }
-
-  /* particle canvas */
-  .body-particles { position:absolute; inset:-40px; z-index:0; pointer-events:none; }
 
   /* central body stage */
-  .body-stage { position:relative; width:100%; max-width:380px; margin:0 auto; }
-  .body-stage-svg { position:relative; z-index:2; width:260px; margin:0 auto; display:block; }
+  .body-stage { position:relative; width:100%; max-width:280px; margin:0 auto; padding-top:60px; }
+  .body-stage-svg { position:relative; width:220px; margin:0 auto; display:block; }
   .body-stage-svg svg { width:100%; height:auto; }
-  .body-stage-svg .muscle-region { cursor:pointer; transition:fill .4s, filter .4s, opacity .4s; fill:var(--line); opacity:.4; }
+  .body-stage-svg .muscle-region { cursor:pointer; transition:fill .4s, opacity .4s; fill:var(--dim); opacity:.5; }
   .body-stage-svg .muscle-region:hover { opacity:1 !important; }
   .body-stage-svg .muscle-region.m-optimal { fill:var(--up); opacity:1; }
-  .body-stage-svg .muscle-region.m-undertrained { fill:var(--caution); opacity:.6; }
-  .body-stage-svg .muscle-region.m-neglected { fill:var(--faint); opacity:.3; }
+  .body-stage-svg .muscle-region.m-undertrained { fill:var(--caution); opacity:.65; }
+  .body-stage-svg .muscle-region.m-neglected { fill:var(--faint); opacity:.35; }
   .body-stage-svg .muscle-region.m-overtrained { fill:var(--royal); opacity:1; }
-  .body-stage-svg .body-deco { fill:var(--faint); opacity:.2; }
-  .body-stage-svg .body-outline { fill:none; stroke:var(--faint); stroke-width:.5; opacity:.25; }
+  .body-stage-svg .body-deco { fill:var(--dim); opacity:.4; }
+  .body-stage-svg .body-outline { fill:none; stroke:var(--dim); stroke-width:1; opacity:.45; }
 
-  /* orbital ring system around the body */
-  .orbit-system { position:absolute; inset:-30px; z-index:1; pointer-events:none; }
-  .orbit-ring { position:absolute; inset:0; }
-  .orbit-ring svg { width:100%; height:100%; }
-  .orbit-arc { fill:none; stroke-linecap:round; transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1), stroke .3s; cursor:pointer; pointer-events:stroke; }
-  .orbit-arc:hover { stroke-width:7 !important; }
-
-  /* orbit labels floating around the body */
-  .orbit-labels { position:absolute; inset:0; z-index:3; pointer-events:none; }
-  .orbit-label { position:absolute; pointer-events:auto; cursor:pointer; text-align:center; transition:transform .2s var(--ease-spring); }
-  .orbit-label:hover { transform:scale(1.08); }
-  .orbit-label .ol-val { font-family:var(--mono); font-size:16px; font-weight:900; line-height:1; }
-  .orbit-label .ol-name { font-size:9px; color:var(--dim); font-weight:700; text-transform:uppercase; letter-spacing:.05em; white-space:nowrap; }
-  .orbit-label .ol-icon { font-size:14px; margin-bottom:2px; }
 
   /* body score floating badge */
   .body-score-badge { position:absolute; top:-8px; left:50%; transform:translateX(-50%); z-index:4; text-align:center; }
@@ -816,12 +784,6 @@ export function renderDashboard(): string {
   .bsb-num { font-family:var(--mono); font-size:22px; font-weight:900; line-height:1; color:var(--pulse); }
   .bsb-label { font-size:8px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); }
 
-  /* satellite stat chips around body */
-  .body-satellites { display:flex; justify-content:center; gap:10px; flex-wrap:wrap; margin-top:8px; }
-  .sat-chip { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:6px 12px; text-align:center; cursor:pointer; transition:all .2s var(--ease-spring); min-width:70px; }
-  .sat-chip:hover { border-color:rgba(163,230,53,.3); transform:translateY(-2px); }
-  .sat-chip .sat-v { font-family:var(--mono); font-size:16px; font-weight:800; }
-  .sat-chip .sat-l { font-size:9px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
 
   /* metric drawer (slides up on tap) */
   .metric-drawer { position:fixed; bottom:0; left:0; right:0; z-index:55; transform:translateY(100%); transition:transform .35s cubic-bezier(.32,1.2,.54,1); }
@@ -856,16 +818,9 @@ export function renderDashboard(): string {
   .qg-card .qg-delta.up { color:var(--up); }
   .qg-card .qg-delta.down { color:var(--down); }
 
-  @keyframes orbitFadeIn { from { stroke-dashoffset:var(--circ); opacity:0; } to { opacity:1; } }
-  @keyframes floatUp { from { opacity:0; transform:translateY(10px); } to { opacity:1; transform:translateY(0); } }
-
   /* muscle tap ripple */
   @keyframes muscleRipple { 0% { r:0; opacity:.6; } 100% { r:30; opacity:0; } }
   .muscle-ripple { fill:none; stroke:var(--pulse); stroke-width:2; animation:muscleRipple .6s ease-out forwards; pointer-events:none; }
-
-  /* orbit tap pulse */
-  @keyframes orbitPulse { 0% { stroke-width:5; opacity:1; } 50% { stroke-width:10; opacity:.6; } 100% { stroke-width:5; opacity:1; } }
-  .orbit-arc.tapped { animation:orbitPulse .4s ease-out; }
 
   /* quick-glance card entrance stagger */
   .qg-card { opacity:0; animation:qgCardIn .4s var(--ease-spring) both; }
@@ -926,11 +881,8 @@ export function renderDashboard(): string {
   .md-insight { font-size:12.5px; color:var(--dim); line-height:1.55; padding:10px 12px; background:var(--panel2); border-radius:8px; margin:8px 0; border-left:3px solid var(--pulse); }
 
   @media (max-width:480px) {
-    .body-stage { max-width:320px; }
-    .body-stage-svg { width:180px; }
-    .orbit-label .ol-val { font-size:14px; }
-    .sat-chip { padding:5px 8px; min-width:60px; }
-    .sat-chip .sat-v { font-size:14px; }
+    .body-stage { max-width:240px; }
+    .body-stage-svg { width:160px; }
     .qg-row { grid-template-columns:repeat(2,1fr); }
   }
 
@@ -1509,12 +1461,18 @@ export function renderDashboard(): string {
       <div class="v-why" id="verdictWhy"></div>
     </div>
 
-    <!-- ===== THE BODY STAGE ===== -->
+    <!-- Quick-glance metric cards -->
+    <div class="qg-row" id="quickGlanceRow"></div>
+
+    <!-- Strain budget bar -->
+    <div class="card" id="strainBudgetCard" style="display:none">
+      <div class="sb-label">Strain <span id="sbUsed2">0</span> / <span id="sbMax2">21</span></div>
+      <div class="sb-track"><div class="sb-fill" id="sbFill2"></div><div class="sb-target" id="sbTarget2"></div></div>
+    </div>
+
+    <!-- Body silhouette -->
     <div class="body-home" id="bodyHome">
-      <canvas class="body-particles" id="bodyParticles"></canvas>
       <div class="body-stage" id="bodyStage">
-        <div class="body-aura" id="bodyAura"></div>
-        <!-- Score badge floating above head -->
         <div class="body-score-badge" id="bodyScoreBadge">
           <div class="bsb-ring">
             <svg viewBox="0 0 80 80">
@@ -1528,64 +1486,19 @@ export function renderDashboard(): string {
             </div>
           </div>
         </div>
-
-        <!-- Orbital metric rings -->
-        <div class="orbit-system" id="orbitSystem">
-          <svg viewBox="0 0 380 460" id="orbitSvg" style="width:100%;height:100%;">
-            <defs>
-              <linearGradient id="ogSleep"><stop offset="0%" stop-color="#818cf8"/><stop offset="100%" stop-color="#6366f1"/></linearGradient>
-              <linearGradient id="ogHeart"><stop offset="0%" stop-color="#f87171"/><stop offset="100%" stop-color="#ef4444"/></linearGradient>
-              <linearGradient id="ogStrain"><stop offset="0%" stop-color="#fbbf24"/><stop offset="100%" stop-color="#f59e0b"/></linearGradient>
-              <linearGradient id="ogRecovery"><stop offset="0%" stop-color="#34d399"/><stop offset="100%" stop-color="#10b981"/></linearGradient>
-            </defs>
-            <!-- sleep arc (top left) -->
-            <circle cx="190" cy="230" r="170" class="orbit-arc" id="oaSleep" stroke="url(#ogSleep)" stroke-width="5" stroke-dasharray="1068" stroke-dashoffset="1068" onclick="openMetricDrawer(‘sleep’)"/>
-            <!-- heart arc (top right) -->
-            <circle cx="190" cy="230" r="155" class="orbit-arc" id="oaHeart" stroke="url(#ogHeart)" stroke-width="5" stroke-dasharray="974" stroke-dashoffset="974" onclick="openMetricDrawer(‘heart’)"/>
-            <!-- strain arc (bottom left) -->
-            <circle cx="190" cy="230" r="140" class="orbit-arc" id="oaStrain" stroke="url(#ogStrain)" stroke-width="5" stroke-dasharray="880" stroke-dashoffset="880" onclick="openMetricDrawer(‘strain’)"/>
-            <!-- recovery arc (bottom right) -->
-            <circle cx="190" cy="230" r="125" class="orbit-arc" id="oaRecovery" stroke="url(#ogRecovery)" stroke-width="5" stroke-dasharray="785" stroke-dashoffset="785" onclick="openMetricDrawer(‘recovery’)"/>
-          </svg>
-        </div>
-
-        <!-- Orbit metric labels -->
-        <div class="orbit-labels" id="orbitLabels">
-          <div class="orbit-label" style="top:6%;left:4%;" onclick="openMetricDrawer(‘sleep’)">
-            <div class="ol-icon">🌙</div>
-            <div class="ol-val" id="olSleepVal">—</div>
-            <div class="ol-name">Sleep</div>
-          </div>
-          <div class="orbit-label" style="top:6%;right:4%;" onclick="openMetricDrawer(‘heart’)">
-            <div class="ol-icon">❤️</div>
-            <div class="ol-val" id="olHeartVal">—</div>
-            <div class="ol-name">HRV</div>
-          </div>
-          <div class="orbit-label" style="bottom:18%;left:2%;" onclick="openMetricDrawer(‘strain’)">
-            <div class="ol-icon">⚡</div>
-            <div class="ol-val" id="olStrainVal">—</div>
-            <div class="ol-name">Strain</div>
-          </div>
-          <div class="orbit-label" style="bottom:18%;right:2%;" onclick="openMetricDrawer(‘recovery’)">
-            <div class="ol-icon">💚</div>
-            <div class="ol-val" id="olRecoveryVal">—</div>
-            <div class="ol-name">Recovery</div>
-          </div>
-        </div>
-
-        <!-- The body itself -->
         <div class="body-stage-svg" id="bodyStageSvg"></div>
       </div>
+    </div>
 
-      <!-- Satellite stat chips -->
-      <div class="body-satellites" id="bodySatellites"></div>
+    <!-- What moved vs yesterday -->
+    <div class="card" id="whatMovedCard" style="display:none">
+      <h3>What moved</h3>
+      <div class="card-sub">vs. yesterday</div>
+      <div id="whatMovedList2"></div>
     </div>
 
     <!-- Smart check-in prompts -->
     <div id="smartCheckInArea"></div>
-
-    <!-- Quick-glance metric cards row -->
-    <div class="qg-row" id="quickGlanceRow"></div>
 
     <!-- Session up next -->
     <div class="card session-card" id="todaySession"><h3>Up next</h3><div class="skel-line" style="width:60%;"></div><div class="skel-line" style="width:80%;"></div></div>
@@ -1627,25 +1540,14 @@ export function renderDashboard(): string {
       <div class="pr-grid" id="prGrid"></div>
     </div>
 
-    <!-- Hidden elements needed by existing JS -->
+    <!-- Offscreen render targets for JS functions that populate them -->
     <div id="sleepArch" style="display:none"></div>
     <div id="bodyOverviewStrip" style="display:none"></div>
     <div class="compact-grid" id="allVitals" style="display:none"></div>
     <div id="readinessCard" style="display:none"><div id="readinessGauge"></div></div>
-    <div id="sleepBrief" style="display:none">
-      <div class="brief-item"><div class="brief-n" id="bSleepH">—</div><div class="brief-u">hours slept</div></div>
-      <div class="brief-item"><div class="brief-n" id="bSleepQ">—</div><div class="brief-u">quality</div></div>
-      <div class="brief-item"><div class="brief-n" id="bDeepRem">—</div><div class="brief-u">deep+REM</div></div>
-    </div>
-    <div id="bodyState" style="display:none">
-      <div class="brief-item"><div class="brief-n" id="bHrv">—</div><div class="brief-d" id="bHrvD"></div><div class="brief-u">HRV</div></div>
-      <div class="brief-item"><div class="brief-n" id="bRhr">—</div><div class="brief-d" id="bRhrD"></div><div class="brief-u">resting HR</div></div>
-      <div class="brief-item"><div class="brief-n" id="bRecov">—</div><div class="brief-u">recovery</div></div>
-    </div>
-    <div id="strainBudget" style="display:none">
-      <div class="sb-label">Strain <span id="sbUsed">0</span> / <span id="sbMax">21</span></div>
-      <div class="sb-track"><div class="sb-fill" id="sbFill"></div><div class="sb-target" id="sbTarget"></div></div>
-    </div>
+    <div id="sleepBrief" style="display:none"><div class="brief-n" id="bSleepH">—</div><div class="brief-n" id="bSleepQ">—</div><div class="brief-n" id="bDeepRem">—</div></div>
+    <div id="bodyState" style="display:none"><div class="brief-n" id="bHrv">—</div><div id="bHrvD"></div><div class="brief-n" id="bRhr">—</div><div id="bRhrD"></div><div class="brief-n" id="bRecov">—</div></div>
+    <div id="strainBudget" style="display:none"><div class="sb-fill" id="sbFill"></div><div id="sbTarget"></div><span id="sbUsed">0</span><span id="sbMax">21</span></div>
     <div id="recoveryBreakdown" style="display:none"><div id="recoveryPillars"></div></div>
     <div id="whatMoved" style="display:none"><div id="whatMovedList"></div></div>
   </section>
@@ -3715,22 +3617,13 @@ function renderImbalances(sym) {
 
 function renderBodyHome(todayData) {
   var d = todayData;
-  // Render the central body silhouette
   var svgEl = document.getElementById('bodyStageSvg');
   if (svgEl && !svgEl.querySelector('svg')) {
     svgEl.innerHTML = BODY_FRONT_SVG;
   }
 
-  // Init particle system
-  initBodyParticles();
-
-  // Light up muscles if body data is ready
   lightUpHomeBody();
 
-  // Ambient state background based on recovery
-  if (d && d.recoveryScore !== undefined) updateAmbientState(d.recoveryScore);
-
-  // Body score badge
   if (_bodyData && _bodyData.bodyScore) {
     var score = _bodyData.bodyScore;
     var numEl = document.getElementById('bsbNum');
@@ -3746,14 +3639,9 @@ function renderBodyHome(todayData) {
     }
   }
 
-  // Orbital metric arcs
-  renderOrbitArcs(d);
-
-  // Satellite chips
-  renderSatelliteChips(d);
-
-  // Quick glance row
   renderQuickGlance(d);
+  renderHomeStrainBudget(d);
+  renderHomeWhatMoved(d);
 }
 
 function lightUpHomeBody() {
@@ -3789,55 +3677,58 @@ function lightUpHomeBody() {
   });
 }
 
-function renderOrbitArcs(d) {
-  var sleepH = d && d.today ? d.today.sleepHours : null;
-  var hrv = d && d.today ? d.today.hrv : null;
-  var strain = d && d.today ? d.today.strain : null;
-  var recovery = d && d.recoveryScore !== undefined ? d.recoveryScore : null;
-
-  function animateArc(id, value, max, delay) {
-    var el = document.getElementById(id);
-    if (!el || value === null || value === undefined) return;
-    var circ = parseFloat(el.getAttribute('stroke-dasharray'));
-    var pct = Math.min(1, value / max);
-    var offset = circ - pct * circ;
-    setTimeout(function() { el.style.strokeDashoffset = String(offset); }, delay);
+function renderHomeStrainBudget(d) {
+  var card = document.getElementById('strainBudgetCard');
+  if (!card) return;
+  var strain = d && d.today && d.today.strain !== undefined ? d.today.strain : null;
+  var recov = d && d.recoveryScore !== undefined ? d.recoveryScore : null;
+  if (strain === null) return;
+  card.style.display = '';
+  var maxStrain = recov !== null && recov >= 70 ? 18 : recov !== null && recov >= 45 ? 14 : 10;
+  var pct = Math.min(100, Math.round(strain / 21 * 100));
+  var fill = document.getElementById('sbFill2');
+  if (fill) {
+    fill.style.width = pct + '%';
+    fill.className = 'sb-fill' + (strain > maxStrain ? ' over' : strain > maxStrain * 0.8 ? ' high' : '');
   }
-
-  animateArc('oaSleep', sleepH, 9, 200);
-  animateArc('oaHeart', hrv, 120, 400);
-  animateArc('oaStrain', strain, 21, 600);
-  animateArc('oaRecovery', recovery, 100, 800);
-
-  // Labels
-  var olSleep = document.getElementById('olSleepVal');
-  var olHeart = document.getElementById('olHeartVal');
-  var olStrain = document.getElementById('olStrainVal');
-  var olRecovery = document.getElementById('olRecoveryVal');
-  if (olSleep && sleepH !== null) olSleep.textContent = sleepH.toFixed(1) + 'h';
-  if (olHeart && hrv !== null) olHeart.textContent = String(Math.round(hrv)) + 'ms';
-  if (olStrain && strain !== null) olStrain.textContent = strain.toFixed(1);
-  if (olRecovery && recovery !== null) olRecovery.textContent = String(Math.round(recovery));
+  var used = document.getElementById('sbUsed2');
+  if (used) used.textContent = strain.toFixed(1);
+  var max = document.getElementById('sbMax2');
+  if (max) max.textContent = String(maxStrain);
+  var target = document.getElementById('sbTarget2');
+  if (target) target.style.left = Math.round(maxStrain / 21 * 100) + '%';
 }
 
-function renderSatelliteChips(d) {
-  var el = document.getElementById('bodySatellites');
-  if (!el) return;
-  var chips = [];
-  if (_bodyData && _bodyData.composition && _bodyData.composition.currentWeight !== null) {
-    chips.push({ v: _bodyData.composition.currentWeight.toFixed(1) + ' kg', l: 'Weight', click: "showTab('body')" });
-  }
-  if (_bodyData && _bodyData.composition && _bodyData.composition.bodyFatPct !== null) {
-    chips.push({ v: (_bodyData.composition.bodyFatPct * 100).toFixed(1) + '%', l: 'Body fat', click: "showTab('body')" });
-  }
-  if (d && d.today && d.today.restingHeartRate) {
-    chips.push({ v: d.today.restingHeartRate + ' bpm', l: 'Resting HR', click: "openMetricDrawer('heart')" });
-  }
-  if (d && d.today && d.today.steps) {
-    chips.push({ v: d.today.steps.toLocaleString(), l: 'Steps', click: "openMetricDrawer('activity')" });
-  }
-  el.innerHTML = chips.map(function(c) {
-    return '<div class="sat-chip" onclick="' + c.click + '"><div class="sat-v">' + c.v + '</div><div class="sat-l">' + c.l + '</div></div>';
+function renderHomeWhatMoved(d) {
+  var card = document.getElementById('whatMovedCard');
+  var el = document.getElementById('whatMovedList2');
+  if (!card || !el || !d || !d.today) return;
+  var today = d.today;
+  if (!GUIDE_DAYS || GUIDE_DAYS.length < 2) return;
+  var yesterday = GUIDE_DAYS[GUIDE_DAYS.length - 2];
+  if (!yesterday) return;
+  var keys = ['steps', 'exerciseMinutes', 'restingHeartRate', 'hrv', 'sleepHours', 'activeEnergy', 'vo2max', 'walkingSpeed'];
+  var moved = [];
+  keys.forEach(function (k) {
+    if (typeof today[k] !== 'number' || typeof yesterday[k] !== 'number') return;
+    var diff = today[k] - yesterday[k];
+    var pct = yesterday[k] !== 0 ? Math.abs(diff / yesterday[k]) : 0;
+    if (pct < 0.1 && Math.abs(diff) < 3) return;
+    var fmt2 = METRIC_FORMAT[k];
+    var unit = fmt2 ? (fmt2.unit || '') : '';
+    var label = k.replace(/([A-Z])/g, ' $1').trim();
+    var better = fmt2 && fmt2.better;
+    var isUp = diff > 0;
+    var good = better === 'higher' ? isUp : better === 'lower' ? !isUp : null;
+    moved.push({ key: k, label: label, val: fmtMetricVal(k, today[k]), pct: pct, isUp: isUp, good: good });
+  });
+  moved.sort(function (a, b) { return b.pct - a.pct; });
+  if (moved.length === 0) return;
+  card.style.display = '';
+  el.innerHTML = moved.slice(0, 5).map(function (m) {
+    var arrow = m.isUp ? '&#9650;' : '&#9660;';
+    var cls = m.good === true ? 'up' : m.good === false ? 'dn' : '';
+    return '<div class="wm-item"><span class="wm-key">' + m.label + '</span> <span class="wm-val">' + m.val + '</span> <span class="wm-delta ' + cls + '">' + arrow + ' ' + Math.round(m.pct * 100) + '%</span></div>';
   }).join('');
 }
 
@@ -3866,7 +3757,12 @@ function renderQuickGlance(d) {
   if (t.activeEnergy !== null && t.activeEnergy !== undefined && !items.some(function(x){return x.name==='Strain';})) {
     items.push({ icon: '🔥', name: 'Active cal', val: Math.round(t.activeEnergy), color: 'var(--ink)', sub: '', click: "openMetricDrawer('activity')" });
   }
-  el.innerHTML = items.slice(0, 6).map(function(it) {
+  if (_bodyData && _bodyData.composition) {
+    var comp = _bodyData.composition;
+    if (comp.currentWeight !== null) items.push({ icon: '⚖️', name: 'Weight', val: comp.currentWeight.toFixed(1) + ' kg', color: 'var(--ink)', sub: comp.bmi ? ('BMI ' + comp.bmi) : '', click: "showTab('body')" });
+    if (comp.bodyFatPct !== null) items.push({ icon: '📊', name: 'Body fat', val: (comp.bodyFatPct * 100).toFixed(1) + '%', color: 'var(--ink)', sub: comp.estimatedLeanMass ? (comp.estimatedLeanMass + ' kg lean') : '', click: "showTab('body')" });
+  }
+  el.innerHTML = items.slice(0, 8).map(function(it) {
     return '<div class="qg-card" onclick="' + it.click + '">' +
       '<div class="qg-head"><span class="qg-icon">' + it.icon + '</span><span class="qg-name">' + it.name + '</span></div>' +
       '<div class="qg-val" style="color:' + it.color + ';">' + it.val + '</div>' +
@@ -4060,63 +3956,6 @@ function closeHomeMuscle() {
 
 // ---- Particle system behind body ----
 
-var _particlesRunning = false;
-function initBodyParticles() {
-  var canvas = document.getElementById('bodyParticles');
-  if (!canvas || _particlesRunning) return;
-  _particlesRunning = true;
-  var ctx = canvas.getContext('2d');
-  var particles = [];
-  var count = 35;
-
-  function resize() {
-    var rect = canvas.parentElement.getBoundingClientRect();
-    canvas.width = rect.width + 80;
-    canvas.height = rect.height + 80;
-  }
-  resize();
-  window.addEventListener('resize', resize);
-
-  for (var i = 0; i < count; i++) {
-    particles.push({
-      x: Math.random() * canvas.width,
-      y: Math.random() * canvas.height,
-      vx: (Math.random() - 0.5) * 0.3,
-      vy: -0.2 - Math.random() * 0.3,
-      size: 1 + Math.random() * 2,
-      alpha: 0.1 + Math.random() * 0.25,
-      hue: Math.random() > 0.5 ? 90 : 160,
-    });
-  }
-
-  function draw() {
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-    for (var j = 0; j < particles.length; j++) {
-      var p = particles[j];
-      p.x += p.vx;
-      p.y += p.vy;
-      if (p.y < -10) { p.y = canvas.height + 10; p.x = Math.random() * canvas.width; }
-      if (p.x < -10 || p.x > canvas.width + 10) p.x = Math.random() * canvas.width;
-      ctx.beginPath();
-      ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2);
-      ctx.fillStyle = 'hsla(' + p.hue + ', 80%, 65%, ' + p.alpha + ')';
-      ctx.fill();
-    }
-    requestAnimationFrame(draw);
-  }
-  draw();
-}
-
-// ---- Ambient state background ----
-
-function updateAmbientState(recoveryScore) {
-  var el = document.getElementById('bodyHome');
-  if (!el) return;
-  el.classList.remove('state-hard', 'state-steady', 'state-recover');
-  if (recoveryScore >= 67) el.classList.add('state-hard');
-  else if (recoveryScore >= 34) el.classList.add('state-steady');
-  else el.classList.add('state-recover');
-}
 
 // ---- Premium UI systems ----
 
