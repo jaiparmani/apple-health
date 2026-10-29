@@ -152,7 +152,7 @@ export function renderDashboard(): string {
   /* A panel still exists where content needs real grouping (forms, lists,
      AI output) — flat fill, hairline edge, no decorative shadow. */
   .card {
-    background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:20px; margin-bottom:14px;
+    background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:10px;
     position:relative; overflow:hidden;
   }
   .card h3 { margin:0 0 6px; font-size:14.5px; font-weight:700; display:flex; align-items:center; gap:8px; color:var(--ink); letter-spacing:-.01em; }
@@ -350,7 +350,7 @@ export function renderDashboard(): string {
   /* ---- readability pass: bigger type, more air, plain-language status ---- */
   body { font-size:15px; line-height:1.6; }
   .sub { font-size:14px; }
-  .card { padding:20px; margin-bottom:14px; }
+  .card { padding:16px; margin-bottom:10px; }
   .card h3 { font-size:16px; }
   .card .card-sub { font-size:13.5px; line-height:1.55; }
   .ai-body { font-size:14.5px; line-height:1.65; }
@@ -828,7 +828,9 @@ export function renderDashboard(): string {
   .md-reco { font-size:12.5px; color:var(--dim); line-height:1.5; padding-top:10px; border-top:1px solid var(--line); }
 
   /* quick-glance row below body */
-  .qg-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; margin:12px 0; width:100%; }
+  .qg-row { display:flex; gap:8px; margin:12px 0; width:100%; overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:4px; }
+  .qg-row::-webkit-scrollbar { display:none; }
+  .qg-card { min-width:130px; max-width:160px; flex-shrink:0; scroll-snap-align:start; }
   .qg-card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:12px; cursor:pointer; transition:all .2s var(--ease-spring); }
   .qg-card:hover { border-color:rgba(163,230,53,.3); transform:translateY(-2px); }
   .qg-card .qg-head { display:flex; align-items:center; gap:6px; margin-bottom:6px; }
@@ -958,7 +960,7 @@ export function renderDashboard(): string {
   @media (max-width:480px) {
     .body-stage { max-width:240px; }
     .body-stage-svg { width:160px; }
-    .qg-row { grid-template-columns:repeat(2,1fr); }
+    .qg-row { gap:6px; }
   }
 
   .body-comp-bars { display:flex; height:32px; border-radius:8px; overflow:hidden; margin:12px 0 8px; }
@@ -1311,6 +1313,38 @@ export function renderDashboard(): string {
   .wc-delta.worse { color:var(--down); }
   .wc-delta.neutral { color:var(--dim); }
 
+  /* ---- progress card tabs ---- */
+  .pg-tabs { display:flex; gap:4px; margin-bottom:10px; }
+  .pg-tab { padding:5px 12px; border-radius:999px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; background:var(--panel2); color:var(--dim); cursor:pointer; border:1px solid transparent; transition:all .2s; }
+  .pg-tab.active { background:var(--pulse); color:var(--void); border-color:var(--pulse); }
+  .pg-tab:not(.active):hover { border-color:var(--line); color:var(--ink); }
+  .pg-view { display:none; }
+  .pg-view.active { display:block; animation:fadeSlideUp .2s ease both; }
+
+  /* ---- collapsible section ---- */
+  .coll-header { display:flex; align-items:center; justify-content:space-between; cursor:pointer; padding:2px 0; }
+  .coll-header .coll-chevron { width:18px; height:18px; transition:transform .25s var(--ease-spring); color:var(--dim); flex-shrink:0; }
+  .coll-header .coll-chevron.open { transform:rotate(180deg); }
+  .coll-body { display:none; animation:fadeSlideUp .2s ease both; }
+  .coll-body.open { display:block; }
+
+  /* ---- what-moved collapsed summary ---- */
+  .wm-summary { display:flex; align-items:center; gap:8px; cursor:pointer; padding:2px 0; }
+  .wm-summary .wm-count { font-family:var(--mono); font-weight:800; font-size:18px; }
+  .wm-summary .wm-hint { font-size:12px; color:var(--dim); }
+  .wm-summary .wm-pills { display:flex; gap:4px; flex:1; overflow:hidden; }
+  .wm-pill { display:inline-flex; align-items:center; gap:3px; font-size:11px; font-weight:700; padding:2px 8px; border-radius:999px; background:var(--panel2); white-space:nowrap; }
+  .wm-pill.up { color:var(--up); border:1px solid rgba(52,211,153,.25); }
+  .wm-pill.dn { color:var(--down); border:1px solid rgba(247,107,77,.25); }
+  .wm-details { display:none; margin-top:8px; }
+  .wm-details.open { display:block; animation:fadeSlideUp .2s ease both; }
+
+  /* ---- today plan combined card ---- */
+  .tp-section { padding:10px 0; border-bottom:1px solid var(--line); }
+  .tp-section:last-child { border-bottom:none; padding-bottom:0; }
+  .tp-section:first-child { padding-top:0; }
+  .tp-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); margin-bottom:6px; }
+
   /* ---- training readiness gauge ---- */
   .tr-gauge { text-align:center; padding:16px; }
   .tr-score { font-family:var(--mono); font-weight:900; font-size:56px; line-height:1; }
@@ -1579,24 +1613,25 @@ export function renderDashboard(): string {
     </div>
 
     <!-- What moved vs yesterday -->
-    <div class="card" id="whatMovedCard" style="display:none">
-      <h3>What moved</h3>
-      <div class="card-sub">vs. yesterday</div>
-      <div id="whatMovedList2"></div>
+    <div class="card" id="whatMovedCard" style="display:none;cursor:pointer;" onclick="toggleWhatMoved()">
+      <div class="wm-summary" id="wmSummary"></div>
+      <div class="wm-details" id="wmDetails"></div>
     </div>
 
     <!-- Smart check-in prompts -->
     <div id="smartCheckInArea"></div>
 
-    <!-- Session up next -->
-    <div class="card session-card" id="todaySession"><h3>Up next</h3><div class="skel-line" style="width:60%;"></div><div class="skel-line" style="width:80%;"></div></div>
-
-    <!-- Coach note -->
-    ${reviewCard("today", "Coach’s note")}
-
-    <div class="card one-action" id="oneAction" style="display:none;">
-      <div class="oa-label">Focus today</div>
-      <div class="oa-text" id="oneActionText"></div>
+    <!-- Today’s plan: session + coach + focus combined -->
+    <div class="card" id="todayPlanCard">
+      <div class="coll-header" onclick="toggleCollapsible(‘todayPlanBody’)">
+        <h3 style="margin:0;">Today’s plan</h3>
+        <svg class="coll-chevron open" id="todayPlanBody-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
+      </div>
+      <div class="coll-body open" id="todayPlanBody">
+        <div class="tp-section" id="todaySessionInner"><div class="tp-label">Up next</div><div class="skel-line" style="width:60%;"></div></div>
+        <div class="tp-section" id="todayCoachInner"><div class="tp-label">Coach’s note <button class="btn btn-ghost btn-sm" id="review-today-btn" onclick="event.stopPropagation();loadReview(‘today’,true)" style="margin-left:8px;">Retry</button></div><div id="review-today"><div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:55%"></div></div></div>
+        <div class="tp-section" id="todayFocusInner" style="display:none"><div class="tp-label">Focus</div><div id="oneActionText"></div></div>
+      </div>
     </div>
 
     <!-- Illness alert (hidden unless triggered) -->
@@ -1605,27 +1640,19 @@ export function renderDashboard(): string {
       <div class="illness-body sub" id="illnessBody"></div>
     </div>
 
-    <!-- Activity heatmap -->
-    <div class="card" id="heatmapCard" style="display:none">
-      <h3>Activity heatmap <span style="font-weight:400;font-size:12px;color:var(--dim);">last 90 days</span></h3>
-      <div class="hm-wrap" id="heatmapGrid"></div>
-    </div>
-
-    <!-- Streaks + Weekly comp + PRs -->
-    <div class="card" id="streakCard" style="display:none">
-      <h3>Consistency streaks</h3>
-      <div class="streak-grid" id="streakGrid"></div>
-    </div>
-
-    <div class="card" id="weeklyCompCard" style="display:none">
-      <h3>This week vs last week</h3>
-      <div class="wc-grid" id="weeklyCompGrid"></div>
-    </div>
-
-    <div class="card" id="prCard" style="display:none">
-      <h3>Personal records</h3>
-      <div class="card-sub">Your best estimated 1RM per exercise</div>
-      <div class="pr-grid" id="prGrid"></div>
+    <!-- Progress: heatmap + streaks + weekly + PRs in one card -->
+    <div class="card" id="progressCard" style="display:none">
+      <h3>Your progress</h3>
+      <div class="pg-tabs" id="pgTabs">
+        <div class="pg-tab active" onclick="showProgressTab(0)">Heatmap</div>
+        <div class="pg-tab" onclick="showProgressTab(1)">Streaks</div>
+        <div class="pg-tab" onclick="showProgressTab(2)">Weekly</div>
+        <div class="pg-tab" onclick="showProgressTab(3)">Records</div>
+      </div>
+      <div class="pg-view active" id="pgHeatmap"><div class="hm-wrap" id="heatmapGrid"></div></div>
+      <div class="pg-view" id="pgStreaks"><div class="streak-grid" id="streakGrid"></div></div>
+      <div class="pg-view" id="pgWeekly"><div class="wc-grid" id="weeklyCompGrid"></div></div>
+      <div class="pg-view" id="pgRecords"><div class="pr-grid" id="prGrid"></div></div>
     </div>
 
     <!-- Offscreen render targets for JS functions that populate them -->
@@ -1640,39 +1667,6 @@ export function renderDashboard(): string {
     <div id="whatMoved" style="display:none"><div id="whatMovedList"></div></div>
   </section>
 
-  <!-- METRIC DRAWER (slides up on tap from body/orbit) -->
-  <div class="metric-drawer-bg" id="metricDrawerBg" onclick="closeMetricDrawer()"></div>
-  <div class="metric-drawer" id="metricDrawer">
-    <div class="md-sheet">
-      <div class="md-handle"></div>
-      <div class="md-header">
-        <h3 id="mdTitle">—</h3>
-        <button class="md-close" onclick="closeMetricDrawer()">×</button>
-      </div>
-      <div id="mdContent"></div>
-    </div>
-  </div>
-
-  <!-- HOME MUSCLE DETAIL SHEET (tap muscle on body) -->
-  <div class="home-muscle-bg" id="homeMuscBg" onclick="closeHomeMuscle()"></div>
-  <div class="home-muscle-sheet" id="homeMuscSheet">
-    <div class="hms-sheet">
-      <div class="md-handle"></div>
-      <div class="hms-header">
-        <div class="hms-icon" id="hmsIcon">💪</div>
-        <div>
-          <div class="hms-title" id="hmsTitle">—</div>
-          <span class="hms-status-pill" id="hmsStatus">—</span>
-        </div>
-        <button class="hms-close" onclick="closeHomeMuscle()">×</button>
-      </div>
-      <div class="hms-stats" id="hmsStats"></div>
-      <div class="hms-bar" id="hmsBar"><div></div></div>
-      <div class="hms-sparkline" id="hmsSpark"></div>
-      <div class="hms-reco" id="hmsReco"></div>
-      <button class="btn-ghost btn-sm" style="margin-top:10px;width:100%;" onclick="closeHomeMuscle();showTab('body');">Full body analysis →</button>
-    </div>
-  </div>
 
   <!-- TRENDS: LONG VIEW -->
   <section class="section" id="tab-longview">
@@ -3364,10 +3358,10 @@ function toggleFactorDetail(factorEl) {
 }
 
 function renderActivityHeatmap(items) {
-  var card = document.getElementById('heatmapCard');
+  var card = document.getElementById('progressCard');
   var el = document.getElementById('heatmapGrid');
   if (!el || items.length === 0) return;
-  card.style.display = 'block';
+  if (card) card.style.display = 'block';
   var first = new Date(items[0].date + 'T12:00:00Z');
   var startDow = first.getUTCDay();
   var cells = '';
@@ -3383,10 +3377,10 @@ function renderActivityHeatmap(items) {
 }
 
 function renderStreaks(items) {
-  var card = document.getElementById('streakCard');
   var el = document.getElementById('streakGrid');
   if (!el || items.length === 0) return;
-  card.style.display = 'block';
+  var card = document.getElementById('progressCard');
+  if (card) card.style.display = 'block';
   el.innerHTML = items.map(function (s) {
     return '<div class="streak-card' + (s.streakActive ? ' active' : '') + '">' +
       '<div class="streak-icon">' + s.icon + '</div>' +
@@ -3398,10 +3392,10 @@ function renderStreaks(items) {
 }
 
 function renderWeeklyComparison(items) {
-  var card = document.getElementById('weeklyCompCard');
   var el = document.getElementById('weeklyCompGrid');
   if (!el || items.length === 0) return;
-  card.style.display = 'block';
+  var card = document.getElementById('progressCard');
+  if (card) card.style.display = 'block';
   el.innerHTML = items.map(function (w) {
     var deltaStr = w.delta !== null ? (w.delta > 0 ? '+' : '') + w.delta + (w.unit ? w.unit : '') : '—';
     var pctStr = w.deltaPct !== null ? ' (' + (w.deltaPct > 0 ? '+' : '') + w.deltaPct + '%)' : '';
@@ -3418,10 +3412,10 @@ function renderWeeklyComparison(items) {
 }
 
 function renderPersonalRecords(items) {
-  var card = document.getElementById('prCard');
   var el = document.getElementById('prGrid');
   if (!el || items.length === 0) return;
-  card.style.display = 'block';
+  var card = document.getElementById('progressCard');
+  if (card) card.style.display = 'block';
   el.innerHTML = items.slice(0, 10).map(function (pr) {
     var sparkSvg = '';
     if (pr.prHistory && pr.prHistory.length >= 2) {
@@ -3821,8 +3815,9 @@ function renderHomeStrainBudget(d) {
 
 function renderHomeWhatMoved(d) {
   var card = document.getElementById('whatMovedCard');
-  var el = document.getElementById('whatMovedList2');
-  if (!card || !el || !d || !d.today) return;
+  var summaryEl = document.getElementById('wmSummary');
+  var detailsEl = document.getElementById('wmDetails');
+  if (!card || !summaryEl || !detailsEl || !d || !d.today) return;
   var today = d.today;
   if (!GUIDE_DAYS || GUIDE_DAYS.length < 2) return;
   var yesterday = GUIDE_DAYS[GUIDE_DAYS.length - 2];
@@ -3835,7 +3830,6 @@ function renderHomeWhatMoved(d) {
     var pct = yesterday[k] !== 0 ? Math.abs(diff / yesterday[k]) : 0;
     if (pct < 0.1 && Math.abs(diff) < 3) return;
     var fmt2 = METRIC_FORMAT[k];
-    var unit = fmt2 ? (fmt2.unit || '') : '';
     var label = k.replace(/([A-Z])/g, ' $1').trim();
     var better = fmt2 && fmt2.better;
     var isUp = diff > 0;
@@ -3845,7 +3839,13 @@ function renderHomeWhatMoved(d) {
   moved.sort(function (a, b) { return b.pct - a.pct; });
   if (moved.length === 0) return;
   card.style.display = '';
-  el.innerHTML = moved.slice(0, 5).map(function (m) {
+  var pills = moved.slice(0, 3).map(function(m) {
+    var arrow = m.isUp ? '▲' : '▼';
+    var cls = m.good === true ? 'up' : m.good === false ? 'dn' : '';
+    return '<span class="wm-pill ' + cls + '">' + arrow + ' ' + m.label + '</span>';
+  }).join('');
+  summaryEl.innerHTML = '<span class="wm-count">' + moved.length + '</span><span class="wm-hint">moved vs yesterday</span><div class="wm-pills">' + pills + '</div>';
+  detailsEl.innerHTML = moved.slice(0, 5).map(function (m) {
     var arrow = m.isUp ? '&#9650;' : '&#9660;';
     var cls = m.good === true ? 'up' : m.good === false ? 'dn' : '';
     var sparkColor = m.good === true ? 'var(--up)' : m.good === false ? 'var(--down)' : 'var(--dim)';
@@ -4140,6 +4140,32 @@ function closeHomeMuscle() {
   var sheet = document.getElementById('homeMuscSheet');
   if (bg) bg.classList.remove('open');
   if (sheet) sheet.classList.remove('open');
+}
+
+// ---- What moved collapsed/expanded toggle ----
+var _wmOpen = false;
+function toggleWhatMoved() {
+  _wmOpen = !_wmOpen;
+  var d = document.getElementById('wmDetails');
+  if (d) d.classList.toggle('open', _wmOpen);
+}
+
+// ---- Progress card tab switching ----
+function showProgressTab(idx) {
+  var tabs = document.querySelectorAll('#pgTabs .pg-tab');
+  var views = document.querySelectorAll('#progressCard .pg-view');
+  for (var i = 0; i < tabs.length; i++) {
+    tabs[i].classList.toggle('active', i === idx);
+    if (views[i]) views[i].classList.toggle('active', i === idx);
+  }
+}
+
+// ---- Collapsible section toggle ----
+function toggleCollapsible(id) {
+  var body = document.getElementById(id);
+  var chev = document.getElementById(id + '-chev');
+  if (body) body.classList.toggle('open');
+  if (chev) chev.classList.toggle('open');
 }
 
 // ---- Strain budget inline detail toggle ----
@@ -5074,7 +5100,8 @@ function renderWhatMoved(today, yesterday) {
 function renderOneAction() {
   if (!TODAY.fitness || !TODAY.fitness.actionItems || !TODAY.fitness.actionItems.length) return;
   var top = TODAY.fitness.actionItems[0];
-  var el = document.getElementById('oneAction');
+  var el = document.getElementById('todayFocusInner');
+  if (!el) return;
   document.getElementById('oneActionText').textContent = top.text + (top.why ? ' — ' + top.why : '');
   el.style.display = '';
 }
@@ -5379,8 +5406,9 @@ function sessionLine(d) {
 // "Up next": today plus the next two planned days, so the week ahead is
 // one glance away without leaving Today.
 function renderTodaySession(view) {
-  var el = document.getElementById('todaySession');
-  if (!view || !view.days || !view.today) { el.innerHTML = '<h3>Up next</h3><div class="sub">No plan for this week yet.</div>'; return; }
+  var el = document.getElementById('todaySessionInner');
+  if (!el) el = document.getElementById('todaySession');
+  if (!view || !view.days || !view.today) { el.innerHTML = '<div class="tp-label">Up next</div><div class="sub">No plan for this week yet.</div>'; return; }
   var idx = view.days.indexOf(view.days.filter(function (d) { return d.date === view.today.date; })[0]);
   var rows = view.days.slice(idx, idx + 3).map(function (d, i) {
     var s = d.adjusted || d;
@@ -5390,8 +5418,8 @@ function renderTodaySession(view) {
     return '<div class="s-row">' + ico + '<div><b>' + when + '</b> <span style="color:var(--dim)">' + what + '</span>' +
       (i === 0 && d.adjusted ? '<div class="pd-adj">Swapped from ' + d.title + '.</div>' : '') + '</div></div>';
   }).join('');
-  el.innerHTML = '<div class="ai-head"><h3>Up next</h3><span class="sub">' + view.completed + ' of ' + view.planned + ' done this week</span></div>' + rows +
-    '<div style="margin-top:6px;"><a href="#" style="color:var(--pulse);font-size:13px;" onclick="showView(&quot;plan&quot;);return false;">See the full week</a></div>';
+  el.innerHTML = '<div class="tp-label">Up next <span style="font-weight:400;color:var(--dim);font-size:11px;letter-spacing:0;">' + view.completed + '/' + view.planned + ' done</span></div>' + rows +
+    '<div style="margin-top:6px;"><a href="#" style="color:var(--pulse);font-size:12px;" onclick="showView(&quot;plan&quot;);return false;">See the full week →</a></div>';
 }
 
 function renderPlan(view) {
@@ -5423,7 +5451,8 @@ async function loadPlanView() {
     renderPlan(await authedFetch('/api/plan'));
   } catch (err) {
     document.getElementById('planDays').innerHTML = '<p class="sub">Couldn\\'t load the plan (' + err.message + ').</p>';
-    document.getElementById('todaySession').innerHTML = '<h3>Today\\'s session</h3><div class="sub">Couldn\\'t load the plan.</div>';
+    var _tsEl = document.getElementById('todaySessionInner') || document.getElementById('todaySession');
+    if (_tsEl) _tsEl.innerHTML = '<div class="tp-label">Up next</div><div class="sub">Couldn\\'t load the plan.</div>';
   }
 }
 
