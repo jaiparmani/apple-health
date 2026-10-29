@@ -21,7 +21,8 @@ import { computeOverview } from "./overview";
 import { sanitizeManualWorkout, sanitizeTemplate, templateToWorkoutExercises, findUnloggedStrengthSessions, computePRs, computeMuscleBalance, computeWorkoutFrequency, type ManualWorkout, type WorkoutTemplate } from "./manualWorkouts";
 import { renderDashboard } from "./dashboard";
 import { generateAlerts } from "./alerts";
-import { discoverPatterns, buildCoachDirective, computeWeeklyReportCard, computePerformancePredictions } from "./patterns";
+import { discoverPatterns, buildCoachDirective, computeStrainBudget, computeWeeklyReportCard, computePerformancePredictions } from "./patterns";
+import { computeExercise1RMs, computeMuscleRecovery, prescribeSession, analyzePeriodization, detectMomentumAlerts } from "./progression";
 
 const SERIES_PATH = "data/series.json";
 const PROFILE_PATH = "data/profile.json";
@@ -1076,6 +1077,53 @@ async function handleGetCoach(req: Request, env: Env): Promise<Response> {
   return json({ directive, patterns, reportCard, predictions });
 }
 
+async function handleGetProgression(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const [{ data: seriesData }, { data: workoutData }, { data: templateData }, { data: knowledge }, { data: profile }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<{ workouts: ManualWorkout[] }>(env, WORKOUTS_PATH),
+    getJson<{ templates: WorkoutTemplate[] }>(env, TEMPLATES_PATH),
+    getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
+    getJson<UserProfile>(env, PROFILE_PATH),
+  ]);
+  const days = seriesData?.days ?? [];
+  const workouts = workoutData?.workouts ?? [];
+  const templates = templateData?.templates ?? [];
+  const sleepTarget = knowledge?.sleepTargetHours ?? 7.5;
+
+  if (workouts.length === 0) return json({ exercise1RMs: [], muscleRecovery: [], prescription: null, periodization: null, momentum: [] });
+
+  const today = days.length ? days[days.length - 1].date : new Date().toISOString().slice(0, 10);
+  const trends = computeTrends(days, sleepTarget);
+  const age = profile ? chronologicalAge(profile.birthDate, today) : null;
+
+  // Compute load stats for strain budget
+  const series = computeLoadSeries(days, age);
+  const last7 = series.slice(-7).map((p) => p.load);
+  const last28 = series.slice(-28).map((p) => p.load);
+  const mean = (v: number[]) => v.length ? v.reduce((a, b) => a + b, 0) / v.length : null;
+  const acuteLd = mean(last7);
+  const chronicLd = mean(last28);
+  const acwr = acuteLd !== null && chronicLd !== null && chronicLd > 0.5 ? acuteLd / chronicLd : null;
+  const sd = (v: number[]) => { if (v.length < 2) return 0; const m = v.reduce((a, b) => a + b, 0) / v.length; return Math.sqrt(v.reduce((a, b) => a + (b - m) ** 2, 0) / v.length); };
+  const mono = last7.length >= 7 && sd(last7) > 0 ? mean(last7)! / sd(last7) : null;
+  const form = series.length ? series[series.length - 1].form ?? null : null;
+  let daysSinceRest = 0;
+  for (let i = series.length - 1; i >= 0 && series[i].load >= 8; i--) daysSinceRest++;
+
+  const strainBudget = computeStrainBudget(days, trends.readinessScore, trends.recovery?.score ?? null, acwr, form, daysSinceRest);
+  const exercise1RMs = computeExercise1RMs(workouts);
+  const muscleRecovery = computeMuscleRecovery(workouts, today, trends.recovery?.score ?? null);
+
+  // Recent workout types for prescription variety
+  const recentTypes = [...workouts].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 3).map((w) => w.type);
+  const prescription = prescribeSession(muscleRecovery, strainBudget, templates, daysSinceRest, recentTypes);
+  const periodization = analyzePeriodization(workouts, mono);
+  const momentum = detectMomentumAlerts(workouts, exercise1RMs, periodization);
+
+  return json({ exercise1RMs: exercise1RMs.slice(0, 10), muscleRecovery, prescription, periodization, momentum });
+}
+
 async function handleGetAlerts(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   const [{ data: seriesData }, { data: knowledge }] = await Promise.all([
@@ -1163,6 +1211,7 @@ export default {
       if (req.method === "DELETE" && url.pathname === "/api/workout-templates") return await handleDeleteTemplate(req, env);
       if (req.method === "POST" && url.pathname === "/api/workout-templates/use") return await handleUseTemplate(req, env);
       if (req.method === "GET" && url.pathname === "/api/workouts/unlogged") return await handleGetUnlogged(req, env);
+      if (req.method === "GET" && url.pathname === "/api/progression") return await handleGetProgression(req, env);
       if (req.method === "GET" && url.pathname === "/api/alerts") return await handleGetAlerts(req, env);
       if (req.method === "GET" && url.pathname === "/api/coach") return await handleGetCoach(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);

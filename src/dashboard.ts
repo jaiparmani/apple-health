@@ -858,6 +858,62 @@ export function renderDashboard(): string {
   .freq-change.up { color:var(--up); }
   .freq-change.down { color:var(--down); }
 
+  /* ---- progression & 1RM ---- */
+  .e1rm-grid { display:flex; flex-direction:column; gap:8px; }
+  .e1rm-card { display:flex; align-items:center; gap:12px; padding:10px 12px; background:var(--panel2); border-radius:8px; }
+  .e1rm-name { font-weight:700; font-size:13px; flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .e1rm-val { font-family:var(--mono); font-weight:800; font-size:18px; }
+  .e1rm-trend { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+  .e1rm-trend.improving { color:var(--up); }
+  .e1rm-trend.declining { color:var(--down); }
+  .e1rm-trend.plateau { color:var(--caution); }
+  .e1rm-delta { font-size:12px; color:var(--dim); font-family:var(--mono); }
+  .e1rm-chart { width:80px; height:28px; flex-shrink:0; }
+
+  /* ---- muscle recovery heatmap ---- */
+  .mr-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(90px, 1fr)); gap:6px; }
+  .mr-cell { text-align:center; padding:8px 4px; border-radius:8px; }
+  .mr-cell.fresh { background:var(--up)18; border:1px solid var(--up)44; }
+  .mr-cell.recovered { background:var(--pulse)14; border:1px solid var(--pulse)33; }
+  .mr-cell.recovering { background:var(--caution)16; border:1px solid var(--caution)44; }
+  .mr-cell.sore { background:var(--down)16; border:1px solid var(--down)44; }
+  .mr-label { font-size:11px; font-weight:600; text-transform:capitalize; }
+  .mr-pct { font-family:var(--mono); font-weight:800; font-size:16px; }
+  .mr-status { font-size:10px; text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
+  .mr-status.fresh { color:var(--up); }
+  .mr-status.recovered { color:var(--pulse); }
+  .mr-status.recovering { color:var(--caution); }
+  .mr-status.sore { color:var(--down); }
+
+  /* ---- session prescription ---- */
+  .rx-card { background:linear-gradient(135deg, var(--pulse)08, var(--panel2)); border:1px solid var(--pulse)33; border-radius:10px; padding:16px; }
+  .rx-title { font-family:var(--mono); font-weight:800; font-size:18px; margin-bottom:6px; }
+  .rx-reasoning { font-size:13px; color:var(--dim); line-height:1.5; margin-bottom:12px; }
+  .rx-details { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:12px; }
+  .rx-tag { font-size:12px; font-weight:600; padding:4px 10px; border-radius:20px; background:var(--panel); border:1px solid var(--line); }
+  .rx-exercises { display:flex; flex-direction:column; gap:4px; }
+  .rx-ex { font-size:13px; padding:4px 0; border-bottom:1px solid var(--line)44; }
+  .rx-start { background:var(--pulse); color:#fff; border:none; border-radius:8px; padding:10px 20px; font-size:14px; font-weight:700; cursor:pointer; width:100%; margin-top:12px; }
+
+  /* ---- periodization ---- */
+  .period-blocks { display:flex; gap:3px; align-items:flex-end; height:60px; margin:12px 0; }
+  .period-bar { flex:1; border-radius:3px 3px 0 0; min-width:8px; position:relative; transition:height .3s; }
+  .period-bar.build { background:var(--up); }
+  .period-bar.peak { background:var(--pulse); }
+  .period-bar.deload { background:var(--caution); }
+  .period-bar.base { background:var(--dim)44; }
+  .period-phase { font-family:var(--mono); font-weight:700; font-size:14px; text-transform:uppercase; letter-spacing:.04em; }
+
+  /* ---- momentum ---- */
+  .momentum-list { display:flex; flex-direction:column; gap:6px; }
+  .momentum-item { display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--panel2); border-radius:8px; border-left:3px solid var(--dim); }
+  .momentum-item.positive { border-left-color:var(--up); }
+  .momentum-item.warning { border-left-color:var(--caution); }
+  .momentum-icon { font-size:16px; }
+  .momentum-text { flex:1; }
+  .momentum-title { font-weight:700; font-size:13px; }
+  .momentum-detail { font-size:12px; color:var(--dim); }
+
   /* ---- workout templates ---- */
   .tmpl-grid { display:flex; flex-direction:column; gap:8px; }
   .tmpl-card { display:flex; align-items:center; gap:12px; padding:12px 14px; background:var(--panel2); border-radius:8px; border-left:3px solid var(--pulse); cursor:pointer; transition:transform .1s; }
@@ -1386,6 +1442,36 @@ export function renderDashboard(): string {
       <h3>Workout frequency</h3>
       <div class="card-sub">Last 30 days vs prior 30 days.</div>
       <div id="workoutFreqChart"></div>
+    </div>
+
+    <div class="card" id="sessionRxCard" style="display:none">
+      <h3>Today's prescription</h3>
+      <div class="card-sub">Based on your recovery, muscle freshness, and strain budget</div>
+      <div id="sessionRx"></div>
+    </div>
+
+    <div class="card" id="muscleRecoveryCard" style="display:none">
+      <h3>Muscle recovery status</h3>
+      <div class="card-sub">Estimated recovery per muscle group</div>
+      <div class="mr-grid" id="muscleRecoveryGrid"></div>
+    </div>
+
+    <div class="card" id="e1rmCard" style="display:none">
+      <h3>Estimated 1RM progression</h3>
+      <div class="card-sub">Epley formula from your logged sets</div>
+      <div class="e1rm-grid" id="e1rmGrid"></div>
+    </div>
+
+    <div class="card" id="periodCard" style="display:none">
+      <h3>Training periodization</h3>
+      <div class="card-sub">Weekly training volume over time</div>
+      <div id="periodViz"></div>
+    </div>
+
+    <div class="card" id="momentumCard" style="display:none">
+      <h3>Momentum alerts</h3>
+      <div class="card-sub">What's trending in your training</div>
+      <div class="momentum-list" id="momentumList"></div>
     </div>
   </section>
 
@@ -2180,6 +2266,143 @@ function dismissUnlogged(date) {
   DISMISSED_UNLOGGED[date] = true;
   try { localStorage.setItem('dismissedUnlogged', JSON.stringify(DISMISSED_UNLOGGED)); } catch (e) {}
   loadUnloggedPrompts();
+}
+
+// ---- Progression & premium training features ----
+
+async function loadProgression() {
+  try {
+    var res = await authedFetch('/api/progression');
+    renderExercise1RMs(res.exercise1RMs || []);
+    renderMuscleRecovery(res.muscleRecovery || []);
+    renderSessionPrescription(res.prescription);
+    renderPeriodization(res.periodization);
+    renderMomentum(res.momentum || []);
+  } catch (e) {}
+}
+
+function renderExercise1RMs(items) {
+  var card = document.getElementById('e1rmCard');
+  var el = document.getElementById('e1rmGrid');
+  if (!el || items.length === 0) return;
+  card.style.display = 'block';
+  el.innerHTML = items.map(function (e) {
+    var delta = e.previous1RM ? e.current1RM - e.previous1RM : 0;
+    var deltaStr = delta > 0 ? '+' + delta.toFixed(1) : delta < 0 ? delta.toFixed(1) : '—';
+    var sparkSvg = '';
+    if (e.history && e.history.length >= 2) {
+      var vals = e.history.map(function (h) { return h.e1rm; });
+      var minV = Math.min.apply(null, vals);
+      var maxV = Math.max.apply(null, vals);
+      var range = maxV - minV || 1;
+      var pts = vals.map(function (v, i) { return (i / (vals.length - 1)) * 78 + 1 + ',' + (26 - ((v - minV) / range) * 24 + 1); }).join(' ');
+      var color = e.trend === 'improving' ? 'var(--up)' : e.trend === 'declining' ? 'var(--down)' : 'var(--dim)';
+      sparkSvg = '<svg class="e1rm-chart" viewBox="0 0 80 28"><polyline points="' + pts + '" fill="none" stroke="' + color + '" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+    return '<div class="e1rm-card">' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div class="e1rm-name">' + e.exercise + '</div>' +
+        '<div class="e1rm-trend ' + e.trend + '">' + e.trend + (e.weeksAtPlateau ? ' \\u00B7 ' + e.weeksAtPlateau + 'w' : '') + '</div>' +
+      '</div>' +
+      '<div style="text-align:right;">' +
+        '<div class="e1rm-val">' + e.current1RM.toFixed(1) + '<span style="font-size:12px;font-weight:400;color:var(--dim);"> kg</span></div>' +
+        '<div class="e1rm-delta">' + deltaStr + '</div>' +
+      '</div>' +
+      sparkSvg +
+    '</div>';
+  }).join('');
+}
+
+function renderMuscleRecovery(items) {
+  var card = document.getElementById('muscleRecoveryCard');
+  var el = document.getElementById('muscleRecoveryGrid');
+  if (!el || items.length === 0) return;
+  card.style.display = 'block';
+  el.innerHTML = items.map(function (m) {
+    return '<div class="mr-cell ' + m.status + '">' +
+      '<div class="mr-label">' + m.muscle.replace('_', ' ') + '</div>' +
+      '<div class="mr-pct">' + m.recoveryPct + '%</div>' +
+      '<div class="mr-status ' + m.status + '">' + m.status + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderSessionPrescription(rx) {
+  var card = document.getElementById('sessionRxCard');
+  var el = document.getElementById('sessionRx');
+  if (!el || !rx) return;
+  card.style.display = 'block';
+  var html = '<div class="rx-card">';
+  html += '<div class="rx-title">' + rx.title + '</div>';
+  html += '<div class="rx-reasoning">' + rx.reasoning + '</div>';
+  html += '<div class="rx-details">';
+  if (rx.durationMin) html += '<span class="rx-tag">' + rx.durationMin + ' min</span>';
+  html += '<span class="rx-tag">' + rx.intensityZone + ' intensity</span>';
+  if (rx.targetMuscles && rx.targetMuscles.length) html += '<span class="rx-tag">Target: ' + rx.targetMuscles.map(function (m) { return m.replace('_', ' '); }).join(', ') + '</span>';
+  html += '</div>';
+  if (rx.exercises && rx.exercises.length) {
+    html += '<div class="rx-exercises">';
+    rx.exercises.forEach(function (ex) {
+      html += '<div class="rx-ex"><strong>' + ex.name + '</strong> — ' + ex.sets + ' sets \\u00D7 ' + ex.reps + ' reps' + (ex.notes ? ' <span style="color:var(--dim)">(' + ex.notes + ')</span>' : '') + '</div>';
+    });
+    html += '</div>';
+  }
+  if (rx.type !== 'rest') {
+    if (rx.suggestedTemplate) {
+      html += '<button class="rx-start" onclick="startFromTemplate(\\''+rx.suggestedTemplate.id+'\\')">Start from ' + rx.suggestedTemplate.name + '</button>';
+    } else {
+      html += '<button class="rx-start" onclick="openWorkoutLogger()">Log this workout</button>';
+    }
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderPeriodization(data) {
+  var card = document.getElementById('periodCard');
+  var el = document.getElementById('periodViz');
+  if (!el || !data || !data.blocks || data.blocks.length < 3) return;
+  card.style.display = 'block';
+  var maxVol = Math.max.apply(null, data.blocks.map(function (b) { return b.totalVolume; })) || 1;
+  var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">';
+  html += '<span class="period-phase" style="color:' + phaseColor(data.currentPhase) + ';">' + data.currentPhase + '</span>';
+  html += '<span style="font-size:12px;color:var(--dim);">Week ' + data.weeksInPhase + '</span>';
+  html += '</div>';
+  html += '<div class="period-blocks">';
+  data.blocks.slice(-12).forEach(function (b) {
+    var pct = (b.totalVolume / maxVol) * 100;
+    html += '<div class="period-bar ' + b.phase + '" style="height:' + Math.max(4, pct) + '%" title="' + b.weekStart + ': ' + Math.round(b.totalVolume) + 'kg · ' + b.totalSessions + ' sessions"></div>';
+  });
+  html += '</div>';
+  html += '<div style="display:flex;gap:12px;font-size:11px;color:var(--dim);margin-top:6px;">';
+  html += '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--up);vertical-align:middle;margin-right:3px;"></span>Build</span>';
+  html += '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--pulse);vertical-align:middle;margin-right:3px;"></span>Peak</span>';
+  html += '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--caution);vertical-align:middle;margin-right:3px;"></span>Deload</span>';
+  html += '<span><span style="display:inline-block;width:8px;height:8px;border-radius:2px;background:var(--dim)44;vertical-align:middle;margin-right:3px;"></span>Base</span>';
+  html += '</div>';
+  if (data.suggestion) html += '<div style="font-size:13px;color:var(--dim);margin-top:10px;line-height:1.5;">' + data.suggestion + '</div>';
+  if (data.needsDeload) html += '<div style="font-size:13px;color:var(--caution);font-weight:600;margin-top:6px;">\\u26A0\\uFE0F ' + (data.deloadReason || 'Deload recommended') + '</div>';
+  el.innerHTML = html;
+}
+
+function phaseColor(phase) {
+  return phase === 'build' ? 'var(--up)' : phase === 'peak' ? 'var(--pulse)' : phase === 'deload' ? 'var(--caution)' : 'var(--dim)';
+}
+
+function renderMomentum(items) {
+  var card = document.getElementById('momentumCard');
+  var el = document.getElementById('momentumList');
+  if (!el || items.length === 0) return;
+  card.style.display = 'block';
+  var icons = { positive: '\\u2B06\\uFE0F', warning: '\\u26A0\\uFE0F', info: '\\u2139\\uFE0F' };
+  el.innerHTML = items.map(function (a) {
+    return '<div class="momentum-item ' + a.severity + '">' +
+      '<span class="momentum-icon">' + (icons[a.severity] || '') + '</span>' +
+      '<div class="momentum-text">' +
+        '<div class="momentum-title">' + a.title + '</div>' +
+        '<div class="momentum-detail">' + a.detail + '</div>' +
+      '</div></div>';
+  }).join('');
 }
 
 function fmt(n, d) {
@@ -4783,6 +5006,7 @@ async function boot() {
   loadWorkoutAnalytics();
   loadTemplates();
   loadUnloggedPrompts();
+  loadProgression();
   loadCoach();
   loadAlerts();
 }
