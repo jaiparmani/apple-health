@@ -1091,15 +1091,26 @@ export function renderDashboard(): string {
   .rc-eta { font-family:var(--mono); font-weight:600; font-size:12px; color:var(--dim); text-align:right; min-width:50px; }
 
   /* ---- smart check-in ---- */
-  .sci-card { background:linear-gradient(135deg, var(--gold)08, var(--panel2)); border:1px solid var(--gold)33; border-radius:10px; padding:16px; }
-  .sci-q { font-size:14px; font-weight:600; margin-bottom:8px; line-height:1.4; }
-  .sci-reason { font-size:11px; color:var(--dim); margin-bottom:10px; }
-  .sci-input { display:flex; gap:8px; align-items:center; }
-  .sci-input input { background:var(--void); border:1px solid var(--line); color:var(--ink); border-radius:6px; padding:8px 10px; font-size:14px; width:80px; }
-  .sci-input button { background:var(--gold); color:var(--void); border:none; border-radius:6px; padding:8px 14px; font-size:13px; font-weight:700; cursor:pointer; }
+  #smartCheckInArea { display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
+  .sci-card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; transition:border-color .2s, transform .2s var(--ease-spring); }
+  .sci-card:hover { border-color:rgba(212,168,83,.25); }
+  .sci-card.sci-done { opacity:.6; pointer-events:none; }
+  .sci-head { display:flex; gap:10px; align-items:flex-start; margin-bottom:10px; }
+  .sci-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; background:rgba(212,168,83,.12); }
+  .sci-text { flex:1; min-width:0; }
+  .sci-q { font-size:14px; font-weight:700; line-height:1.4; margin:0; }
+  .sci-reason { font-size:11.5px; color:var(--dim); margin-top:3px; line-height:1.4; }
+  .sci-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .sci-actions input[type="number"], .sci-actions input[type="text"] { background:var(--void); border:1px solid var(--line); color:var(--ink); border-radius:8px; padding:9px 12px; font-size:14px; font-family:var(--mono); width:72px; transition:border-color .15s; }
+  .sci-actions input:focus { outline:none; border-color:var(--gold); }
+  .sci-actions .sci-save { background:var(--gold); color:var(--void); border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:700; cursor:pointer; transition:transform .15s var(--ease-spring), opacity .15s; }
+  .sci-actions .sci-save:active { transform:scale(.95); }
   .sci-bool { display:flex; gap:8px; }
-  .sci-bool button { padding:8px 16px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid var(--line); background:var(--panel); color:var(--ink); }
-  .sci-bool button.yes { background:var(--gold); color:var(--void); border-color:var(--gold); }
+  .sci-bool button { padding:10px 20px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; border:1px solid var(--line); background:var(--panel2); color:var(--ink); transition:all .15s; }
+  .sci-bool button:hover { border-color:var(--gold); }
+  .sci-bool button.yes { background:rgba(212,168,83,.15); color:var(--gold); border-color:rgba(212,168,83,.4); }
+  .sci-bool button.no { background:var(--panel2); }
+  .sci-done-msg { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--up); padding:4px 0; }
 
   /* ---- personal records ---- */
   .pr-grid { display:flex; flex-direction:column; gap:8px; }
@@ -2946,27 +2957,44 @@ function renderRecoveryCountdowns(items) {
   }).join('');
 }
 
+var SCI_ICONS = { soreness:'💪', energy:'⚡', lateMeal:'🍽', screenBeforeBed:'📱', stress:'😤', alcoholDrinks:'🍷', caffeineMg:'☕', hydrationLiters:'💧', illness:'🤒', note:'📝' };
+
 function renderSmartCheckIn(items) {
   var el = document.getElementById('smartCheckInArea');
   if (!el || items.length === 0) return;
   el.innerHTML = items.map(function (ci) {
+    var icon = SCI_ICONS[ci.field] || '📋';
     var input = '';
     if (ci.type === 'boolean') {
-      input = '<div class="sci-bool"><button class="yes" onclick="submitCheckIn(\\''+ci.field+'\\', true)">Yes</button><button onclick="submitCheckIn(\\''+ci.field+'\\', false)">No</button></div>';
+      input = '<div class="sci-bool">' +
+        '<button class="yes" onclick="submitCheckIn(' + "'" + ci.field + "'" + ', true, this)">Yes</button>' +
+        '<button class="no" onclick="submitCheckIn(' + "'" + ci.field + "'" + ', false, this)">No</button>' +
+      '</div>';
     } else if (ci.type === 'number') {
-      input = '<div class="sci-input"><input type="number" min="' + (ci.min||1) + '" max="' + (ci.max||10) + '" placeholder="' + (ci.min||1) + '-' + (ci.max||10) + '" id="sci_'+ci.field+'" /><button onclick="submitCheckIn(\\''+ci.field+'\\', Number(document.getElementById(\\'sci_'+ci.field+'\\').value))">Save</button></div>';
+      input = '<div class="sci-actions">' +
+        '<input type="number" min="' + (ci.min||1) + '" max="' + (ci.max||10) + '" placeholder="' + (ci.min||1) + '–' + (ci.max||10) + '" id="sci_'+ci.field+'" />' +
+        '<button class="sci-save" onclick="submitCheckIn(' + "'" + ci.field + "'" + ', Number(document.getElementById(' + "'" + 'sci_'+ci.field + "'" + ').value), this)">Save</button>' +
+      '</div>';
     } else {
-      input = '<div class="sci-input"><input type="text" placeholder="Type..." id="sci_'+ci.field+'" /><button onclick="submitCheckIn(\\''+ci.field+'\\', document.getElementById(\\'sci_'+ci.field+'\\').value)">Save</button></div>';
+      input = '<div class="sci-actions">' +
+        '<input type="text" placeholder="Type…" id="sci_'+ci.field+'" style="width:140px;flex:1;" />' +
+        '<button class="sci-save" onclick="submitCheckIn(' + "'" + ci.field + "'" + ', document.getElementById(' + "'" + 'sci_'+ci.field + "'" + ').value, this)">Save</button>' +
+      '</div>';
     }
     return '<div class="sci-card" data-field="' + ci.field + '">' +
-      '<div class="sci-q">' + ci.question + '</div>' +
-      '<div class="sci-reason">' + ci.reason + '</div>' +
+      '<div class="sci-head">' +
+        '<div class="sci-icon">' + icon + '</div>' +
+        '<div class="sci-text">' +
+          '<div class="sci-q">' + ci.question + '</div>' +
+          '<div class="sci-reason">' + ci.reason + '</div>' +
+        '</div>' +
+      '</div>' +
       input +
     '</div>';
   }).join('');
 }
 
-async function submitCheckIn(field, value) {
+async function submitCheckIn(field, value, btnEl) {
   try {
     var today = new Date().toISOString().slice(0, 10);
     var payload = { date: today };
@@ -2975,9 +3003,13 @@ async function submitCheckIn(field, value) {
     var el = document.getElementById('smartCheckInArea');
     if (el) {
       var card = el.querySelector('.sci-card[data-field="' + field + '"]');
-      if (card) card.innerHTML = '<div class="sci-q">✅ Recorded</div>';
+      if (card) {
+        card.classList.add('sci-done');
+        var icon = SCI_ICONS[field] || '📋';
+        card.innerHTML = '<div class="sci-done-msg"><span>' + icon + '</span> Recorded — thank you</div>';
+      }
     }
-    showToast('✅ ' + field + ' logged', 'success');
+    showToast(field.replace(/([A-Z])/g, ' $1').toLowerCase() + ' logged', 'success');
   } catch (e) {}
 }
 
