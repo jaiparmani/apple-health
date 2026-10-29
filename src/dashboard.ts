@@ -25,7 +25,7 @@ export function renderDashboard(): string {
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>Health</title>
+<title>Body + Health</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0a0a0a">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -714,6 +714,79 @@ export function renderDashboard(): string {
   .milestone .ms-text { font-weight:700; font-size:14px; }
   .milestone .ms-when { color:var(--dim); font-size:12.5px; margin-top:2px; }
 
+  /* ---- body analysis ---- */
+  .body-hero { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
+  .body-hero-main { background:linear-gradient(135deg, rgba(163,230,53,.08), rgba(52,211,153,.04)); border:1px solid rgba(163,230,53,.2); border-radius:14px; padding:20px; text-align:center; grid-column:1/-1; }
+  .body-hero-main .bh-score { font-family:var(--mono); font-size:72px; font-weight:900; line-height:1; background:linear-gradient(135deg, var(--pulse), var(--up)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
+  .body-hero-main .bh-label { font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin-top:4px; }
+  .body-hero-main .bh-sub { font-size:13px; color:var(--faint); margin-top:6px; }
+  .body-hero-stat { background:var(--panel-glass); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:14px; text-align:center; }
+  .body-hero-stat .bhs-val { font-family:var(--mono); font-size:28px; font-weight:900; }
+  .body-hero-stat .bhs-label { font-size:11px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+  .body-hero-stat .bhs-delta { font-size:12px; font-weight:700; margin-top:3px; }
+  .body-hero-stat .bhs-delta.up { color:var(--up); }
+  .body-hero-stat .bhs-delta.down { color:var(--down); }
+
+  .body-comp-bars { display:flex; height:32px; border-radius:8px; overflow:hidden; margin:12px 0 8px; }
+  .body-comp-bars .bcb-lean { background:linear-gradient(90deg, var(--pulse), var(--up)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:var(--void); }
+  .body-comp-bars .bcb-fat { background:rgba(247,107,77,.6); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:var(--ink); }
+  .body-comp-legend { display:flex; gap:16px; font-size:12px; color:var(--dim); }
+  .body-comp-legend .bcl-dot { width:8px; height:8px; border-radius:2px; display:inline-block; margin-right:4px; vertical-align:middle; }
+
+  .muscle-vol-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(160px,1fr)); gap:8px; }
+  .mv-card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:12px; position:relative; overflow:hidden; }
+  .mv-card .mv-name { font-size:12px; font-weight:700; text-transform:capitalize; }
+  .mv-card .mv-sets { font-family:var(--mono); font-size:22px; font-weight:900; margin-top:2px; }
+  .mv-card .mv-sets small { font-size:12px; color:var(--dim); font-weight:600; }
+  .mv-card .mv-bar { height:4px; background:var(--panel2); border-radius:2px; margin-top:6px; overflow:hidden; }
+  .mv-card .mv-bar > div { height:100%; border-radius:2px; transition:width .4s; }
+  .mv-card .mv-status { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; margin-top:4px; }
+  .mv-card.optimal .mv-status { color:var(--up); }
+  .mv-card.undertrained .mv-status { color:var(--caution); }
+  .mv-card.neglected .mv-status { color:var(--down); }
+  .mv-card.overtrained .mv-status { color:var(--royal); }
+
+  .symmetry-meter { display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); }
+  .symmetry-meter:last-child { border-bottom:none; }
+  .symmetry-meter .sm-label { width:80px; font-size:12px; font-weight:600; color:var(--dim); }
+  .symmetry-meter .sm-bar { flex:1; height:8px; background:var(--panel2); border-radius:4px; position:relative; overflow:visible; }
+  .symmetry-meter .sm-indicator { position:absolute; top:-4px; width:16px; height:16px; border-radius:50%; border:2px solid var(--panel); }
+  .symmetry-meter .sm-val { width:50px; font-family:var(--mono); font-weight:800; font-size:14px; text-align:right; }
+
+  .physique-card { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .physique-card .pc-main { grid-column:1/-1; }
+  .physique-card .pc-type { font-family:var(--mono); font-size:28px; font-weight:900; }
+  .physique-card .pc-desc { font-size:13.5px; color:var(--dim); line-height:1.55; margin-top:4px; }
+  .physique-card .pc-list { list-style:none; margin:8px 0 0; padding:0; }
+  .physique-card .pc-list li { font-size:13px; padding:3px 0; color:var(--dim); }
+  .physique-card .pc-list li::before { content:'●'; margin-right:6px; font-size:8px; vertical-align:middle; }
+  .physique-card .pc-list.strong li::before { color:var(--up); }
+  .physique-card .pc-list.weak li::before { color:var(--down); }
+  .physique-card .pc-stat { text-align:center; background:var(--panel2); border-radius:8px; padding:12px; }
+  .physique-card .pc-stat .pcs-val { font-family:var(--mono); font-size:24px; font-weight:900; }
+  .physique-card .pc-stat .pcs-label { font-size:11px; color:var(--dim); margin-top:2px; }
+
+  .mobility-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+  .mob-item { background:var(--panel2); border-radius:8px; padding:12px; }
+  .mob-item .mob-val { font-family:var(--mono); font-size:20px; font-weight:800; }
+  .mob-item .mob-label { font-size:11px; color:var(--dim); font-weight:600; margin-top:2px; }
+  .mob-item .mob-status { font-size:11px; font-weight:700; margin-top:3px; }
+
+  .imbalance-item { padding:8px 0; border-bottom:1px solid var(--line); display:flex; align-items:center; gap:10px; }
+  .imbalance-item:last-child { border-bottom:none; }
+  .imbalance-item .ib-sev { font-size:10px; font-weight:800; text-transform:uppercase; letter-spacing:.04em; padding:2px 8px; border-radius:3px; }
+  .imbalance-item .ib-sev.severe { background:rgba(247,107,77,.2); color:var(--down); }
+  .imbalance-item .ib-sev.moderate { background:rgba(251,191,36,.2); color:var(--caution); }
+  .imbalance-item .ib-sev.mild { background:var(--panel2); color:var(--dim); }
+  .imbalance-item .ib-text { font-size:13px; color:var(--dim); flex:1; }
+
+  .body-overview-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin-bottom:12px; }
+  .bos-item { background:var(--panel-glass); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.06); border-radius:10px; padding:10px 8px; text-align:center; cursor:pointer; transition:transform .2s var(--ease-spring), border-color .2s; }
+  .bos-item:hover { transform:scale(1.03); border-color:rgba(163,230,53,.3); }
+  .bos-item .bos-val { font-family:var(--mono); font-size:20px; font-weight:900; }
+  .bos-item .bos-label { font-size:10px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+  @media (max-width:480px) { .body-overview-strip { grid-template-columns:repeat(2,1fr); } .body-hero { grid-template-columns:1fr; } }
+
   /* ---- all metrics grid ---- */
   .am-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:0; border-top:1px solid var(--line); }
   .am-tile { padding:14px 14px 14px 12px; border-bottom:1px solid var(--line); border-left:3px solid var(--line); cursor:pointer; transition:border-color .15s; }
@@ -1193,7 +1266,7 @@ export function renderDashboard(): string {
 <div id="app">
   <header class="top">
     <div class="row">
-      <h1>Health</h1>
+      <h1>Body + Health</h1>
       <div class="sub" id="lastUpdated"><span class="live-dot"></span>—</div>
     </div>
     <nav class="tabs primary" id="primaryNav">
@@ -1201,7 +1274,7 @@ export function renderDashboard(): string {
       <button class="tab" data-view="plan" onclick="showView('plan')"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="15" rx="2"/><path d="M4 10h16M9 3v4M15 3v4"/></svg><span>Plan</span></button>
       <button class="tab" data-view="trends" onclick="showView('trends')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"/></svg><span>Trends</span></button>
       <button class="tab" data-view="coach" onclick="showView('coach')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg><span>Coach</span></button>
-      <button class="tab" data-view="you" onclick="showView('you')"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21c1-4 4-6 8-6s7 2 8 6"/></svg><span>You</span></button>
+      <button class="tab" data-view="you" onclick="showView('you')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 3c1.7 0 3 1.3 3 3s-1.3 3-3 3-3-1.3-3-3 1.3-3 3-3zm0 14c-2.7 0-5-1.3-6.4-3.3C7.6 13.9 12 13 12 13s4.4.9 6.4 2.7C17 17.7 14.7 19 12 19z"/></svg><span>Body</span></button>
     </nav>
     <nav class="subnav" id="subNav"></nav>
   </header>
@@ -1238,6 +1311,8 @@ export function renderDashboard(): string {
       <div class="brief-item"><div class="brief-n" id="bRhr">—</div><div class="brief-d" id="bRhrD"></div><div class="brief-u">resting HR</div></div>
       <div class="brief-item"><div class="brief-n" id="bRecov">—</div><div class="brief-u">recovery</div></div>
     </div>
+
+    <div class="body-overview-strip" id="bodyOverviewStrip" style="display:none"></div>
 
     <div class="card" id="recoveryBreakdown" style="display:none">
       <h3>Recovery breakdown</h3>
@@ -1711,6 +1786,36 @@ export function renderDashboard(): string {
   </section>
 
   <!-- BIOLOGICAL AGE -->
+  <!-- BODY ANALYSIS -->
+  <section class="section" id="tab-body">
+    <div id="bodyHero"><div class="skel-card"><div class="skel-circle"></div><div class="skel-line" style="width:60%;margin:0 auto;"></div><div class="skel-line" style="width:40%;margin:0 auto;"></div></div></div>
+    <div class="card" id="bodyCompCard" style="display:none">
+      <h3>Body composition</h3>
+      <div id="bodyCompContent"></div>
+    </div>
+    <div class="card" id="muscleVolumeCard" style="display:none">
+      <h3>Muscle volume map <span style="font-weight:400;font-size:12px;color:var(--dim);">weekly sets per group</span></h3>
+      <div id="bodyMuscleMap" class="muscle-map" style="margin-bottom:12px;">${renderMuscleMap()}</div>
+      <div id="muscleVolumeContent"></div>
+    </div>
+    <div class="card" id="symmetryCard" style="display:none">
+      <h3>Body symmetry</h3>
+      <div id="symmetryContent"></div>
+    </div>
+    <div class="card" id="physiqueCard" style="display:none">
+      <h3>Physique profile</h3>
+      <div id="physiqueContent"></div>
+    </div>
+    <div class="card" id="mobilityCard" style="display:none">
+      <h3>Mobility & gait score</h3>
+      <div id="mobilityContent"></div>
+    </div>
+    <div class="card" id="imbalanceCard" style="display:none">
+      <h3>Imbalances to fix</h3>
+      <div id="imbalanceContent"></div>
+    </div>
+  </section>
+
   <section class="section" id="tab-age">
     ${reviewCard("body", "Body & bio-age review", "Your oldest marker, and how to improve it.")}
     <div class="card"><h3>Biological vs chronological age</h3><div class="chart-box"><canvas id="ageChart"></canvas></div><div data-guide="biologicalAge"></div></div>
@@ -1924,6 +2029,7 @@ export function renderDashboard(): string {
 </div>
 
 <script>
+var MUSCLE_MAP_SVG = \`${renderMuscleMap()}\`;
 function getToken() { try { return localStorage.getItem('healthToken') || ''; } catch (e) { return ''; } }
 function saveToken() {
   var t = document.getElementById('tokenInput').value.trim();
@@ -2912,6 +3018,215 @@ function toggleFab() {
   if (menu) menu.classList.toggle('open');
 }
 
+// ---- Body Analysis ----
+
+async function loadBody() {
+  try {
+    var res = await authedFetch('/api/body');
+    renderBodyHero(res.bodyScore, res.composition);
+    renderBodyOverviewStrip(res.bodyScore, res.composition, res.mobility);
+    renderBodyComposition(res.composition);
+    renderMuscleVolume(res.muscleVolume);
+    renderSymmetry(res.symmetry);
+    renderPhysique(res.physique);
+    renderMobility(res.mobility);
+    renderImbalances(res.symmetry);
+  } catch (e) {
+    document.getElementById('bodyHero').innerHTML = '<div class="card"><div class="sub">Body data loading…</div></div>';
+  }
+}
+
+function renderBodyHero(score, comp) {
+  var el = document.getElementById('bodyHero');
+  if (!el || !score) return;
+  var scoreColor = score.total >= 80 ? 'var(--up)' : score.total >= 60 ? 'var(--pulse)' : score.total >= 40 ? 'var(--caution)' : 'var(--down)';
+  var html = '<div class="body-hero">';
+  html += '<div class="body-hero-main">';
+  html += '<div class="bh-score count-up" data-target="' + score.total + '" style="color:' + scoreColor + ';">0</div>';
+  html += '<div class="bh-label">' + score.label + '</div>';
+  html += '<div class="bh-sub">' + score.components.map(function(c) { return c.name + ' ' + c.score + '/' + c.maxScore; }).join(' · ') + '</div>';
+  html += '</div>';
+  if (comp.currentWeight !== null) {
+    var trendIcon = comp.weightTrend === 'losing' ? '↓' : comp.weightTrend === 'gaining' ? '↑' : '→';
+    var trendClass = comp.weightTrend === 'losing' ? 'down' : comp.weightTrend === 'gaining' ? 'up' : '';
+    html += '<div class="body-hero-stat"><div class="bhs-val">' + comp.currentWeight.toFixed(1) + '</div><div class="bhs-label">Weight kg</div>';
+    if (comp.weightDelta30d !== null) html += '<div class="bhs-delta ' + trendClass + '">' + trendIcon + ' ' + (comp.weightDelta30d > 0 ? '+' : '') + comp.weightDelta30d + ' kg/mo</div>';
+    html += '</div>';
+  }
+  if (comp.bodyFatPct !== null) {
+    html += '<div class="body-hero-stat"><div class="bhs-val">' + (comp.bodyFatPct * 100).toFixed(1) + '%</div><div class="bhs-label">Body fat</div></div>';
+  }
+  if (comp.bmi !== null) {
+    html += '<div class="body-hero-stat"><div class="bhs-val">' + comp.bmi + '</div><div class="bhs-label">BMI · ' + comp.bmiCategory + '</div></div>';
+  }
+  if (comp.estimatedLeanMass !== null) {
+    html += '<div class="body-hero-stat"><div class="bhs-val">' + comp.estimatedLeanMass + '</div><div class="bhs-label">Lean mass kg</div></div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+  requestAnimationFrame(function() { animateCountUp(el.querySelector('.count-up')); });
+}
+
+function renderBodyOverviewStrip(score, comp, mobility) {
+  var el = document.getElementById('bodyOverviewStrip');
+  if (!el || !score) return;
+  el.style.display = '';
+  var items = [];
+  items.push({ val: score.total, label: 'Body score', onclick: "showTab('body')" });
+  if (comp.currentWeight !== null) items.push({ val: comp.currentWeight.toFixed(1), label: 'Weight', onclick: "showTab('body')" });
+  if (comp.bodyFatPct !== null) items.push({ val: (comp.bodyFatPct * 100).toFixed(1) + '%', label: 'Body fat', onclick: "showTab('body')" });
+  if (mobility && mobility.total) items.push({ val: mobility.total, label: 'Mobility', onclick: "showTab('body')" });
+  el.innerHTML = items.slice(0, 4).map(function(it) {
+    return '<div class="bos-item" onclick="' + it.onclick + '"><div class="bos-val">' + it.val + '</div><div class="bos-label">' + it.label + '</div></div>';
+  }).join('');
+}
+
+function renderBodyComposition(comp) {
+  var card = document.getElementById('bodyCompCard');
+  var el = document.getElementById('bodyCompContent');
+  if (!el || comp.currentWeight === null) return;
+  card.style.display = '';
+  var html = '';
+  if (comp.estimatedLeanMass !== null && comp.estimatedFatMass !== null) {
+    var leanPct = Math.round((1 - comp.bodyFatPct) * 100);
+    var fatPct = Math.round(comp.bodyFatPct * 100);
+    html += '<div class="body-comp-bars">';
+    html += '<div class="bcb-lean" style="width:' + leanPct + '%">' + leanPct + '% lean</div>';
+    html += '<div class="bcb-fat" style="width:' + fatPct + '%">' + fatPct + '% fat</div>';
+    html += '</div>';
+    html += '<div class="body-comp-legend">';
+    html += '<span><span class="bcl-dot" style="background:var(--pulse);"></span>Lean ' + comp.estimatedLeanMass + ' kg</span>';
+    html += '<span><span class="bcl-dot" style="background:rgba(247,107,77,.6);"></span>Fat ' + comp.estimatedFatMass + ' kg</span>';
+    html += '</div>';
+  }
+  html += '<table class="simple-table" style="margin-top:12px;"><tbody>';
+  if (comp.weight7dAvg !== null) html += '<tr><td>7-day avg</td><td>' + comp.weight7dAvg + ' kg</td></tr>';
+  if (comp.weight30dAvg !== null) html += '<tr><td>30-day avg</td><td>' + comp.weight30dAvg + ' kg</td></tr>';
+  if (comp.weightDelta30d !== null) html += '<tr><td>30-day change</td><td>' + (comp.weightDelta30d > 0 ? '+' : '') + comp.weightDelta30d + ' kg</td></tr>';
+  html += '<tr><td>Trend</td><td>' + comp.weightTrend + '</td></tr>';
+  if (comp.bmi !== null) html += '<tr><td>BMI</td><td>' + comp.bmi + ' (' + comp.bmiCategory + ')</td></tr>';
+  if (comp.idealWeightRange) html += '<tr><td>Ideal range</td><td>' + comp.idealWeightRange.low + ' – ' + comp.idealWeightRange.high + ' kg</td></tr>';
+  html += '</tbody></table>';
+  el.innerHTML = html;
+}
+
+function renderMuscleVolume(items) {
+  var card = document.getElementById('muscleVolumeCard');
+  var el = document.getElementById('muscleVolumeContent');
+  if (!el || !items || items.length === 0) return;
+  card.style.display = '';
+  // Light up the body silhouette by training status
+  var mapEl = document.getElementById('bodyMuscleMap');
+  if (mapEl) {
+    mapEl.innerHTML = MUSCLE_MAP_SVG;
+    items.forEach(function(m) {
+      var regions = mapEl.querySelectorAll('[data-muscle="' + m.muscle + '"]');
+      regions.forEach(function(r) {
+        if (m.status === 'optimal') r.classList.add('lit');
+        else if (m.status === 'undertrained') r.classList.add('lit-secondary');
+      });
+    });
+  }
+  el.innerHTML = '<div class="muscle-vol-grid">' + items.map(function(m) {
+    var barColor = m.status === 'optimal' ? 'var(--up)' : m.status === 'undertrained' ? 'var(--caution)' : m.status === 'overtrained' ? 'var(--royal)' : 'var(--down)';
+    var barWidth = m.optimalRange.max > 0 ? Math.min(100, Math.round(m.weeklyAvgSets / m.optimalRange.max * 100)) : 0;
+    return '<div class="mv-card ' + m.status + '">' +
+      '<div class="mv-name">' + m.displayName + '</div>' +
+      '<div class="mv-sets">' + m.weeklyAvgSets + '<small> sets/wk</small></div>' +
+      '<div class="mv-bar"><div style="width:' + barWidth + '%;background:' + barColor + ';"></div></div>' +
+      '<div class="mv-status">' + m.status + ' (' + m.optimalRange.min + '–' + m.optimalRange.max + ')</div>' +
+    '</div>';
+  }).join('') + '</div>';
+}
+
+function renderSymmetry(sym) {
+  var card = document.getElementById('symmetryCard');
+  var el = document.getElementById('symmetryContent');
+  if (!el || !sym) return;
+  card.style.display = '';
+  var html = '<div style="text-align:center;margin-bottom:12px;">';
+  html += '<div style="font-family:var(--mono);font-size:48px;font-weight:900;color:' + (sym.overallScore >= 80 ? 'var(--up)' : sym.overallScore >= 60 ? 'var(--pulse)' : 'var(--caution)') + ';">' + sym.overallScore + '</div>';
+  html += '<div style="font-size:12px;color:var(--dim);font-weight:700;">SYMMETRY SCORE</div>';
+  html += '</div>';
+  function meterRow(label, value, ideal) {
+    if (value === null) return '';
+    var pos = Math.min(100, Math.max(0, (value / (ideal * 2)) * 100));
+    var color = Math.abs(value - ideal) < ideal * 0.2 ? 'var(--up)' : Math.abs(value - ideal) < ideal * 0.4 ? 'var(--caution)' : 'var(--down)';
+    return '<div class="symmetry-meter">' +
+      '<div class="sm-label">' + label + '</div>' +
+      '<div class="sm-bar">' +
+        '<div style="position:absolute;left:50%;top:-1px;bottom:-1px;width:1px;background:var(--faint);"></div>' +
+        '<div class="sm-indicator" style="left:calc(' + pos + '% - 8px);background:' + color + ';"></div>' +
+      '</div>' +
+      '<div class="sm-val">' + value + '</div>' +
+    '</div>';
+  }
+  html += meterRow('Push/Pull', sym.pushPullRatio, 1.0);
+  html += meterRow('Upper/Lower', sym.upperLowerRatio, 0.7);
+  html += meterRow('Front/Back', sym.anteriorPosteriorRatio, 1.0);
+  el.innerHTML = html;
+}
+
+function renderPhysique(p) {
+  var card = document.getElementById('physiqueCard');
+  var el = document.getElementById('physiqueContent');
+  if (!el || !p) return;
+  card.style.display = '';
+  var html = '<div class="physique-card">';
+  html += '<div class="pc-main">';
+  html += '<div class="pc-type">' + p.dominantType + '</div>';
+  html += '<div class="pc-desc">' + p.description + '</div>';
+  html += '</div>';
+  if (p.strongPoints.length) {
+    html += '<div><div style="font-size:12px;color:var(--up);font-weight:700;margin-bottom:4px;">STRONG</div><ul class="pc-list strong">' + p.strongPoints.map(function(s) { return '<li>' + s + '</li>'; }).join('') + '</ul></div>';
+  }
+  if (p.weakPoints.length) {
+    html += '<div><div style="font-size:12px;color:var(--down);font-weight:700;margin-bottom:4px;">NEEDS WORK</div><ul class="pc-list weak">' + p.weakPoints.map(function(s) { return '<li>' + s + '</li>'; }).join('') + '</ul></div>';
+  }
+  html += '<div class="pc-stat"><div class="pcs-val">' + p.trainingAge.months + '</div><div class="pcs-label">Months training · ' + p.trainingAge.label + '</div></div>';
+  if (p.estimatedFFMI !== null) {
+    html += '<div class="pc-stat"><div class="pcs-val">' + p.estimatedFFMI + '</div><div class="pcs-label">FFMI</div></div>';
+  }
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderMobility(mob) {
+  var card = document.getElementById('mobilityCard');
+  var el = document.getElementById('mobilityContent');
+  if (!el || !mob) return;
+  card.style.display = '';
+  var scoreColor = mob.total >= 80 ? 'var(--up)' : mob.total >= 60 ? 'var(--pulse)' : mob.total >= 40 ? 'var(--caution)' : 'var(--down)';
+  var html = '<div style="text-align:center;margin-bottom:12px;">';
+  html += '<div style="font-family:var(--mono);font-size:42px;font-weight:900;color:' + scoreColor + ';">' + mob.total + '</div>';
+  html += '<div style="font-size:12px;color:var(--dim);font-weight:700;">MOBILITY SCORE</div>';
+  html += '</div>';
+  html += '<div class="mobility-grid">';
+  function mobItem(val, label, status) {
+    var stColor = status === 'Excellent' || status === 'Excellent balance' || status === 'Symmetrical' || status === 'Long stride' ? 'color:var(--up)' : status.indexOf('Below') >= 0 || status.indexOf('Notable') >= 0 || status === 'Needs work' || status === 'Short stride' ? 'color:var(--down)' : 'color:var(--caution)';
+    return '<div class="mob-item"><div class="mob-val">' + (val !== null ? val : '—') + '</div><div class="mob-label">' + label + '</div><div class="mob-status" style="' + stColor + '">' + status + '</div></div>';
+  }
+  html += mobItem(mob.walkingSpeed.value !== null ? mob.walkingSpeed.value + ' m/s' : null, 'Walking speed', mob.walkingSpeed.percentile);
+  html += mobItem(mob.stepLength.value !== null ? mob.stepLength.value + ' cm' : null, 'Step length', mob.stepLength.percentile);
+  html += mobItem(mob.asymmetry.value !== null ? mob.asymmetry.value + '%' : null, 'Asymmetry', mob.asymmetry.status);
+  html += mobItem(mob.doubleSupport.value !== null ? mob.doubleSupport.value + '%' : null, 'Double support', mob.doubleSupport.status);
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderImbalances(sym) {
+  var card = document.getElementById('imbalanceCard');
+  var el = document.getElementById('imbalanceContent');
+  if (!el || !sym || !sym.imbalances || sym.imbalances.length === 0) return;
+  card.style.display = '';
+  el.innerHTML = sym.imbalances.map(function(im) {
+    return '<div class="imbalance-item">' +
+      '<span class="ib-sev ' + im.severity + '">' + im.severity + '</span>' +
+      '<span class="ib-text">' + im.description + '</span>' +
+    '</div>';
+  }).join('');
+}
+
 // ---- Premium UI systems ----
 
 function animateCountUp(el) {
@@ -3065,7 +3380,7 @@ var VIEWS = {
   plan: [['plan', 'Week and goals'], ['training', 'Training load']],
   trends: [['heart', 'Heart'], ['activity', 'Activity'], ['workouts', 'Workouts'], ['sleep', 'Sleep and body'], ['longview', 'Long view'], ['insights', 'Insights'], ['dayexplorer', 'Day explorer'], ['allmetrics', 'All metrics']],
   coach: [['directive', 'Coach'], ['ai', 'Ask AI'], ['discoveries', 'Discoveries'], ['story', 'Weekly story']],
-  you: [['age', 'Biological age'], ['records', 'Records'], ['more', 'More data'], ['settings', 'Settings']],
+  you: [['body', 'Body analysis'], ['age', 'Biological age'], ['records', 'Records'], ['more', 'More data'], ['settings', 'Settings']],
 };
 function viewOf(sectionId) {
   for (var v in VIEWS) if (VIEWS[v].some(function (x) { return x[0] === sectionId; })) return v;
@@ -3560,7 +3875,7 @@ function renderGreeting(days) {
   document.getElementById('greeting').textContent = greet;
   var lastDate = days.length ? days[days.length - 1].date : null;
   document.getElementById('greetingSub').textContent = lastDate
-    ? 'Here is where you stand. Data synced up to ' + niceDate(lastDate) + '.'
+    ? 'Your body at a glance. Synced ' + niceDate(lastDate) + '.'
     : 'No data yet. Import your Apple Health export in Settings.';
   var streak = currentStreak(days);
   document.getElementById('greetStreak').innerHTML = streak >= 3
@@ -5655,6 +5970,7 @@ async function boot() {
   loadProgression();
   loadRecommendations();
   loadPremium();
+  loadBody();
   loadCoach();
   loadAlerts();
 }

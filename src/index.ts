@@ -24,6 +24,7 @@ import { generateAlerts } from "./alerts";
 import { discoverPatterns, buildCoachDirective, computeStrainBudget, computeWeeklyReportCard, computePerformancePredictions } from "./patterns";
 import { computeExercise1RMs, computeMuscleRecovery, prescribeSession, analyzePeriodization, detectMomentumAlerts } from "./progression";
 import { prescribeSleepProtocol, computeLifestyleImpacts, computeRecoveryCountdowns, generateSmartCheckIn, computePersonalRecords, computeConsistencyStreaks, computeWeeklyComparison, computeTrainingReadiness, computeCalendarHeatmap } from "./recommendations";
+import { computeBodyComposition, computeMuscleVolumeMap, computeBodySymmetry, computeBodyScore, estimatePhysique, computeMobilityScore } from "./body";
 
 const SERIES_PATH = "data/series.json";
 const PROFILE_PATH = "data/profile.json";
@@ -1195,6 +1196,27 @@ async function handleGetPremium(req: Request, env: Env): Promise<Response> {
   return json({ personalRecords, streaks, weeklyComparison, readiness, heatmap });
 }
 
+async function handleGetBody(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const [{ data: seriesData }, { data: workoutData }, { data: profile }, { data: latest }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<{ workouts: ManualWorkout[] }>(env, WORKOUTS_PATH),
+    getJson<UserProfile>(env, PROFILE_PATH),
+    getJson<BiologicalAgeResult>(env, LATEST_PATH),
+  ]);
+  const days = seriesData?.days ?? [];
+  const workouts = workoutData?.workouts ?? [];
+
+  const composition = computeBodyComposition(days, profile);
+  const muscleVolume = computeMuscleVolumeMap(workouts);
+  const symmetry = computeBodySymmetry(muscleVolume);
+  const bodyScore = computeBodyScore(composition, symmetry, latest, days, profile);
+  const physique = estimatePhysique(composition, muscleVolume, workouts, profile);
+  const mobility = computeMobilityScore(days);
+
+  return json({ composition, muscleVolume, symmetry, bodyScore, physique, mobility });
+}
+
 async function handleGetAlerts(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   const [{ data: seriesData }, { data: knowledge }] = await Promise.all([
@@ -1285,6 +1307,7 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/progression") return await handleGetProgression(req, env);
       if (req.method === "GET" && url.pathname === "/api/recommendations") return await handleGetRecommendations(req, env);
       if (req.method === "GET" && url.pathname === "/api/premium") return await handleGetPremium(req, env);
+      if (req.method === "GET" && url.pathname === "/api/body") return await handleGetBody(req, env);
       if (req.method === "GET" && url.pathname === "/api/alerts") return await handleGetAlerts(req, env);
       if (req.method === "GET" && url.pathname === "/api/coach") return await handleGetCoach(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);
