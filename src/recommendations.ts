@@ -529,3 +529,290 @@ function computeSupplementImpacts(
   }
   return results;
 }
+
+// ---- Personal Records Board ----
+
+export interface PersonalRecord {
+  exercise: string;
+  current1RM: number;
+  best1RM: number;
+  bestDate: string;
+  isNewPR: boolean; // set within last 7 days
+  prHistory: { date: string; e1rm: number }[];
+  daysSincePR: number;
+}
+
+export function computePersonalRecords(
+  exercise1RMs: { exercise: string; current1RM: number; best1RM: number; bestDate: string; history: { date: string; e1rm: number }[] }[],
+  today: string
+): PersonalRecord[] {
+  const todayMs = new Date(today + "T12:00:00Z").getTime();
+  return exercise1RMs
+    .filter((e) => e.history.length >= 2)
+    .map((e) => {
+      const bestMs = new Date(e.bestDate + "T12:00:00Z").getTime();
+      const daysSincePR = Math.round((todayMs - bestMs) / 86400000);
+      const prPoints: { date: string; e1rm: number }[] = [];
+      let runningBest = 0;
+      for (const h of e.history) {
+        if (h.e1rm > runningBest) {
+          runningBest = h.e1rm;
+          prPoints.push({ date: h.date, e1rm: h.e1rm });
+        }
+      }
+      return {
+        exercise: e.exercise,
+        current1RM: e.current1RM,
+        best1RM: e.best1RM,
+        bestDate: e.bestDate,
+        isNewPR: daysSincePR <= 7,
+        prHistory: prPoints,
+        daysSincePR,
+      };
+    })
+    .sort((a, b) => a.daysSincePR - b.daysSincePR);
+}
+
+// ---- Consistency Streaks ----
+
+export interface ConsistencyStreak {
+  type: string;
+  icon: string;
+  currentStreak: number; // days
+  longestStreak: number;
+  longestStreakStart: string;
+  longestStreakEnd: string;
+  lastHitDate: string;
+  streakActive: boolean;
+}
+
+export function computeConsistencyStreaks(
+  days: DailyMetrics[],
+  sleepTarget: number,
+  stepGoal: number
+): ConsistencyStreak[] {
+  const sorted = [...days].sort((a, b) => a.date.localeCompare(b.date));
+  if (sorted.length < 7) return [];
+
+  function computeStreak(
+    label: string,
+    icon: string,
+    predicate: (d: DailyMetrics) => boolean
+  ): ConsistencyStreak {
+    let current = 0;
+    let longest = 0;
+    let longestStart = "";
+    let longestEnd = "";
+    let streakStart = "";
+    let lastHit = "";
+    let tempLen = 0;
+    let tempStart = "";
+
+    for (const d of sorted) {
+      if (predicate(d)) {
+        if (tempLen === 0) tempStart = d.date;
+        tempLen++;
+        lastHit = d.date;
+        if (tempLen > longest) {
+          longest = tempLen;
+          longestStart = tempStart;
+          longestEnd = d.date;
+        }
+      } else {
+        tempLen = 0;
+      }
+    }
+
+    // Current streak: count backwards from last day
+    current = 0;
+    for (let i = sorted.length - 1; i >= 0; i--) {
+      if (predicate(sorted[i])) current++;
+      else break;
+    }
+
+    const today = sorted[sorted.length - 1].date;
+    const streakActive = lastHit === today;
+
+    return { type: label, icon, currentStreak: current, longestStreak: longest, longestStreakStart: longestStart, longestStreakEnd: longestEnd, lastHitDate: lastHit, streakActive };
+  }
+
+  const streaks: ConsistencyStreak[] = [];
+
+  // Workout streak (any workout day)
+  streaks.push(computeStreak("Workout", "🏋️", (d) => (d.workoutCount ?? 0) > 0 || (d.exerciseMinutes ?? 0) >= 15));
+
+  // Sleep target streak
+  streaks.push(computeStreak("Sleep target", "😴", (d) => typeof d.sleepHours === "number" && d.sleepHours >= sleepTarget - 0.25));
+
+  // Step goal streak
+  if (stepGoal > 0) {
+    streaks.push(computeStreak("Step goal", "👣", (d) => typeof d.steps === "number" && d.steps >= stepGoal));
+  }
+
+  // Active minutes streak (30+ min)
+  streaks.push(computeStreak("Active 30min+", "⚡", (d) => (d.exerciseMinutes ?? 0) >= 30));
+
+  return streaks.filter((s) => s.longestStreak >= 2);
+}
+
+// ---- Weekly Comparison ----
+
+export interface WeeklyComparison {
+  metric: string;
+  unit: string;
+  thisWeek: number | null;
+  lastWeek: number | null;
+  delta: number | null;
+  deltaPct: number | null;
+  direction: "better" | "worse" | "neutral";
+  higherBetter: boolean;
+}
+
+export function computeWeeklyComparison(days: DailyMetrics[]): WeeklyComparison[] {
+  if (days.length < 14) return [];
+  const thisWeek = days.slice(-7);
+  const lastWeek = days.slice(-14, -7);
+
+  const metrics: { key: keyof DailyMetrics; label: string; unit: string; higherBetter: boolean }[] = [
+    { key: "hrv", label: "HRV", unit: "ms", higherBetter: true },
+    { key: "restingHeartRate", label: "Resting HR", unit: "bpm", higherBetter: false },
+    { key: "sleepHours", label: "Sleep", unit: "h", higherBetter: true },
+    { key: "sleepDeepHours", label: "Deep sleep", unit: "h", higherBetter: true },
+    { key: "steps", label: "Steps", unit: "", higherBetter: true },
+    { key: "activeEnergy", label: "Active cal", unit: "kcal", higherBetter: true },
+    { key: "exerciseMinutes", label: "Exercise", unit: "min", higherBetter: true },
+    { key: "strain", label: "Strain", unit: "", higherBetter: false },
+  ];
+
+  function weekAvg(week: DailyMetrics[], key: keyof DailyMetrics): number | null {
+    const vals = week.map((d) => d[key]).filter((v): v is number => typeof v === "number");
+    return vals.length >= 3 ? vals.reduce((a, b) => a + b, 0) / vals.length : null;
+  }
+
+  return metrics.map((m) => {
+    const tw = weekAvg(thisWeek, m.key);
+    const lw = weekAvg(lastWeek, m.key);
+    const delta = tw !== null && lw !== null ? tw - lw : null;
+    const deltaPct = delta !== null && lw !== null && lw !== 0 ? (delta / Math.abs(lw)) * 100 : null;
+    let direction: WeeklyComparison["direction"] = "neutral";
+    if (delta !== null && Math.abs(delta) > 0.01) {
+      direction = (m.higherBetter ? delta > 0 : delta < 0) ? "better" : "worse";
+    }
+    return { metric: m.label, unit: m.unit, thisWeek: tw !== null ? Math.round(tw * 10) / 10 : null, lastWeek: lw !== null ? Math.round(lw * 10) / 10 : null, delta: delta !== null ? Math.round(delta * 10) / 10 : null, deltaPct: deltaPct !== null ? Math.round(deltaPct) : null, direction, higherBetter: m.higherBetter };
+  }).filter((r) => r.thisWeek !== null || r.lastWeek !== null);
+}
+
+// ---- Training Readiness Gauge ----
+
+export interface TrainingReadiness {
+  score: number; // 0-100
+  label: string;
+  factors: { name: string; score: number; weight: number; detail: string }[];
+  recommendation: string;
+}
+
+export function computeTrainingReadiness(
+  days: DailyMetrics[],
+  recoveryScore: number | null,
+  sleepTarget: number
+): TrainingReadiness {
+  if (days.length < 3) return { score: 50, label: "Unknown", factors: [], recommendation: "Not enough data yet." };
+
+  const today = days[days.length - 1];
+  const recent7 = days.slice(-7);
+  const recent30 = days.slice(-30);
+
+  const factors: TrainingReadiness["factors"] = [];
+
+  // Sleep quality (weight: 30%)
+  const sleepScore = typeof today.sleepHours === "number"
+    ? Math.min(100, (today.sleepHours / sleepTarget) * 100)
+    : 50;
+  const sleepDetail = typeof today.sleepHours === "number"
+    ? `${today.sleepHours.toFixed(1)}h of ${sleepTarget}h target`
+    : "No sleep data";
+  factors.push({ name: "Sleep", score: Math.round(sleepScore), weight: 30, detail: sleepDetail });
+
+  // HRV (weight: 25%)
+  const hrvVals = recent30.map((d) => d.hrv).filter((v): v is number => typeof v === "number");
+  const hrvAvg = hrvVals.length ? hrvVals.reduce((a, b) => a + b, 0) / hrvVals.length : null;
+  let hrvScore = 50;
+  if (typeof today.hrv === "number" && hrvAvg) {
+    hrvScore = Math.min(100, Math.max(0, 50 + ((today.hrv - hrvAvg) / hrvAvg) * 100));
+  }
+  factors.push({ name: "HRV", score: Math.round(hrvScore), weight: 25, detail: typeof today.hrv === "number" ? `${Math.round(today.hrv)}ms (avg ${hrvAvg ? Math.round(hrvAvg) : "?"})` : "No HRV data" });
+
+  // Recovery (weight: 20%)
+  const recScore = recoveryScore ?? 50;
+  factors.push({ name: "Recovery", score: Math.round(recScore), weight: 20, detail: `Recovery score: ${Math.round(recScore)}/100` });
+
+  // Strain balance (weight: 15%)
+  const recentStrain = recent7.map((d) => d.strain).filter((v): v is number => typeof v === "number");
+  const avgStrain = recentStrain.length ? recentStrain.reduce((a, b) => a + b, 0) / recentStrain.length : null;
+  let strainScore = 60;
+  if (avgStrain !== null) {
+    strainScore = avgStrain > 16 ? 30 : avgStrain > 12 ? 50 : avgStrain > 8 ? 70 : 85;
+  }
+  factors.push({ name: "Strain balance", score: Math.round(strainScore), weight: 15, detail: avgStrain !== null ? `Avg strain: ${avgStrain.toFixed(1)}/21` : "No strain data" });
+
+  // Resting HR (weight: 10%)
+  const rhrVals = recent30.map((d) => d.restingHeartRate).filter((v): v is number => typeof v === "number");
+  const rhrAvg = rhrVals.length ? rhrVals.reduce((a, b) => a + b, 0) / rhrVals.length : null;
+  let rhrScore = 50;
+  if (typeof today.restingHeartRate === "number" && rhrAvg) {
+    rhrScore = Math.min(100, Math.max(0, 50 - ((today.restingHeartRate - rhrAvg) / rhrAvg) * 100));
+  }
+  factors.push({ name: "Resting HR", score: Math.round(rhrScore), weight: 10, detail: typeof today.restingHeartRate === "number" ? `${Math.round(today.restingHeartRate)} bpm (avg ${rhrAvg ? Math.round(rhrAvg) : "?"})` : "No RHR data" });
+
+  const totalWeight = factors.reduce((a, f) => a + f.weight, 0);
+  const score = Math.round(factors.reduce((a, f) => a + f.score * f.weight, 0) / totalWeight);
+
+  const label = score >= 80 ? "Peak" : score >= 65 ? "Good" : score >= 45 ? "Moderate" : "Low";
+  const recommendation = score >= 80
+    ? "You're primed for a big session. Push hard today."
+    : score >= 65
+    ? "Solid readiness. Standard training intensity."
+    : score >= 45
+    ? "Moderate readiness. Keep intensity controlled."
+    : "Low readiness. Light session or active recovery recommended.";
+
+  return { score, label, factors, recommendation };
+}
+
+// ---- Calendar Heatmap ----
+
+export interface HeatmapDay {
+  date: string;
+  intensity: number; // 0-4 (0 = no data/rest, 1-4 = activity level)
+  tooltip: string;
+}
+
+export function computeCalendarHeatmap(days: DailyMetrics[]): HeatmapDay[] {
+  const last90 = days.slice(-90);
+  if (last90.length === 0) return [];
+
+  return last90.map((d) => {
+    const strain = d.strain ?? 0;
+    const exMin = d.exerciseMinutes ?? 0;
+    const workouts = d.workoutCount ?? 0;
+
+    let intensity = 0;
+    if (strain > 0 || exMin > 0 || workouts > 0) {
+      if (strain >= 16 || exMin >= 90) intensity = 4;
+      else if (strain >= 12 || exMin >= 60) intensity = 3;
+      else if (strain >= 7 || exMin >= 30) intensity = 2;
+      else intensity = 1;
+    }
+
+    const parts: string[] = [];
+    if (workouts > 0) parts.push(`${workouts} workout${workouts > 1 ? "s" : ""}`);
+    if (exMin > 0) parts.push(`${Math.round(exMin)}min active`);
+    if (strain > 0) parts.push(`strain ${strain.toFixed(1)}`);
+
+    return {
+      date: d.date,
+      intensity,
+      tooltip: parts.length ? parts.join(" · ") : "Rest day",
+    };
+  });
+}

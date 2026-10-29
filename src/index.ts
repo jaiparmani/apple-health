@@ -23,7 +23,7 @@ import { renderDashboard } from "./dashboard";
 import { generateAlerts } from "./alerts";
 import { discoverPatterns, buildCoachDirective, computeStrainBudget, computeWeeklyReportCard, computePerformancePredictions } from "./patterns";
 import { computeExercise1RMs, computeMuscleRecovery, prescribeSession, analyzePeriodization, detectMomentumAlerts } from "./progression";
-import { prescribeSleepProtocol, computeLifestyleImpacts, computeRecoveryCountdowns, generateSmartCheckIn } from "./recommendations";
+import { prescribeSleepProtocol, computeLifestyleImpacts, computeRecoveryCountdowns, generateSmartCheckIn, computePersonalRecords, computeConsistencyStreaks, computeWeeklyComparison, computeTrainingReadiness, computeCalendarHeatmap } from "./recommendations";
 
 const SERIES_PATH = "data/series.json";
 const PROFILE_PATH = "data/profile.json";
@@ -1168,6 +1168,33 @@ async function handleGetRecommendations(req: Request, env: Env): Promise<Respons
   return json({ sleepProtocol, lifestyleImpacts, recoveryCountdowns, smartCheckIn });
 }
 
+async function handleGetPremium(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const [{ data: seriesData }, { data: workoutData }, { data: knowledge }, { data: profile }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<{ workouts: ManualWorkout[] }>(env, WORKOUTS_PATH),
+    getJson<UserKnowledge>(env, KNOWLEDGE_PATH),
+    getJson<UserProfile>(env, PROFILE_PATH),
+  ]);
+  const days = seriesData?.days ?? [];
+  const workouts = workoutData?.workouts ?? [];
+  const sleepTarget = knowledge?.sleepTargetHours ?? 7.5;
+  const stepGoal = knowledge?.stepGoal ?? 10000;
+  const today = days.length ? days[days.length - 1].date : new Date().toISOString().slice(0, 10);
+
+  if (days.length < 7) return json({ personalRecords: [], streaks: [], weeklyComparison: [], readiness: null, heatmap: [] });
+
+  const trends = computeTrends(days, sleepTarget);
+  const exercise1RMs = computeExercise1RMs(workouts);
+  const personalRecords = computePersonalRecords(exercise1RMs, today);
+  const streaks = computeConsistencyStreaks(days, sleepTarget, stepGoal);
+  const weeklyComparison = computeWeeklyComparison(days);
+  const readiness = computeTrainingReadiness(days, trends.recovery?.score ?? null, sleepTarget);
+  const heatmap = computeCalendarHeatmap(days);
+
+  return json({ personalRecords, streaks, weeklyComparison, readiness, heatmap });
+}
+
 async function handleGetAlerts(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
   const [{ data: seriesData }, { data: knowledge }] = await Promise.all([
@@ -1257,6 +1284,7 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/workouts/unlogged") return await handleGetUnlogged(req, env);
       if (req.method === "GET" && url.pathname === "/api/progression") return await handleGetProgression(req, env);
       if (req.method === "GET" && url.pathname === "/api/recommendations") return await handleGetRecommendations(req, env);
+      if (req.method === "GET" && url.pathname === "/api/premium") return await handleGetPremium(req, env);
       if (req.method === "GET" && url.pathname === "/api/alerts") return await handleGetAlerts(req, env);
       if (req.method === "GET" && url.pathname === "/api/coach") return await handleGetCoach(req, env);
       if (req.method === "PUT" && url.pathname === "/api/profile") return await handlePutProfile(req, env);

@@ -906,6 +906,75 @@ export function renderDashboard(): string {
   .sci-bool button { padding:8px 16px; border-radius:6px; font-size:13px; font-weight:600; cursor:pointer; border:1px solid var(--line); background:var(--panel); color:var(--ink); }
   .sci-bool button.yes { background:var(--gold); color:var(--void); border-color:var(--gold); }
 
+  /* ---- personal records ---- */
+  .pr-grid { display:flex; flex-direction:column; gap:8px; }
+  .pr-card { display:flex; align-items:center; gap:12px; padding:10px 14px; background:var(--panel2); border-radius:8px; position:relative; overflow:hidden; }
+  .pr-card.new-pr { border:1px solid var(--gold)66; background:linear-gradient(135deg, var(--gold)08, var(--panel2)); }
+  .pr-card.new-pr::after { content:'🏆'; position:absolute; top:4px; right:8px; font-size:16px; }
+  .pr-name { font-weight:700; font-size:13px; flex:1; min-width:0; }
+  .pr-val { font-family:var(--mono); font-weight:800; font-size:18px; text-align:right; }
+  .pr-sub { font-size:11px; color:var(--dim); }
+  .pr-spark { width:60px; height:24px; flex-shrink:0; }
+
+  /* ---- consistency streaks ---- */
+  .streak-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:8px; }
+  .streak-card { padding:12px; background:var(--panel2); border-radius:10px; text-align:center; }
+  .streak-card.active { border:1px solid var(--up)44; }
+  .streak-icon { font-size:24px; margin-bottom:4px; }
+  .streak-num { font-family:var(--mono); font-weight:900; font-size:28px; line-height:1; }
+  .streak-label { font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+  .streak-best { font-size:10px; color:var(--faint); margin-top:4px; }
+
+  /* ---- weekly comparison ---- */
+  .wc-grid { display:flex; flex-direction:column; gap:6px; }
+  .wc-row { display:flex; align-items:center; gap:10px; padding:8px 12px; background:var(--panel2); border-radius:8px; }
+  .wc-metric { font-weight:600; font-size:13px; flex:1; }
+  .wc-vals { display:flex; gap:16px; font-family:var(--mono); font-size:13px; }
+  .wc-val { min-width:50px; text-align:right; }
+  .wc-delta { font-weight:700; min-width:60px; text-align:right; }
+  .wc-delta.better { color:var(--up); }
+  .wc-delta.worse { color:var(--down); }
+  .wc-delta.neutral { color:var(--dim); }
+
+  /* ---- training readiness gauge ---- */
+  .tr-gauge { text-align:center; padding:16px; }
+  .tr-score { font-family:var(--mono); font-weight:900; font-size:56px; line-height:1; }
+  .tr-label { font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; margin:4px 0 12px; }
+  .tr-label.peak { color:var(--up); }
+  .tr-label.good { color:var(--pulse); }
+  .tr-label.moderate { color:var(--caution); }
+  .tr-label.low { color:var(--down); }
+  .tr-factors { display:flex; flex-direction:column; gap:6px; margin-top:12px; }
+  .tr-factor { display:flex; align-items:center; gap:8px; font-size:12px; }
+  .tr-factor-name { width:90px; font-weight:600; }
+  .tr-factor-bar { flex:1; height:6px; background:var(--line); border-radius:3px; overflow:hidden; }
+  .tr-factor-bar > div { height:100%; border-radius:3px; transition:width .5s; }
+  .tr-factor-score { font-family:var(--mono); font-weight:700; width:28px; text-align:right; }
+  .tr-rec { font-size:13px; color:var(--dim); margin-top:14px; line-height:1.5; text-align:center; }
+
+  /* ---- calendar heatmap ---- */
+  .hm-wrap { overflow-x:auto; padding:4px 0; }
+  .hm-grid { display:grid; grid-template-rows:repeat(7, 14px); grid-auto-flow:column; grid-auto-columns:14px; gap:2px; }
+  .hm-cell { width:14px; height:14px; border-radius:2px; cursor:default; }
+  .hm-0 { background:var(--panel2); }
+  .hm-1 { background:var(--up)33; }
+  .hm-2 { background:var(--up)66; }
+  .hm-3 { background:var(--up)aa; }
+  .hm-4 { background:var(--up); }
+  .hm-legend { display:flex; gap:4px; align-items:center; margin-top:8px; font-size:10px; color:var(--dim); }
+  .hm-legend-cell { width:12px; height:12px; border-radius:2px; }
+
+  /* ---- FAB (quick action) ---- */
+  .fab-wrap { position:fixed; bottom:24px; right:24px; z-index:100; display:none; }
+  .fab-wrap.show { display:block; }
+  .fab-btn { width:56px; height:56px; border-radius:50%; border:none; background:linear-gradient(135deg, var(--pulse), var(--gold)); color:#fff; font-size:28px; cursor:pointer; box-shadow:0 4px 16px rgba(0,0,0,.25); transition:transform .15s var(--ease-spring); display:flex; align-items:center; justify-content:center; }
+  .fab-btn:active { transform:scale(.9); }
+  .fab-menu { position:absolute; bottom:64px; right:0; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:6px 0; min-width:180px; box-shadow:0 8px 32px rgba(0,0,0,.2); display:none; }
+  .fab-menu.open { display:block; }
+  .fab-item { display:flex; align-items:center; gap:10px; padding:10px 16px; font-size:14px; color:var(--ink); cursor:pointer; border:none; background:none; width:100%; text-align:left; }
+  .fab-item:hover { background:var(--panel2); }
+  .fab-item-icon { font-size:18px; }
+
   /* ---- progression & 1RM ---- */
   .e1rm-grid { display:flex; flex-direction:column; gap:8px; }
   .e1rm-card { display:flex; align-items:center; gap:12px; padding:10px 12px; background:var(--panel2); border-radius:8px; }
@@ -1093,6 +1162,11 @@ export function renderDashboard(): string {
       <div class="v-why" id="verdictWhy"></div>
     </div>
 
+    <div class="card" id="readinessCard" style="display:none">
+      <h3>Training readiness</h3>
+      <div id="readinessGauge"></div>
+    </div>
+
     <div id="smartCheckInArea"></div>
 
     <div class="brief-row" id="sleepBrief">
@@ -1138,6 +1212,27 @@ export function renderDashboard(): string {
     <div class="card one-action" id="oneAction" style="display:none;">
       <div class="oa-label">Focus today</div>
       <div class="oa-text" id="oneActionText"></div>
+    </div>
+
+    <div class="card" id="heatmapCard" style="display:none">
+      <h3>Activity heatmap <span style="font-weight:400;font-size:12px;color:var(--dim);">last 90 days</span></h3>
+      <div class="hm-wrap" id="heatmapGrid"></div>
+    </div>
+
+    <div class="card" id="streakCard" style="display:none">
+      <h3>Consistency streaks</h3>
+      <div class="streak-grid" id="streakGrid"></div>
+    </div>
+
+    <div class="card" id="weeklyCompCard" style="display:none">
+      <h3>This week vs last week</h3>
+      <div class="wc-grid" id="weeklyCompGrid"></div>
+    </div>
+
+    <div class="card" id="prCard" style="display:none">
+      <h3>Personal records</h3>
+      <div class="card-sub">Your best estimated 1RM per exercise</div>
+      <div class="pr-grid" id="prGrid"></div>
     </div>
   </section>
 
@@ -1649,7 +1744,14 @@ export function renderDashboard(): string {
     <div class="ms-body" id="msBody"></div>
   </div>
 
-  <button class="checkin-fab" id="checkinFab" onclick="openCheckin()">+</button>
+  <div class="fab-wrap" id="checkinFab">
+    <div class="fab-menu" id="fabMenu">
+      <button class="fab-item" onclick="openWorkoutLogger(); toggleFab();"><span class="fab-item-icon">🏋️</span> Log workout</button>
+      <button class="fab-item" onclick="openCheckin(); toggleFab();"><span class="fab-item-icon">📝</span> Evening check-in</button>
+      <button class="fab-item" onclick="scrollTo(document.getElementById('tab-directive'),0); switchTab('directive'); toggleFab();"><span class="fab-item-icon">🧠</span> Coach advice</button>
+    </div>
+    <button class="fab-btn" onclick="toggleFab()">+</button>
+  </div>
   <div class="checkin-overlay" id="checkinOverlay">
     <div class="checkin-sheet">
       <h3>Evening check-in</h3>
@@ -2588,6 +2690,131 @@ async function submitCheckIn(field, value) {
       if (card) card.innerHTML = '<div class="sci-q">✅ Recorded</div>';
     }
   } catch (e) {}
+}
+
+// ---- Premium features ----
+
+async function loadPremium() {
+  try {
+    var res = await authedFetch('/api/premium');
+    renderReadiness(res.readiness);
+    renderHeatmap(res.heatmap || []);
+    renderStreaks(res.streaks || []);
+    renderWeeklyComparison(res.weeklyComparison || []);
+    renderPersonalRecords(res.personalRecords || []);
+  } catch (e) {}
+}
+
+function renderReadiness(r) {
+  var card = document.getElementById('readinessCard');
+  var el = document.getElementById('readinessGauge');
+  if (!el || !r) return;
+  card.style.display = 'block';
+  var scoreColor = r.score >= 80 ? 'var(--up)' : r.score >= 65 ? 'var(--pulse)' : r.score >= 45 ? 'var(--caution)' : 'var(--down)';
+  var html = '<div class="tr-gauge">';
+  html += '<div class="tr-score" style="color:' + scoreColor + ';">' + r.score + '</div>';
+  html += '<div class="tr-label ' + r.label.toLowerCase() + '">' + r.label + '</div>';
+  html += '<div class="tr-factors">';
+  (r.factors || []).forEach(function (f) {
+    var barColor = f.score >= 70 ? 'var(--up)' : f.score >= 45 ? 'var(--caution)' : 'var(--down)';
+    html += '<div class="tr-factor">' +
+      '<span class="tr-factor-name">' + f.name + '</span>' +
+      '<div class="tr-factor-bar"><div style="width:' + f.score + '%;background:' + barColor + ';"></div></div>' +
+      '<span class="tr-factor-score">' + f.score + '</span>' +
+    '</div>';
+  });
+  html += '</div>';
+  html += '<div class="tr-rec">' + r.recommendation + '</div>';
+  html += '</div>';
+  el.innerHTML = html;
+}
+
+function renderHeatmap(items) {
+  var card = document.getElementById('heatmapCard');
+  var el = document.getElementById('heatmapGrid');
+  if (!el || items.length === 0) return;
+  card.style.display = 'block';
+  // Fill gaps to align to weekday grid
+  var first = new Date(items[0].date + 'T12:00:00Z');
+  var startDow = first.getUTCDay(); // 0=Sun
+  var cells = '';
+  for (var pad = 0; pad < startDow; pad++) cells += '<div class="hm-cell hm-0"></div>';
+  items.forEach(function (d) {
+    cells += '<div class="hm-cell hm-' + d.intensity + '" title="' + d.date + ': ' + d.tooltip + '"></div>';
+  });
+  var html = '<div class="hm-grid">' + cells + '</div>';
+  html += '<div class="hm-legend">Less ';
+  for (var i = 0; i <= 4; i++) html += '<div class="hm-legend-cell hm-' + i + '"></div>';
+  html += ' More</div>';
+  el.innerHTML = html;
+}
+
+function renderStreaks(items) {
+  var card = document.getElementById('streakCard');
+  var el = document.getElementById('streakGrid');
+  if (!el || items.length === 0) return;
+  card.style.display = 'block';
+  el.innerHTML = items.map(function (s) {
+    return '<div class="streak-card' + (s.streakActive ? ' active' : '') + '">' +
+      '<div class="streak-icon">' + s.icon + '</div>' +
+      '<div class="streak-num">' + s.currentStreak + '</div>' +
+      '<div class="streak-label">' + s.type + ' days</div>' +
+      '<div class="streak-best">Best: ' + s.longestStreak + ' days</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderWeeklyComparison(items) {
+  var card = document.getElementById('weeklyCompCard');
+  var el = document.getElementById('weeklyCompGrid');
+  if (!el || items.length === 0) return;
+  card.style.display = 'block';
+  el.innerHTML = items.map(function (w) {
+    var deltaStr = w.delta !== null ? (w.delta > 0 ? '+' : '') + w.delta + (w.unit ? w.unit : '') : '—';
+    var pctStr = w.deltaPct !== null ? ' (' + (w.deltaPct > 0 ? '+' : '') + w.deltaPct + '%)' : '';
+    return '<div class="wc-row">' +
+      '<div class="wc-metric">' + w.metric + '</div>' +
+      '<div class="wc-vals">' +
+        '<span class="wc-val">' + (w.lastWeek !== null ? w.lastWeek : '—') + '</span>' +
+        '<span style="color:var(--dim);">→</span>' +
+        '<span class="wc-val">' + (w.thisWeek !== null ? w.thisWeek : '—') + '</span>' +
+      '</div>' +
+      '<div class="wc-delta ' + w.direction + '">' + deltaStr + pctStr + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function renderPersonalRecords(items) {
+  var card = document.getElementById('prCard');
+  var el = document.getElementById('prGrid');
+  if (!el || items.length === 0) return;
+  card.style.display = 'block';
+  el.innerHTML = items.slice(0, 10).map(function (pr) {
+    var sparkSvg = '';
+    if (pr.prHistory && pr.prHistory.length >= 2) {
+      var vals = pr.prHistory.map(function (h) { return h.e1rm; });
+      var minV = Math.min.apply(null, vals);
+      var maxV = Math.max.apply(null, vals);
+      var range = maxV - minV || 1;
+      var pts = vals.map(function (v, i) { return (i / (vals.length - 1)) * 56 + 2 + ',' + (22 - ((v - minV) / range) * 20 + 1); }).join(' ');
+      sparkSvg = '<svg class="pr-spark" viewBox="0 0 60 24"><polyline points="' + pts + '" fill="none" stroke="var(--up)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    }
+    return '<div class="pr-card' + (pr.isNewPR ? ' new-pr' : '') + '">' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div class="pr-name">' + pr.exercise + '</div>' +
+        '<div class="pr-sub">' + (pr.isNewPR ? '🎉 New PR!' : pr.daysSincePR + ' days ago') + '</div>' +
+      '</div>' +
+      '<div style="text-align:right;">' +
+        '<div class="pr-val">' + pr.best1RM.toFixed(1) + '<span style="font-size:12px;font-weight:400;color:var(--dim);"> kg</span></div>' +
+      '</div>' +
+      sparkSvg +
+    '</div>';
+  }).join('');
+}
+
+function toggleFab() {
+  var menu = document.getElementById('fabMenu');
+  if (menu) menu.classList.toggle('open');
 }
 
 function fmt(n, d) {
@@ -5193,6 +5420,7 @@ async function boot() {
   loadUnloggedPrompts();
   loadProgression();
   loadRecommendations();
+  loadPremium();
   loadCoach();
   loadAlerts();
 }

@@ -168,6 +168,7 @@ export interface UserKnowledge {
   goals?: string;
   preferences?: string;
   sleepTargetHours?: number;
+  stepGoal?: number;
   notes: KnowledgeNote[];
 }
 
