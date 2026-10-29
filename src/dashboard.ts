@@ -514,6 +514,16 @@ export function renderDashboard(): string {
   }
   .verdict .v-line { font-size:14.5px; font-weight:500; line-height:1.5; color:var(--ink); }
   .verdict .v-why { font-size:12.5px; color:var(--dim); margin-top:6px; font-family:var(--mono); font-weight:600; }
+  .v-row { display:flex; align-items:center; gap:16px; }
+  .v-ring { position:relative; width:48px; height:48px; flex-shrink:0; }
+  .v-ring-num { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:900; }
+  .v-info { flex:1; min-width:0; }
+  .v-info .v-word { font-size:22px; margin:0; }
+  .v-info .v-line { font-size:13px; }
+  .v-stats { display:flex; gap:12px; flex-shrink:0; }
+  .v-stats .vs-item { text-align:center; }
+  .v-stats .vs-val { font-family:var(--mono); font-size:18px; font-weight:800; line-height:1; }
+  .v-stats .vs-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; }
   .v-hard { background:rgba(52,211,153,.08); border-color:rgba(52,211,153,.25); color:#6ee7b7; }
   .v-steady { background:rgba(251,191,36,.06); border-color:rgba(251,191,36,.25); color:#fcd34d; }
   .v-recover { background:rgba(247,107,77,.08); border-color:rgba(247,107,77,.3); color:#fca594; }
@@ -570,7 +580,9 @@ export function renderDashboard(): string {
     .tabs.primary .tab.active { background:none; color:var(--pulse); transform:none; }
     .tabs.primary .tab.active svg { transform:scale(1.12); }
     .tabs.primary .tab.active::after { content:''; position:absolute; bottom:1px; width:4px; height:4px; border-radius:50%; background:var(--pulse); }
-    .verdict .v-word { font-size:40px; }
+    .verdict .v-word { font-size:28px; }
+    .v-stats { gap:8px; }
+    .v-stats .vs-val { font-size:15px; }
     .brief-n { font-size:20px; }
   }
 
@@ -817,6 +829,25 @@ export function renderDashboard(): string {
   .qg-card .qg-delta { font-size:11px; font-weight:700; }
   .qg-card .qg-delta.up { color:var(--up); }
   .qg-card .qg-delta.down { color:var(--down); }
+  .qg-card .qg-spark { display:block; margin-top:6px; }
+  .qg-expand { display:none; grid-column:1/-1; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; animation:fadeSlideUp .25s var(--ease-smooth) both; }
+  .qg-expand.open { display:block; }
+  .qg-expand .qe-chart { height:80px; margin:8px 0; }
+  .qg-expand .qe-days { display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center; }
+  .qg-expand .qe-day { font-size:10px; }
+  .qg-expand .qe-day .qed-val { font-family:var(--mono); font-size:13px; font-weight:700; }
+  .qg-expand .qe-day .qed-label { color:var(--dim); }
+  .qg-expand .qe-insight { font-size:12px; color:var(--dim); margin-top:8px; padding-top:8px; border-top:1px solid var(--line); }
+  .body-inline-detail { width:100%; max-width:280px; margin:12px auto 0; }
+  .bid-card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; animation:fadeSlideUp .25s ease both; }
+  .bid-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .bid-name { font-size:16px; font-weight:800; text-transform:capitalize; }
+  .bid-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .bid-stat { text-align:center; background:var(--panel2); border-radius:8px; padding:8px; }
+  .bid-val { font-size:20px; font-weight:900; }
+  .bid-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+  .bid-reco { font-size:12.5px; color:var(--dim); line-height:1.5; margin-top:10px; padding-top:10px; border-top:1px solid var(--line); }
+  .bid-reco::before { content:"→ "; font-weight:700; color:var(--pulse); }
 
   /* muscle tap ripple */
   @keyframes muscleRipple { 0% { r:0; opacity:.6; } 100% { r:30; opacity:0; } }
@@ -1456,8 +1487,17 @@ export function renderDashboard(): string {
 
     <!-- Verdict banner -->
     <div class="verdict v-neutral" id="verdict">
-      <div class="v-word" id="verdictWord">…</div>
-      <div class="v-line" id="verdictLine">Reading your recovery.</div>
+      <div class="v-row">
+        <div class="v-ring" id="verdictRing">
+          <svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="4"/><circle cx="24" cy="24" r="20" fill="none" stroke="var(--pulse)" stroke-width="4" stroke-linecap="round" stroke-dasharray="126" stroke-dashoffset="126" id="vRingFill" style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset .8s ease"/></svg>
+          <span class="v-ring-num num" id="verdictNum">—</span>
+        </div>
+        <div class="v-info">
+          <div class="v-word" id="verdictWord">…</div>
+          <div class="v-line" id="verdictLine">Reading your recovery.</div>
+        </div>
+        <div class="v-stats" id="verdictStats"></div>
+      </div>
       <div class="v-why" id="verdictWhy"></div>
     </div>
 
@@ -1488,6 +1528,7 @@ export function renderDashboard(): string {
         </div>
         <div class="body-stage-svg" id="bodyStageSvg"></div>
       </div>
+      <div class="body-inline-detail" id="bodyInlineDetail" style="display:none"></div>
     </div>
 
     <!-- What moved vs yesterday -->
@@ -3728,8 +3769,52 @@ function renderHomeWhatMoved(d) {
   el.innerHTML = moved.slice(0, 5).map(function (m) {
     var arrow = m.isUp ? '&#9650;' : '&#9660;';
     var cls = m.good === true ? 'up' : m.good === false ? 'dn' : '';
-    return '<div class="wm-item"><span class="wm-key">' + m.label + '</span> <span class="wm-val">' + m.val + '</span> <span class="wm-delta ' + cls + '">' + arrow + ' ' + Math.round(m.pct * 100) + '%</span></div>';
+    var sparkColor = m.good === true ? 'var(--up)' : m.good === false ? 'var(--down)' : 'var(--dim)';
+    var hist = qgGetHistory(m.key, 7);
+    var spark = miniSparkSvg(hist, sparkColor);
+    return '<div class="wm-item"><span class="wm-key">' + m.label + '</span>' + spark + '<span class="wm-val">' + m.val + '</span> <span class="wm-delta ' + cls + '">' + arrow + ' ' + Math.round(m.pct * 100) + '%</span></div>';
   }).join('');
+}
+
+function miniSparkSvg(values, color) {
+  if (!values || values.length < 2) return '';
+  var w = 60, h = 20;
+  var max = Math.max.apply(null, values) || 1;
+  var min = Math.min.apply(null, values);
+  var range = max - min || 1;
+  var pts = values.map(function(v, i) {
+    return (i / (values.length - 1) * (w - 4) + 2) + ',' + (h - 2 - ((v - min) / range) * (h - 4));
+  });
+  var last = pts[pts.length - 1].split(',');
+  return '<svg class="qg-spark" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '"><polyline points="' + pts.join(' ') + '" fill="none" stroke="' + color + '" stroke-width="1.5" stroke-linecap="round"/><circle cx="' + last[0] + '" cy="' + last[1] + '" r="2" fill="' + color + '"/></svg>';
+}
+
+function qgGetHistory(key, n) {
+  if (!GUIDE_DAYS || GUIDE_DAYS.length < 2) return [];
+  var days = GUIDE_DAYS.slice(-n);
+  return days.map(function(d) { return typeof d[key] === 'number' ? d[key] : null; }).filter(function(v) { return v !== null; });
+}
+
+function qgDelta(key) {
+  if (!GUIDE_DAYS || GUIDE_DAYS.length < 2) return null;
+  var today = GUIDE_DAYS[GUIDE_DAYS.length - 1];
+  var yest = GUIDE_DAYS[GUIDE_DAYS.length - 2];
+  if (!today || !yest || typeof today[key] !== 'number' || typeof yest[key] !== 'number' || yest[key] === 0) return null;
+  var diff = today[key] - yest[key];
+  var pct = Math.round((diff / Math.abs(yest[key])) * 100);
+  return { diff: diff, pct: pct };
+}
+
+function toggleQgExpand(idx) {
+  var all = document.querySelectorAll('.qg-expand');
+  for (var i = 0; i < all.length; i++) {
+    if (i === idx) {
+      all[i].classList.toggle('open');
+      if (all[i].classList.contains('open')) all[i].scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    } else {
+      all[i].classList.remove('open');
+    }
+  }
 }
 
 function renderQuickGlance(d) {
@@ -3737,43 +3822,84 @@ function renderQuickGlance(d) {
   if (!el || !d || !d.today) return;
   var t = d.today;
   var items = [];
+  var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
   if (t.sleepHours !== null && t.sleepHours !== undefined) {
     var sleepColor = t.sleepHours >= 7 ? 'var(--up)' : t.sleepHours >= 6 ? 'var(--caution)' : 'var(--down)';
-    items.push({ icon: '🌙', name: 'Sleep', val: t.sleepHours.toFixed(1) + 'h', color: sleepColor, sub: t.sleepDeepHours ? (t.sleepDeepHours.toFixed(1) + 'h deep') : '', click: "openMetricDrawer('sleep')" });
+    items.push({ icon: '🌙', name: 'Sleep', val: t.sleepHours.toFixed(1) + 'h', color: sleepColor, sub: t.sleepDeepHours ? (t.sleepDeepHours.toFixed(1) + 'h deep') : '', histKey: 'sleepHours' });
   }
   if (t.hrv !== null && t.hrv !== undefined) {
-    items.push({ icon: '💓', name: 'HRV', val: Math.round(t.hrv) + 'ms', color: 'var(--ink)', sub: t.restingHeartRate ? (t.restingHeartRate + ' bpm RHR') : '', click: "openMetricDrawer('heart')" });
+    items.push({ icon: '💓', name: 'HRV', val: Math.round(t.hrv) + 'ms', color: 'var(--ink)', sub: t.restingHeartRate ? (t.restingHeartRate + ' bpm RHR') : '', histKey: 'hrv' });
   }
   if (d.recoveryScore !== null && d.recoveryScore !== undefined) {
     var recColor = d.recoveryScore >= 67 ? 'var(--up)' : d.recoveryScore >= 34 ? 'var(--caution)' : 'var(--down)';
-    items.push({ icon: '💚', name: 'Recovery', val: Math.round(d.recoveryScore) + '%', color: recColor, sub: d.recoveryLabel || '', click: "openMetricDrawer('recovery')" });
+    items.push({ icon: '💚', name: 'Recovery', val: Math.round(d.recoveryScore) + '%', color: recColor, sub: d.recoveryLabel || '', histKey: null });
   }
   if (t.strain !== null && t.strain !== undefined) {
-    items.push({ icon: '⚡', name: 'Strain', val: t.strain.toFixed(1), color: 'var(--caution)', sub: t.activeEnergy ? (Math.round(t.activeEnergy) + ' kcal') : '', click: "openMetricDrawer('strain')" });
+    items.push({ icon: '⚡', name: 'Strain', val: t.strain.toFixed(1), color: 'var(--caution)', sub: t.activeEnergy ? (Math.round(t.activeEnergy) + ' kcal') : '', histKey: 'strain' });
   }
   if (t.steps !== null && t.steps !== undefined) {
-    items.push({ icon: '🚶', name: 'Steps', val: t.steps.toLocaleString(), color: 'var(--ink)', sub: t.distanceKm ? (t.distanceKm.toFixed(1) + ' km') : '', click: "openMetricDrawer('activity')" });
+    items.push({ icon: '🚶', name: 'Steps', val: t.steps.toLocaleString(), color: 'var(--ink)', sub: t.distanceKm ? (t.distanceKm.toFixed(1) + ' km') : '', histKey: 'steps' });
   }
   if (t.activeEnergy !== null && t.activeEnergy !== undefined && !items.some(function(x){return x.name==='Strain';})) {
-    items.push({ icon: '🔥', name: 'Active cal', val: Math.round(t.activeEnergy), color: 'var(--ink)', sub: '', click: "openMetricDrawer('activity')" });
+    items.push({ icon: '🔥', name: 'Active cal', val: Math.round(t.activeEnergy), color: 'var(--ink)', sub: '', histKey: 'activeEnergy' });
   }
   if (_bodyData && _bodyData.composition) {
     var comp = _bodyData.composition;
-    if (comp.currentWeight !== null) items.push({ icon: '⚖️', name: 'Weight', val: comp.currentWeight.toFixed(1) + ' kg', color: 'var(--ink)', sub: comp.bmi ? ('BMI ' + comp.bmi) : '', click: "showTab('body')" });
-    if (comp.bodyFatPct !== null) items.push({ icon: '📊', name: 'Body fat', val: (comp.bodyFatPct * 100).toFixed(1) + '%', color: 'var(--ink)', sub: comp.estimatedLeanMass ? (comp.estimatedLeanMass + ' kg lean') : '', click: "showTab('body')" });
+    if (comp.currentWeight !== null) items.push({ icon: '⚖️', name: 'Weight', val: comp.currentWeight.toFixed(1) + ' kg', color: 'var(--ink)', sub: comp.bmi ? ('BMI ' + comp.bmi) : '', histKey: null });
+    if (comp.bodyFatPct !== null) items.push({ icon: '📊', name: 'Body fat', val: (comp.bodyFatPct * 100).toFixed(1) + '%', color: 'var(--ink)', sub: comp.estimatedLeanMass ? (comp.estimatedLeanMass + ' kg lean') : '', histKey: null });
   }
-  el.innerHTML = items.slice(0, 8).map(function(it) {
-    return '<div class="qg-card" onclick="' + it.click + '">' +
+  el.innerHTML = items.slice(0, 8).map(function(it, idx) {
+    var sparkHtml = '';
+    var deltaHtml = '';
+    var expandHtml = '';
+    if (it.histKey) {
+      var hist = qgGetHistory(it.histKey, 7);
+      if (hist.length >= 2) sparkHtml = miniSparkSvg(hist, it.color === 'var(--ink)' ? '#a3e635' : it.color);
+      var delta = qgDelta(it.histKey);
+      if (delta) {
+        var sign = delta.pct >= 0 ? '+' : '';
+        deltaHtml = '<div class="qg-delta ' + (delta.pct >= 0 ? 'up' : 'down') + '">' + sign + delta.pct + '% vs yesterday</div>';
+      }
+      if (hist.length >= 3) {
+        var last7 = GUIDE_DAYS.slice(-7);
+        var daysHtml = last7.map(function(day) {
+          var v = typeof day[it.histKey] === 'number' ? day[it.histKey] : null;
+          var dayLabel = day.date ? dayNames[new Date(day.date).getDay()] : '';
+          return '<div class="qe-day"><div class="qed-val">' + (v !== null ? (v % 1 ? v.toFixed(1) : v) : '—') + '</div><div class="qed-label">' + dayLabel + '</div></div>';
+        }).join('');
+        var avg = hist.reduce(function(a,b){return a+b;}, 0) / hist.length;
+        expandHtml = '<div class="qg-expand" data-qg-expand="' + idx + '">' +
+          '<div class="qe-days">' + daysHtml + '</div>' +
+          '<div class="qe-insight">7-day avg: <strong>' + (avg % 1 ? avg.toFixed(1) : Math.round(avg)) + '</strong></div>' +
+          '</div>';
+      }
+    }
+    return '<div class="qg-card" onclick="toggleQgExpand(' + idx + ')">' +
       '<div class="qg-head"><span class="qg-icon">' + it.icon + '</span><span class="qg-name">' + it.name + '</span></div>' +
       '<div class="qg-val" style="color:' + it.color + ';">' + it.val + '</div>' +
       (it.sub ? '<div class="qg-sub">' + it.sub + '</div>' : '') +
-      (it.delta ? '<div class="qg-delta ' + (it.delta.startsWith('+') || it.delta.startsWith('↑') ? 'up' : 'down') + '">' + it.delta + '</div>' : '') +
-    '</div>';
+      deltaHtml +
+      sparkHtml +
+    '</div>' + expandHtml;
   }).join('');
 }
 
 // Metric drawer system
 function openMetricDrawer(type) {
+  var map = { sleep: 'Sleep', heart: 'HRV', strain: 'Strain', recovery: 'Recovery', activity: 'Steps' };
+  var name = map[type] || type;
+  var cards = document.querySelectorAll('.qg-card');
+  for (var i = 0; i < cards.length; i++) {
+    var nameEl = cards[i].querySelector('.qg-name');
+    if (nameEl && nameEl.textContent === name) {
+      cards[i].click();
+      cards[i].scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
+  }
+}
+
+function _openMetricDrawerOriginal(type) {
   var bg = document.getElementById('metricDrawerBg');
   var drawer = document.getElementById('metricDrawer');
   var title = document.getElementById('mdTitle');
@@ -3885,66 +4011,38 @@ function closeMetricDrawer() {
 // ---- Home muscle detail sheet ----
 
 function showHomeMuscle(m) {
-  var bg = document.getElementById('homeMuscBg');
-  var sheet = document.getElementById('homeMuscSheet');
-  if (!bg || !sheet) return;
-  bg.classList.add('open');
-  sheet.classList.add('open');
+  var detailEl = document.getElementById('bodyInlineDetail');
+  if (!detailEl) return;
 
-  var icon = document.getElementById('hmsIcon');
-  var title = document.getElementById('hmsTitle');
-  var status = document.getElementById('hmsStatus');
-  var stats = document.getElementById('hmsStats');
-  var bar = document.getElementById('hmsBar');
-  var spark = document.getElementById('hmsSpark');
-  var reco = document.getElementById('hmsReco');
-
-  if (title) title.textContent = m.muscle;
-  if (icon) { icon.className = 'hms-icon ' + m.status; }
-  if (status) {
-    status.textContent = m.status;
-    status.className = 'hms-status-pill ' + m.status;
+  if (detailEl.style.display !== 'none' && detailEl._currentMuscle === m.muscle) {
+    detailEl.style.display = 'none';
+    detailEl._currentMuscle = null;
+    return;
   }
+  detailEl._currentMuscle = m.muscle;
 
   var statusRecos = {
-    optimal: 'Maintain current volume. This muscle group is well-trained and recovering properly.',
-    undertrained: 'Consider adding 2–3 more sets per week to bring this muscle up.',
-    neglected: 'This muscle has not been trained recently. Add it to your next session.',
-    overtrained: 'Scale back volume and allow 48–72 hours of rest before hitting this group again.'
+    optimal: 'Maintain current volume. Well-trained and recovering properly.',
+    undertrained: 'Add 2-3 more sets per week to bring this up.',
+    neglected: 'Not trained recently. Add to your next session.',
+    overtrained: 'Scale back volume. Allow 48-72h rest.'
   };
+  var statusLabel = m.status.charAt(0).toUpperCase() + m.status.slice(1);
+  var setsLabel = (m.setsLast7 !== undefined) ? m.setsLast7 : '—';
+  var sets30 = (m.setsLast30 !== undefined) ? m.setsLast30 : '—';
+  var freq = (m.frequency !== undefined) ? m.frequency + 'x' : '—';
 
-  if (stats) {
-    var setsLabel = (m.setsLast7 !== undefined) ? m.setsLast7 : '—';
-    var sets30 = (m.setsLast30 !== undefined) ? m.setsLast30 : '—';
-    var freq = (m.frequency !== undefined) ? m.frequency + 'x' : '—';
-    stats.innerHTML =
-      '<div class="hms-stat"><div class="hms-stat-val">' + setsLabel + '</div><div class="hms-stat-label">Sets / 7d</div></div>' +
-      '<div class="hms-stat"><div class="hms-stat-val">' + sets30 + '</div><div class="hms-stat-label">Sets / 30d</div></div>' +
-      '<div class="hms-stat"><div class="hms-stat-val">' + freq + '</div><div class="hms-stat-label">Frequency</div></div>';
-  }
-
-  if (bar) {
-    var pct = Math.min(100, Math.round(((m.setsLast7 || 0) / 12) * 100));
-    var colors = { optimal: 'var(--up)', undertrained: 'var(--caution)', neglected: 'var(--faint)', overtrained: 'var(--royal)' };
-    bar.querySelector('div').style.width = pct + '%';
-    bar.querySelector('div').style.background = colors[m.status] || 'var(--dim)';
-  }
-
-  if (spark) {
-    var w = 200, h = 40;
-    var fakeWeeks = [];
-    var base = m.setsLast30 ? Math.round(m.setsLast30 / 4) : 3;
-    for (var i = 0; i < 8; i++) fakeWeeks.push(Math.max(0, base + Math.round((Math.random() - 0.4) * 4)));
-    if (m.setsLast7 !== undefined) fakeWeeks[7] = m.setsLast7;
-    var maxV = Math.max.apply(null, fakeWeeks) || 1;
-    var pts = fakeWeeks.map(function(v, idx) { return (idx / 7 * (w - 10) + 5) + ',' + (h - 4 - (v / maxV) * (h - 8)); });
-    spark.innerHTML = '<svg viewBox="0 0 ' + w + ' ' + h + '">' +
-      '<polyline points="' + pts.join(' ') + '" fill="none" stroke="var(--pulse)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" opacity=".7"/>' +
-      '<circle cx="' + pts[pts.length-1].split(',')[0] + '" cy="' + pts[pts.length-1].split(',')[1] + '" r="3" fill="var(--pulse)"/>' +
-      '</svg>';
-  }
-
-  if (reco) reco.textContent = statusRecos[m.status] || '';
+  detailEl.innerHTML = '<div class="bid-card">' +
+    '<div class="bid-head"><span class="bid-name">' + m.muscle + '</span><span class="hms-status-pill ' + m.status + '">' + statusLabel + '</span></div>' +
+    '<div class="bid-stats">' +
+      '<div class="bid-stat"><div class="bid-val num">' + setsLabel + '</div><div class="bid-label">sets / 7d</div></div>' +
+      '<div class="bid-stat"><div class="bid-val num">' + sets30 + '</div><div class="bid-label">sets / 30d</div></div>' +
+      '<div class="bid-stat"><div class="bid-val num">' + freq + '</div><div class="bid-label">frequency</div></div>' +
+    '</div>' +
+    '<div class="bid-reco">' + (statusRecos[m.status] || '') + '</div>' +
+  '</div>';
+  detailEl.style.display = '';
+  detailEl.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 function closeHomeMuscle() {
@@ -4400,7 +4498,7 @@ function upsertChart(id, config) {
   var chartFont = "'Barlow Condensed',-apple-system,sans-serif";
   config.options = Object.assign({ responsive:true, maintainAspectRatio:false, interaction:{mode:'index',intersect:false},
     plugins:{ legend:{ labels:{ color:C.dim, boxWidth:10, font:{size:11, family:chartFont} } },
-      tooltip:{enabled:false} },
+      tooltip:{enabled:true,backgroundColor:'rgba(18,18,18,.95)',titleColor:'#8a8a8a',bodyColor:'#ffffff',borderColor:'#262626',borderWidth:1,cornerRadius:6,titleFont:{family:"'Barlow Condensed',-apple-system,sans-serif",size:11},bodyFont:{family:"'Barlow Condensed',-apple-system,sans-serif",size:13,weight:'700'},padding:{x:10,y:8},displayColors:true,boxWidth:8,boxHeight:8,boxPadding:4,caretSize:0,callbacks:{label:function(ctx){var v=ctx.parsed.y;if(v===null||v===undefined)return'';return ctx.dataset.label+': '+(v%1?v.toFixed(1):v);}}} },
     scales:{ x:{ ticks:{ color:C.dim, maxTicksLimit:8, font:{size:9, family:chartFont} }, grid:{ display:false }, border:{display:false} },
              y:{ ticks:{ color:C.dim, font:{size:9, family:chartFont} }, grid:{ color:C.grid, drawBorder:false }, border:{display:false} } },
     animation:{ duration:800 } }, config.options || {});
@@ -4644,6 +4742,28 @@ function renderVerdict() {
   document.getElementById('verdictWord').textContent = (r !== null && r >= 90 ? '\\u{1F451} ' : '') + word;
   document.getElementById('verdictLine').textContent = (r !== null && r >= 85 && word === 'Go hard' ? 'Beast mode. ' : '') + line;
   document.getElementById('verdictWhy').textContent = why.join(' · ');
+
+  var ringFill = document.getElementById('vRingFill');
+  var ringNum = document.getElementById('verdictNum');
+  if (ringFill && ringNum) {
+    var score = r !== null ? r : 0;
+    ringNum.textContent = r !== null ? String(score) : '—';
+    var circ = 2 * Math.PI * 20;
+    var offset = circ - (score / 100) * circ;
+    requestAnimationFrame(function() { ringFill.setAttribute('stroke-dashoffset', String(offset)); });
+    var ringColor = score >= 70 ? 'var(--up)' : score >= 45 ? 'var(--caution)' : score > 0 ? 'var(--down)' : 'var(--dim)';
+    ringFill.setAttribute('stroke', ringColor);
+  }
+
+  var statsEl = document.getElementById('verdictStats');
+  if (statsEl) {
+    var statsHtml = '';
+    var recScore = TODAY.readiness;
+    var strainVal = TODAY.strain;
+    if (recScore !== null && recScore !== undefined) statsHtml += '<div class="vs-item"><div class="vs-val">' + recScore + '%</div><div class="vs-label">Recovery</div></div>';
+    if (strainVal !== null && strainVal !== undefined) statsHtml += '<div class="vs-item"><div class="vs-val">' + (typeof strainVal === 'number' ? strainVal.toFixed(1) : strainVal) + '</div><div class="vs-label">Strain</div></div>';
+    statsEl.innerHTML = statsHtml;
+  }
 }
 
 // ---------- today: sleep brief, body state, strain budget, what moved ----------
