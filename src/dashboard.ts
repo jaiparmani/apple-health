@@ -1,5 +1,5 @@
 import { METRIC_GUIDE, METRIC_FORMAT } from "./metricGuide";
-import { renderMuscleMap } from "./muscleMap";
+import { renderMuscleMap, renderFrontBody, renderBackBody } from "./muscleMap";
 import { EXERCISE_LIBRARY } from "./exerciseLibrary";
 
 // Every AI review card is identical apart from its domain and title — same
@@ -714,18 +714,83 @@ export function renderDashboard(): string {
   .milestone .ms-text { font-weight:700; font-size:14px; }
   .milestone .ms-when { color:var(--dim); font-size:12.5px; margin-top:2px; }
 
-  /* ---- body analysis ---- */
-  .body-hero { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:14px; }
-  .body-hero-main { background:linear-gradient(135deg, rgba(163,230,53,.08), rgba(52,211,153,.04)); border:1px solid rgba(163,230,53,.2); border-radius:14px; padding:20px; text-align:center; grid-column:1/-1; }
-  .body-hero-main .bh-score { font-family:var(--mono); font-size:72px; font-weight:900; line-height:1; background:linear-gradient(135deg, var(--pulse), var(--up)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; }
-  .body-hero-main .bh-label { font-size:14px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; color:var(--dim); margin-top:4px; }
-  .body-hero-main .bh-sub { font-size:13px; color:var(--faint); margin-top:6px; }
-  .body-hero-stat { background:var(--panel-glass); backdrop-filter:blur(12px); border:1px solid rgba(255,255,255,.06); border-radius:12px; padding:14px; text-align:center; }
-  .body-hero-stat .bhs-val { font-family:var(--mono); font-size:28px; font-weight:900; }
-  .body-hero-stat .bhs-label { font-size:11px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
-  .body-hero-stat .bhs-delta { font-size:12px; font-weight:700; margin-top:3px; }
-  .body-hero-stat .bhs-delta.up { color:var(--up); }
-  .body-hero-stat .bhs-delta.down { color:var(--down); }
+  /* ---- animated body analysis ---- */
+  .ab-hero { text-align:center; margin-bottom:18px; }
+  .ab-score-ring { position:relative; width:160px; height:160px; margin:0 auto 12px; }
+  .ab-ring-svg { width:100%; height:100%; transform:rotate(-90deg); }
+  .ab-ring-bg { fill:none; stroke:var(--line); stroke-width:6; }
+  .ab-ring-fill { fill:none; stroke:url(#abGrad); stroke-width:6; stroke-linecap:round; transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1); }
+  .ab-ring-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  .ab-ring-num { font-family:var(--mono); font-size:48px; font-weight:900; background:linear-gradient(135deg, var(--pulse), var(--up)); -webkit-background-clip:text; background-clip:text; -webkit-text-fill-color:transparent; line-height:1; }
+  .ab-ring-label { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); margin-top:2px; }
+  .ab-hero-stats { display:flex; justify-content:center; gap:20px; flex-wrap:wrap; }
+  .ab-hero-stats .ab-hs { text-align:center; }
+  .ab-hero-stats .ab-hs-val { font-family:var(--mono); font-size:20px; font-weight:800; }
+  .ab-hero-stats .ab-hs-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
+
+  /* body silhouette interactive */
+  .ab-body-wrap { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:16px; margin-bottom:14px; }
+  .ab-body-toggle { display:flex; gap:4px; margin-bottom:14px; justify-content:center; }
+  .ab-toggle { background:var(--panel2); border:1px solid var(--line); border-radius:6px; padding:5px 18px; font-size:12px; font-weight:700; color:var(--dim); cursor:pointer; transition:all .2s; }
+  .ab-toggle.active { background:var(--pulse); color:var(--void); border-color:var(--pulse); }
+  .ab-body-container { position:relative; display:flex; justify-content:center; min-height:360px; }
+  .ab-body-view { display:none; width:220px; }
+  .ab-body-view.active { display:block; }
+  .ab-body-view svg { width:100%; height:auto; }
+
+  /* muscle region interactive styles */
+  .ab-body-view .muscle-region { cursor:pointer; transition:fill .4s, filter .4s, opacity .4s; fill:var(--line); opacity:.5; }
+  .ab-body-view .muscle-region:hover { opacity:1 !important; filter:drop-shadow(0 0 10px currentColor) !important; }
+
+  /* status-based muscle coloring */
+  .ab-body-view .muscle-region.m-optimal { fill:var(--up); opacity:1; filter:drop-shadow(0 0 8px var(--up)); }
+  .ab-body-view .muscle-region.m-undertrained { fill:var(--caution); opacity:.6; filter:drop-shadow(0 0 4px var(--caution)); }
+  .ab-body-view .muscle-region.m-neglected { fill:var(--line); opacity:.35; }
+  .ab-body-view .muscle-region.m-overtrained { fill:var(--royal); opacity:1; filter:drop-shadow(0 0 8px var(--royal)); }
+
+  /* pulse animation for recovering muscles */
+  @keyframes musclePulse { 0%,100% { filter:drop-shadow(0 0 6px var(--up)); opacity:.85; } 50% { filter:drop-shadow(0 0 14px var(--up)); opacity:1; } }
+  @keyframes muscleGlow { 0%,100% { filter:drop-shadow(0 0 4px var(--royal)); } 50% { filter:drop-shadow(0 0 12px var(--royal)); } }
+  .ab-body-view .muscle-region.m-optimal { animation:musclePulse 2.5s ease-in-out infinite; }
+  .ab-body-view .muscle-region.m-overtrained { animation:muscleGlow 2s ease-in-out infinite; }
+
+  /* decorative body outline */
+  .ab-body-view .body-outline { fill:none; stroke:var(--faint); stroke-width:.5; opacity:.25; }
+  .ab-body-view .body-deco { fill:var(--faint); opacity:.2; }
+
+  .ab-body-legend { display:flex; justify-content:center; gap:14px; margin-top:12px; flex-wrap:wrap; }
+  .ab-leg { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--dim); font-weight:600; }
+  .ab-leg-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; }
+
+  /* muscle detail panel */
+  .ab-muscle-detail { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; margin-bottom:14px; animation:slideUp .3s var(--ease-spring); }
+  .ab-md-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
+  .ab-md-head h3 { margin:0; font-size:16px; text-transform:capitalize; }
+  .ab-md-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:10px; }
+  .ab-md-stat { background:var(--panel2); border-radius:8px; padding:10px; text-align:center; }
+  .ab-md-stat .amd-val { font-family:var(--mono); font-size:22px; font-weight:900; }
+  .ab-md-stat .amd-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.03em; margin-top:2px; }
+  .ab-md-bar { height:6px; background:var(--panel2); border-radius:3px; overflow:hidden; margin-top:8px; }
+  .ab-md-bar > div { height:100%; border-radius:3px; transition:width .4s; }
+  .ab-md-reco { font-size:12.5px; color:var(--dim); line-height:1.5; margin-top:8px; padding-top:8px; border-top:1px solid var(--line); }
+
+  /* duo layout for physique + mobility */
+  .ab-duo { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:0; }
+  @media (max-width:580px) { .ab-duo { grid-template-columns:1fr; } }
+
+  /* mini body on overview */
+  .ab-mini-body { display:flex; align-items:center; gap:14px; background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px; margin-bottom:12px; cursor:pointer; transition:border-color .2s; }
+  .ab-mini-body:hover { border-color:rgba(163,230,53,.3); }
+  .ab-mini-body svg { width:60px; flex-shrink:0; }
+  .ab-mini-info { flex:1; }
+  .ab-mini-score { font-family:var(--mono); font-size:28px; font-weight:900; line-height:1; }
+  .ab-mini-label { font-size:11px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
+  .ab-mini-chips { display:flex; gap:6px; flex-wrap:wrap; margin-top:6px; }
+  .ab-mini-chip { font-size:10px; font-weight:700; padding:2px 8px; border-radius:10px; text-transform:capitalize; }
+  .ab-mini-chip.optimal { background:rgba(52,211,153,.15); color:var(--up); }
+  .ab-mini-chip.undertrained { background:rgba(251,191,36,.15); color:var(--caution); }
+  .ab-mini-chip.neglected { background:rgba(247,107,77,.12); color:var(--down); }
+  .ab-mini-chip.overtrained { background:rgba(201,184,255,.15); color:var(--royal); }
 
   .body-comp-bars { display:flex; height:32px; border-radius:8px; overflow:hidden; margin:12px 0 8px; }
   .body-comp-bars .bcb-lean { background:linear-gradient(90deg, var(--pulse), var(--up)); display:flex; align-items:center; justify-content:center; font-size:11px; font-weight:800; color:var(--void); }
@@ -1788,28 +1853,80 @@ export function renderDashboard(): string {
   <!-- BIOLOGICAL AGE -->
   <!-- BODY ANALYSIS -->
   <section class="section" id="tab-body">
-    <div id="bodyHero"><div class="skel-card"><div class="skel-circle"></div><div class="skel-line" style="width:60%;margin:0 auto;"></div><div class="skel-line" style="width:40%;margin:0 auto;"></div></div></div>
+    <!-- Animated body score + silhouette hero -->
+    <div class="ab-hero" id="abHero">
+      <div class="ab-score-ring" id="abScoreRing">
+        <svg viewBox="0 0 200 200" class="ab-ring-svg">
+          <defs><linearGradient id="abGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--pulse)"/><stop offset="100%" stop-color="var(--up)"/></linearGradient></defs>
+          <circle cx="100" cy="100" r="88" class="ab-ring-bg"/>
+          <circle cx="100" cy="100" r="88" class="ab-ring-fill" id="abRingFill" stroke-dasharray="553" stroke-dashoffset="553"/>
+        </svg>
+        <div class="ab-ring-center">
+          <div class="ab-ring-num count-up" id="abScoreNum" data-target="0">0</div>
+          <div class="ab-ring-label" id="abScoreLabel">—</div>
+        </div>
+      </div>
+      <div class="ab-hero-stats" id="abHeroStats"></div>
+    </div>
+
+    <!-- Interactive body silhouette -->
+    <div class="ab-body-wrap">
+      <div class="ab-body-toggle">
+        <button class="ab-toggle active" id="abToggleFront" onclick="toggleBodyView('front')">Front</button>
+        <button class="ab-toggle" id="abToggleBack" onclick="toggleBodyView('back')">Back</button>
+      </div>
+      <div class="ab-body-container" id="abBodyContainer">
+        <div class="ab-body-view active" id="abBodyFront"></div>
+        <div class="ab-body-view" id="abBodyBack"></div>
+      </div>
+      <div class="ab-body-legend">
+        <span class="ab-leg"><span class="ab-leg-dot" style="background:var(--up);box-shadow:0 0 8px var(--up);"></span>Optimal</span>
+        <span class="ab-leg"><span class="ab-leg-dot" style="background:var(--caution);opacity:.6;"></span>Undertrained</span>
+        <span class="ab-leg"><span class="ab-leg-dot" style="background:var(--line);"></span>Neglected</span>
+        <span class="ab-leg"><span class="ab-leg-dot" style="background:var(--royal);box-shadow:0 0 8px var(--royal);"></span>Overtrained</span>
+      </div>
+    </div>
+
+    <!-- Muscle detail panel (shown on tap) -->
+    <div class="ab-muscle-detail" id="abMuscleDetail" style="display:none">
+      <div class="ab-md-head">
+        <h3 id="abMdName">—</h3>
+        <button class="btn-ghost btn-sm" onclick="document.getElementById('abMuscleDetail').style.display='none'">Close</button>
+      </div>
+      <div id="abMdContent"></div>
+    </div>
+
+    <!-- Body composition bar -->
     <div class="card" id="bodyCompCard" style="display:none">
       <h3>Body composition</h3>
       <div id="bodyCompContent"></div>
     </div>
+
+    <!-- Muscle volume grid -->
     <div class="card" id="muscleVolumeCard" style="display:none">
-      <h3>Muscle volume map <span style="font-weight:400;font-size:12px;color:var(--dim);">weekly sets per group</span></h3>
-      <div id="bodyMuscleMap" class="muscle-map" style="margin-bottom:12px;">${renderMuscleMap()}</div>
+      <h3>Muscle volume <span style="font-weight:400;font-size:12px;color:var(--dim);">weekly sets per group</span></h3>
       <div id="muscleVolumeContent"></div>
     </div>
+
+    <!-- Symmetry -->
     <div class="card" id="symmetryCard" style="display:none">
       <h3>Body symmetry</h3>
       <div id="symmetryContent"></div>
     </div>
-    <div class="card" id="physiqueCard" style="display:none">
-      <h3>Physique profile</h3>
-      <div id="physiqueContent"></div>
+
+    <!-- Physique + Mobility side by side -->
+    <div class="ab-duo">
+      <div class="card" id="physiqueCard" style="display:none">
+        <h3>Physique profile</h3>
+        <div id="physiqueContent"></div>
+      </div>
+      <div class="card" id="mobilityCard" style="display:none">
+        <h3>Mobility & gait</h3>
+        <div id="mobilityContent"></div>
+      </div>
     </div>
-    <div class="card" id="mobilityCard" style="display:none">
-      <h3>Mobility & gait score</h3>
-      <div id="mobilityContent"></div>
-    </div>
+
+    <!-- Imbalances -->
     <div class="card" id="imbalanceCard" style="display:none">
       <h3>Imbalances to fix</h3>
       <div id="imbalanceContent"></div>
@@ -2030,6 +2147,8 @@ export function renderDashboard(): string {
 
 <script>
 var MUSCLE_MAP_SVG = \`${renderMuscleMap()}\`;
+var BODY_FRONT_SVG = \`${renderFrontBody()}\`;
+var BODY_BACK_SVG = \`${renderBackBody()}\`;
 function getToken() { try { return localStorage.getItem('healthToken') || ''; } catch (e) { return ''; } }
 function saveToken() {
   var t = document.getElementById('tokenInput').value.trim();
@@ -3020,11 +3139,16 @@ function toggleFab() {
 
 // ---- Body Analysis ----
 
+var _bodyData = null;
+
 async function loadBody() {
   try {
     var res = await authedFetch('/api/body');
-    renderBodyHero(res.bodyScore, res.composition);
-    renderBodyOverviewStrip(res.bodyScore, res.composition, res.mobility);
+    _bodyData = res;
+    renderAbScoreRing(res.bodyScore);
+    renderAbHeroStats(res.bodyScore, res.composition);
+    renderAbBody(res.muscleVolume);
+    renderBodyOverviewMini(res.bodyScore, res.muscleVolume, res.composition);
     renderBodyComposition(res.composition);
     renderMuscleVolume(res.muscleVolume);
     renderSymmetry(res.symmetry);
@@ -3032,53 +3156,133 @@ async function loadBody() {
     renderMobility(res.mobility);
     renderImbalances(res.symmetry);
   } catch (e) {
-    document.getElementById('bodyHero').innerHTML = '<div class="card"><div class="sub">Body data loading…</div></div>';
+    var hero = document.getElementById('abHero');
+    if (hero) hero.innerHTML = '<div class="card"><div class="sub">Body data loading…</div></div>';
   }
 }
 
-function renderBodyHero(score, comp) {
-  var el = document.getElementById('bodyHero');
-  if (!el || !score) return;
-  var scoreColor = score.total >= 80 ? 'var(--up)' : score.total >= 60 ? 'var(--pulse)' : score.total >= 40 ? 'var(--caution)' : 'var(--down)';
-  var html = '<div class="body-hero">';
-  html += '<div class="body-hero-main">';
-  html += '<div class="bh-score count-up" data-target="' + score.total + '" style="color:' + scoreColor + ';">0</div>';
-  html += '<div class="bh-label">' + score.label + '</div>';
-  html += '<div class="bh-sub">' + score.components.map(function(c) { return c.name + ' ' + c.score + '/' + c.maxScore; }).join(' · ') + '</div>';
-  html += '</div>';
-  if (comp.currentWeight !== null) {
-    var trendIcon = comp.weightTrend === 'losing' ? '↓' : comp.weightTrend === 'gaining' ? '↑' : '→';
-    var trendClass = comp.weightTrend === 'losing' ? 'down' : comp.weightTrend === 'gaining' ? 'up' : '';
-    html += '<div class="body-hero-stat"><div class="bhs-val">' + comp.currentWeight.toFixed(1) + '</div><div class="bhs-label">Weight kg</div>';
-    if (comp.weightDelta30d !== null) html += '<div class="bhs-delta ' + trendClass + '">' + trendIcon + ' ' + (comp.weightDelta30d > 0 ? '+' : '') + comp.weightDelta30d + ' kg/mo</div>';
-    html += '</div>';
-  }
-  if (comp.bodyFatPct !== null) {
-    html += '<div class="body-hero-stat"><div class="bhs-val">' + (comp.bodyFatPct * 100).toFixed(1) + '%</div><div class="bhs-label">Body fat</div></div>';
-  }
-  if (comp.bmi !== null) {
-    html += '<div class="body-hero-stat"><div class="bhs-val">' + comp.bmi + '</div><div class="bhs-label">BMI · ' + comp.bmiCategory + '</div></div>';
-  }
-  if (comp.estimatedLeanMass !== null) {
-    html += '<div class="body-hero-stat"><div class="bhs-val">' + comp.estimatedLeanMass + '</div><div class="bhs-label">Lean mass kg</div></div>';
-  }
-  html += '</div>';
-  el.innerHTML = html;
-  requestAnimationFrame(function() { animateCountUp(el.querySelector('.count-up')); });
+function renderAbScoreRing(score) {
+  if (!score) return;
+  var numEl = document.getElementById('abScoreNum');
+  var labelEl = document.getElementById('abScoreLabel');
+  var ringEl = document.getElementById('abRingFill');
+  if (!numEl || !ringEl) return;
+  numEl.setAttribute('data-target', String(score.total));
+  labelEl.textContent = score.label;
+  var circumference = 2 * Math.PI * 88;
+  var offset = circumference - (score.total / 100) * circumference;
+  requestAnimationFrame(function() {
+    ringEl.style.strokeDashoffset = String(offset);
+    animateCountUp(numEl);
+  });
 }
 
-function renderBodyOverviewStrip(score, comp, mobility) {
+function renderAbHeroStats(score, comp) {
+  var el = document.getElementById('abHeroStats');
+  if (!el) return;
+  var chips = [];
+  if (comp.currentWeight !== null) chips.push({ val: comp.currentWeight.toFixed(1) + ' kg', label: 'Weight' });
+  if (comp.bodyFatPct !== null) chips.push({ val: (comp.bodyFatPct * 100).toFixed(1) + '%', label: 'Body fat' });
+  if (comp.bmi !== null) chips.push({ val: comp.bmi, label: 'BMI' });
+  if (comp.estimatedLeanMass !== null) chips.push({ val: comp.estimatedLeanMass + ' kg', label: 'Lean' });
+  el.innerHTML = chips.map(function(c) {
+    return '<div class="ab-hs"><div class="ab-hs-val">' + c.val + '</div><div class="ab-hs-label">' + c.label + '</div></div>';
+  }).join('');
+}
+
+function renderAbBody(muscleVolume) {
+  var frontEl = document.getElementById('abBodyFront');
+  var backEl = document.getElementById('abBodyBack');
+  if (!frontEl || !backEl) return;
+  frontEl.innerHTML = BODY_FRONT_SVG;
+  backEl.innerHTML = BODY_BACK_SVG;
+  if (!muscleVolume) return;
+  [frontEl, backEl].forEach(function(container) {
+    muscleVolume.forEach(function(m) {
+      var regions = container.querySelectorAll('[data-muscle="' + m.muscle + '"]');
+      regions.forEach(function(r) {
+        r.classList.remove('m-optimal', 'm-undertrained', 'm-neglected', 'm-overtrained');
+        r.classList.add('m-' + m.status);
+        r.addEventListener('click', function(e) {
+          e.stopPropagation();
+          showMuscleDetail(m);
+        });
+      });
+    });
+  });
+}
+
+function toggleBodyView(view) {
+  var frontEl = document.getElementById('abBodyFront');
+  var backEl = document.getElementById('abBodyBack');
+  var btnF = document.getElementById('abToggleFront');
+  var btnB = document.getElementById('abToggleBack');
+  if (!frontEl || !backEl) return;
+  if (view === 'front') {
+    frontEl.classList.add('active');
+    backEl.classList.remove('active');
+    btnF.classList.add('active');
+    btnB.classList.remove('active');
+  } else {
+    backEl.classList.add('active');
+    frontEl.classList.remove('active');
+    btnB.classList.add('active');
+    btnF.classList.remove('active');
+  }
+}
+
+function showMuscleDetail(m) {
+  var panel = document.getElementById('abMuscleDetail');
+  var nameEl = document.getElementById('abMdName');
+  var contentEl = document.getElementById('abMdContent');
+  if (!panel || !contentEl) return;
+  panel.style.display = '';
+  nameEl.textContent = m.displayName;
+  var statusColor = m.status === 'optimal' ? 'var(--up)' : m.status === 'undertrained' ? 'var(--caution)' : m.status === 'overtrained' ? 'var(--royal)' : 'var(--down)';
+  var barPct = m.optimalRange.max > 0 ? Math.min(100, Math.round(m.weeklyAvgSets / m.optimalRange.max * 100)) : 0;
+  var html = '<div class="ab-md-grid">';
+  html += '<div class="ab-md-stat"><div class="amd-val">' + m.weeklyAvgSets + '</div><div class="amd-label">Sets/week</div></div>';
+  html += '<div class="ab-md-stat"><div class="amd-val" style="color:' + statusColor + ';">' + m.status + '</div><div class="amd-label">Status</div></div>';
+  html += '<div class="ab-md-stat"><div class="amd-val">' + m.optimalRange.min + '–' + m.optimalRange.max + '</div><div class="amd-label">Optimal range</div></div>';
+  html += '</div>';
+  html += '<div class="ab-md-bar"><div style="width:' + barPct + '%;background:' + statusColor + ';"></div></div>';
+  var reco = m.status === 'neglected' ? 'This muscle group needs attention. Add ' + m.optimalRange.min + '+ sets per week.' :
+             m.status === 'undertrained' ? 'Add ' + (m.optimalRange.min - m.weeklyAvgSets) + ' more sets to reach the optimal range.' :
+             m.status === 'overtrained' ? 'Consider reducing volume to avoid burnout.' :
+             'Volume is in the optimal range. Maintain current training.';
+  html += '<div class="ab-md-reco">' + reco + '</div>';
+  contentEl.innerHTML = html;
+  panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function renderBodyOverviewMini(score, muscleVolume, comp) {
   var el = document.getElementById('bodyOverviewStrip');
   if (!el || !score) return;
   el.style.display = '';
-  var items = [];
-  items.push({ val: score.total, label: 'Body score', onclick: "showTab('body')" });
-  if (comp.currentWeight !== null) items.push({ val: comp.currentWeight.toFixed(1), label: 'Weight', onclick: "showTab('body')" });
-  if (comp.bodyFatPct !== null) items.push({ val: (comp.bodyFatPct * 100).toFixed(1) + '%', label: 'Body fat', onclick: "showTab('body')" });
-  if (mobility && mobility.total) items.push({ val: mobility.total, label: 'Mobility', onclick: "showTab('body')" });
-  el.innerHTML = items.slice(0, 4).map(function(it) {
-    return '<div class="bos-item" onclick="' + it.onclick + '"><div class="bos-val">' + it.val + '</div><div class="bos-label">' + it.label + '</div></div>';
-  }).join('');
+  var statusCounts = { optimal: 0, undertrained: 0, neglected: 0, overtrained: 0 };
+  if (muscleVolume) muscleVolume.forEach(function(m) { if (statusCounts[m.status] !== undefined) statusCounts[m.status]++; });
+  var chips = '';
+  if (statusCounts.optimal > 0) chips += '<span class="ab-mini-chip optimal">' + statusCounts.optimal + ' optimal</span>';
+  if (statusCounts.undertrained > 0) chips += '<span class="ab-mini-chip undertrained">' + statusCounts.undertrained + ' under</span>';
+  if (statusCounts.neglected > 0) chips += '<span class="ab-mini-chip neglected">' + statusCounts.neglected + ' neglected</span>';
+  var miniSvg = BODY_FRONT_SVG.replace(/viewBox/, 'style="width:60px;height:auto;" viewBox');
+  el.innerHTML = '<div class="ab-mini-body" onclick="showTab(' + "'body'" + ')">' +
+    '<div>' + miniSvg + '</div>' +
+    '<div class="ab-mini-info">' +
+      '<div class="ab-mini-label">Body score</div>' +
+      '<div class="ab-mini-score" style="background:linear-gradient(135deg,var(--pulse),var(--up));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;">' + score.total + '</div>' +
+      '<div class="ab-mini-chips">' + chips + '</div>' +
+    '</div>' +
+  '</div>';
+  if (muscleVolume) {
+    var miniContainer = el.querySelector('.ab-mini-body svg');
+    if (miniContainer) {
+      muscleVolume.forEach(function(m) {
+        var regions = miniContainer.querySelectorAll('[data-muscle="' + m.muscle + '"]');
+        regions.forEach(function(r) { r.classList.add('m-' + m.status); });
+      });
+    }
+  }
 }
 
 function renderBodyComposition(comp) {
@@ -3115,22 +3319,10 @@ function renderMuscleVolume(items) {
   var el = document.getElementById('muscleVolumeContent');
   if (!el || !items || items.length === 0) return;
   card.style.display = '';
-  // Light up the body silhouette by training status
-  var mapEl = document.getElementById('bodyMuscleMap');
-  if (mapEl) {
-    mapEl.innerHTML = MUSCLE_MAP_SVG;
-    items.forEach(function(m) {
-      var regions = mapEl.querySelectorAll('[data-muscle="' + m.muscle + '"]');
-      regions.forEach(function(r) {
-        if (m.status === 'optimal') r.classList.add('lit');
-        else if (m.status === 'undertrained') r.classList.add('lit-secondary');
-      });
-    });
-  }
   el.innerHTML = '<div class="muscle-vol-grid">' + items.map(function(m) {
     var barColor = m.status === 'optimal' ? 'var(--up)' : m.status === 'undertrained' ? 'var(--caution)' : m.status === 'overtrained' ? 'var(--royal)' : 'var(--down)';
     var barWidth = m.optimalRange.max > 0 ? Math.min(100, Math.round(m.weeklyAvgSets / m.optimalRange.max * 100)) : 0;
-    return '<div class="mv-card ' + m.status + '">' +
+    return '<div class="mv-card ' + m.status + '" onclick="showMuscleDetail(_bodyData && _bodyData.muscleVolume ? _bodyData.muscleVolume.find(function(x){return x.muscle===' + "'" + m.muscle + "'" + ';}) : null)" style="cursor:pointer;">' +
       '<div class="mv-name">' + m.displayName + '</div>' +
       '<div class="mv-sets">' + m.weeklyAvgSets + '<small> sets/wk</small></div>' +
       '<div class="mv-bar"><div style="width:' + barWidth + '%;background:' + barColor + ';"></div></div>' +
