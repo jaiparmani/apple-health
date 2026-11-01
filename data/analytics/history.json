@@ -41045,6 +41045,32 @@
           "weight": 0.15
         }
       ]
+    },
+    {
+      "date": "2026-11-01",
+      "chronologicalAge": 25,
+      "biologicalAge": 40,
+      "deltaYears": 15,
+      "markers": [
+        {
+          "marker": "Walking speed (gait)",
+          "value": 1.1897060957060959,
+          "markerAge": 62.01959361959361,
+          "weight": 0.2
+        },
+        {
+          "marker": "Heart rate variability",
+          "value": 31.274131509948244,
+          "markerAge": 52.8764474834196,
+          "weight": 0.2
+        },
+        {
+          "marker": "Resting heart rate",
+          "value": 66.14285714285714,
+          "markerAge": 35.714285714285694,
+          "weight": 0.15
+        }
+      ]
     }
   ]
 }
