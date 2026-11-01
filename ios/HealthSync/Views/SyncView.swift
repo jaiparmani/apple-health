@@ -92,9 +92,13 @@ struct SyncView: View {
                 .foregroundStyle(.red)
         }
         if let lastSync = syncManager.lastSyncDate {
-            Label("Last sync: \(lastSync, style: .relative) ago", systemImage: "clock")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            Label {
+                Text("Last sync: \(lastSync, style: .relative) ago")
+            } icon: {
+                Image(systemName: "clock")
+            }
+            .font(.subheadline)
+            .foregroundStyle(.secondary)
         }
     }
 }

@@ -36,7 +36,8 @@ final class HealthKitManager {
         .init(identifier: .bodyTemperature, key: "bodyTemperature",
               unit: .degreeCelsius(), style: .discreteAvg),
         .init(identifier: .vo2Max, key: "vo2max",
-              unit: HKUnit(from: "ml/kg*min"), style: .discreteAvg),
+              unit: HKUnit.literUnit(with: .milli).unitDivided(by: HKUnit.gramUnit(with: .kilo).unitMultiplied(by: .minute())),
+              style: .discreteAvg),
         // Activity
         .init(identifier: .stepCount, key: "steps",
               unit: .count(), style: .cumulativeSum),
@@ -172,12 +173,6 @@ final class HealthKitManager {
                 }
             }
 
-            // Sleep
-            group.addTask {
-                let sleep = try? await self.querySleep(predicate: predicate)
-                return ("_sleep", sleep != nil ? 1 : nil)
-            }
-
             // Mindful minutes
             group.addTask {
                 let mins = try? await self.queryMindfulMinutes(predicate: predicate)
@@ -189,7 +184,7 @@ final class HealthKitManager {
             }
         }
 
-        // Sleep is handled separately via querySleep which sets multiple fields
+        // Sleep sets multiple fields, so query it outside the (String, Double?) task group
         let sleep = try? await querySleep(predicate: predicate)
         if let sleep {
             metrics.sleepHours = sleep.totalHours
