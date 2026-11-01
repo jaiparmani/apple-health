@@ -5,7 +5,7 @@ import BackgroundTasks
 final class SyncManager: ObservableObject {
     static let shared = SyncManager()
 
-    @AppStorage("serverURL") var serverURL: String = ""
+    @AppStorage("serverURL") var serverURL: String = "https://apple-health.brain-store.workers.dev"
     @AppStorage("ingestToken") var ingestToken: String = ""
     @AppStorage("autoSync") var autoSync: Bool = true
     @AppStorage("lastSyncDate") var lastSyncDateString: String = ""
