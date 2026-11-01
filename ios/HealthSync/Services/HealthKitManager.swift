@@ -1,7 +1,8 @@
 import HealthKit
 import Foundation
 
-final class HealthKitManager {
+// All stored state is immutable, so sharing across concurrent tasks is safe.
+final class HealthKitManager: @unchecked Sendable {
     static let shared = HealthKitManager()
     private let store = HKHealthStore()
 
@@ -112,77 +113,72 @@ final class HealthKitManager {
         let dateString = Self.dateFormatter.string(from: date)
 
         var metrics = HealthMetrics(date: dateString)
-        var results: [String: Double] = [:]
 
-        await withTaskGroup(of: (String, Double?).self) { group in
+        // Each task builds its own predicate from the (Sendable) dates, since
+        // NSPredicate can't safely cross task boundaries.
+        let results: [String: Double] = await withTaskGroup(of: (String, Double?).self) { group in
             for q in quantityQueries {
                 guard let sampleType = HKQuantityType.quantityType(forIdentifier: q.identifier) else {
                     continue
                 }
                 let key = q.key
                 let unit = q.unit
-                let style = q.style
 
-                switch style {
+                switch q.style {
                 case .cumulativeSum:
-                    group.addTask { [store] in
+                    group.addTask {
                         let value = try? await self.statisticsValue(
-                            store: store, type: sampleType, predicate: predicate,
-                            unit: unit, option: .cumulativeSum, extraction: \.sumQuantity
+                            type: sampleType, start: startOfDay, end: endOfDay,
+                            unit: unit, option: .cumulativeSum
                         )
                         return (key, value)
                     }
                 case .discreteAvg:
-                    group.addTask { [store] in
+                    group.addTask {
                         let value = try? await self.statisticsValue(
-                            store: store, type: sampleType, predicate: predicate,
-                            unit: unit, option: .discreteAverage, extraction: \.averageQuantity
+                            type: sampleType, start: startOfDay, end: endOfDay,
+                            unit: unit, option: .discreteAverage
                         )
                         return (key, value)
                     }
                 case .discreteMinMaxAvg:
-                    for (suffix, option, extraction) in [
-                        ("Avg", HKStatisticsOptions.discreteAverage,
-                         \HKStatistics.averageQuantity as KeyPath<HKStatistics, HKQuantity?>),
-                        ("Min", HKStatisticsOptions.discreteMin,
-                         \HKStatistics.minimumQuantity as KeyPath<HKStatistics, HKQuantity?>),
-                        ("Max", HKStatisticsOptions.discreteMax,
-                         \HKStatistics.maximumQuantity as KeyPath<HKStatistics, HKQuantity?>),
-                    ] {
+                    let variants: [(String, HKStatisticsOptions)] = [
+                        ("Avg", .discreteAverage),
+                        ("Min", .discreteMin),
+                        ("Max", .discreteMax),
+                    ]
+                    for (suffix, option) in variants {
                         let resultKey = key + suffix
-                        group.addTask { [store] in
+                        group.addTask {
                             let value = try? await self.statisticsValue(
-                                store: store, type: sampleType, predicate: predicate,
-                                unit: unit, option: option, extraction: extraction
+                                type: sampleType, start: startOfDay, end: endOfDay,
+                                unit: unit, option: option
                             )
                             return (resultKey, value)
                         }
                     }
                 case .mostRecent:
-                    group.addTask { [store] in
+                    group.addTask {
                         let value = try? await self.mostRecentValue(
-                            store: store, type: sampleType, predicate: predicate, unit: unit
+                            type: sampleType, start: startOfDay, end: endOfDay, unit: unit
                         )
                         return (key, value)
                     }
                 }
             }
 
-            // Sleep
-            group.addTask {
-                let sleep = try? await self.querySleep(predicate: predicate)
-                return ("_sleep", sleep != nil ? 1 : nil)
-            }
-
             // Mindful minutes
             group.addTask {
+                let predicate = Self.dayPredicate(start: startOfDay, end: endOfDay)
                 let mins = try? await self.queryMindfulMinutes(predicate: predicate)
                 return ("mindfulMinutes", mins)
             }
 
+            var collected: [String: Double] = [:]
             for await (key, value) in group {
-                if let value { results[key] = value }
+                if let value { collected[key] = value }
             }
+            return collected
         }
 
         // Sleep is handled separately via querySleep which sets multiple fields
@@ -231,15 +227,19 @@ final class HealthKitManager {
 
     // MARK: - Private Helpers
 
+    private static func dayPredicate(start: Date, end: Date) -> NSPredicate {
+        HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+    }
+
     private func statisticsValue(
-        store: HKHealthStore,
         type: HKQuantityType,
-        predicate: NSPredicate,
+        start: Date,
+        end: Date,
         unit: HKUnit,
-        option: HKStatisticsOptions,
-        extraction: KeyPath<HKStatistics, HKQuantity?>
+        option: HKStatisticsOptions
     ) async throws -> Double? {
-        try await withCheckedThrowingContinuation { continuation in
+        let predicate = Self.dayPredicate(start: start, end: end)
+        return try await withCheckedThrowingContinuation { continuation in
             let query = HKStatisticsQuery(
                 quantityType: type, quantitySamplePredicate: predicate,
                 options: option
@@ -248,20 +248,28 @@ final class HealthKitManager {
                     continuation.resume(throwing: error)
                     return
                 }
-                let value = stats?[keyPath: extraction]?.doubleValue(for: unit)
-                continuation.resume(returning: value)
+                // Pick the quantity matching the requested statistics option.
+                let quantity: HKQuantity?
+                switch option {
+                case .cumulativeSum: quantity = stats?.sumQuantity()
+                case .discreteMin: quantity = stats?.minimumQuantity()
+                case .discreteMax: quantity = stats?.maximumQuantity()
+                default: quantity = stats?.averageQuantity()
+                }
+                continuation.resume(returning: quantity?.doubleValue(for: unit))
             }
             store.execute(query)
         }
     }
 
     private func mostRecentValue(
-        store: HKHealthStore,
         type: HKQuantityType,
-        predicate: NSPredicate,
+        start: Date,
+        end: Date,
         unit: HKUnit
     ) async throws -> Double? {
-        try await withCheckedThrowingContinuation { continuation in
+        let predicate = Self.dayPredicate(start: start, end: end)
+        return try await withCheckedThrowingContinuation { continuation in
             let sort = NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: false)
             let query = HKSampleQuery(
                 sampleType: type, predicate: predicate,
