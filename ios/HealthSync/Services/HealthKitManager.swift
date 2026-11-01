@@ -141,22 +141,26 @@ final class HealthKitManager {
                         return (key, value)
                     }
                 case .discreteMinMaxAvg:
-                    for (suffix, option, extraction) in [
-                        ("Avg", HKStatisticsOptions.discreteAverage,
-                         \HKStatistics.averageQuantity as KeyPath<HKStatistics, HKQuantity?>),
-                        ("Min", HKStatisticsOptions.discreteMin,
-                         \HKStatistics.minimumQuantity as KeyPath<HKStatistics, HKQuantity?>),
-                        ("Max", HKStatisticsOptions.discreteMax,
-                         \HKStatistics.maximumQuantity as KeyPath<HKStatistics, HKQuantity?>),
-                    ] {
-                        let resultKey = key + suffix
-                        group.addTask { [store] in
-                            let value = try? await self.statisticsValue(
-                                store: store, type: sampleType, predicate: predicate,
-                                unit: unit, option: option, extraction: extraction
-                            )
-                            return (resultKey, value)
-                        }
+                    group.addTask { [store] in
+                        let value = try? await self.statisticsValue(
+                            store: store, type: sampleType, predicate: predicate,
+                            unit: unit, option: .discreteAverage, extraction: \.averageQuantity
+                        )
+                        return (key + "Avg", value)
+                    }
+                    group.addTask { [store] in
+                        let value = try? await self.statisticsValue(
+                            store: store, type: sampleType, predicate: predicate,
+                            unit: unit, option: .discreteMin, extraction: \.minimumQuantity
+                        )
+                        return (key + "Min", value)
+                    }
+                    group.addTask { [store] in
+                        let value = try? await self.statisticsValue(
+                            store: store, type: sampleType, predicate: predicate,
+                            unit: unit, option: .discreteMax, extraction: \.maximumQuantity
+                        )
+                        return (key + "Max", value)
                     }
                 case .mostRecent:
                     group.addTask { [store] in
