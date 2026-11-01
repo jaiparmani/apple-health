@@ -40976,14 +40976,14 @@
       "markers": [
         {
           "marker": "Walking speed (gait)",
-          "value": 1.1929004329004331,
-          "markerAge": 61.80663780663779,
+          "value": 1.1966147186147187,
+          "markerAge": 61.559018759018755,
           "weight": 0.2
         },
         {
           "marker": "Heart rate variability",
-          "value": 28.117659194988175,
-          "markerAge": 58.13723467501971,
+          "value": 28.121353224288903,
+          "markerAge": 58.13107795951849,
           "weight": 0.2
         },
         {
