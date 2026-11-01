@@ -46692,6 +46692,28 @@
       "sleepRemHours": 0,
       "sleepAwakeHours": 0.07522093610631095,
       "sleepInBedHours": 1.5880405180652937
+    },
+    {
+      "date": "2026-11-01",
+      "receivedAt": "2026-11-01T18:46:41.163Z",
+      "source": "ios-app",
+      "restingHeartRate": 78,
+      "heartRateAvg": 94.67304740014872,
+      "heartRateMin": 70,
+      "heartRateMax": 146,
+      "walkingHeartRateAvg": 114.5,
+      "hrv": 29.19836593139186,
+      "steps": 1379,
+      "activeEnergy": 243.15400000000002,
+      "basalEnergy": 2047.685000000002,
+      "exerciseMinutes": 2,
+      "standMinutes": 62,
+      "flightsClimbed": 1,
+      "distanceKm": 1.0871290920263854,
+      "daylightMinutes": 25,
+      "walkingSpeed": 1.0833333333333333,
+      "walkingStepLength": 64.16666666666667,
+      "walkingDoubleSupportPct": 0.301
     }
   ]
 }
