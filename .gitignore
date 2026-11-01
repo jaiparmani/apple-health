@@ -2,3 +2,10 @@ node_modules/
 .wrangler/
 .dev.vars
 *.log
+
+# Xcode
+ios/HealthSync.xcodeproj/
+ios/build/
+ios/DerivedData/
+*.xcuserstate
+*.xcuserdatad
