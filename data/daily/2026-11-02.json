@@ -1,0 +1,17 @@
+{
+  "date": "2026-11-02",
+  "receivedAt": "2026-11-02T05:28:01.567Z",
+  "source": "ios-app",
+  "heartRateAvg": 121.55186458121536,
+  "heartRateMin": 102,
+  "heartRateMax": 148,
+  "walkingHeartRateAvg": 106,
+  "steps": 2000,
+  "activeEnergy": 409.9109999999997,
+  "basalEnergy": 890.699999999988,
+  "exerciseMinutes": 57,
+  "standMinutes": 55,
+  "flightsClimbed": 1,
+  "distanceKm": 1.5848756315425272,
+  "daylightMinutes": 10
+}
