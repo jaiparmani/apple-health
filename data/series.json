@@ -46717,20 +46717,26 @@
     },
     {
       "date": "2026-11-02",
-      "receivedAt": "2026-11-02T05:28:01.567Z",
+      "receivedAt": "2026-11-02T10:04:58.322Z",
       "source": "ios-app",
-      "heartRateAvg": 121.55186458121536,
-      "heartRateMin": 102,
+      "heartRateAvg": 111.81846184254613,
+      "heartRateMin": 72,
       "heartRateMax": 148,
-      "walkingHeartRateAvg": 106,
-      "steps": 2000,
-      "activeEnergy": 409.9109999999997,
-      "basalEnergy": 890.699999999988,
-      "exerciseMinutes": 57,
-      "standMinutes": 55,
-      "flightsClimbed": 1,
-      "distanceKm": 1.5848756315425272,
-      "daylightMinutes": 10
+      "walkingHeartRateAvg": 109,
+      "steps": 3414,
+      "activeEnergy": 514.0169999999998,
+      "basalEnergy": 1326.0049999999876,
+      "exerciseMinutes": 62,
+      "standMinutes": 75,
+      "flightsClimbed": 4,
+      "distanceKm": 2.8279681816982336,
+      "daylightMinutes": 30,
+      "restingHeartRate": 73,
+      "hrv": 61.01661477893111,
+      "walkingSpeed": 1.2525,
+      "walkingStepLength": 72.33333333333333,
+      "walkingAsymmetryPct": 0.0012499999999999998,
+      "walkingDoubleSupportPct": 0.2901666666666667
     }
   ]
 }
