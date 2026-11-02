@@ -129,6 +129,22 @@ export function normalizePayload(raw: unknown, source?: string): DailyMetrics {
     metrics.workoutType = obj.workoutType;
   }
 
+  // Per-session strain from the iOS app's HKWorkout sync. Only well-formed
+  // entries survive, so a malformed client can't poison downstream math.
+  if (Array.isArray(obj.workoutStrains)) {
+    const strains: NonNullable<DailyMetrics["workoutStrains"]> = [];
+    for (const w of obj.workoutStrains as unknown[]) {
+      if (typeof w !== "object" || w === null) continue;
+      const rec = w as Record<string, unknown>;
+      const strain = toNumber(rec.strain);
+      const minutes = toNumber(rec.minutes);
+      if (typeof rec.type !== "string" || strain === undefined || minutes === undefined) continue;
+      const avgHR = toNumber(rec.avgHR);
+      strains.push(avgHR === undefined ? { type: rec.type, strain, minutes } : { type: rec.type, strain, minutes, avgHR });
+    }
+    if (strains.length > 0) metrics.workoutStrains = strains;
+  }
+
   return metrics;
 }
 

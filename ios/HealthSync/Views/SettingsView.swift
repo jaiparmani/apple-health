@@ -12,22 +12,34 @@ struct SettingsView: View {
                         .autocorrectionDisabled()
                         .textInputAutocapitalization(.never)
                         .keyboardType(.URL)
-                    SecureField("Ingest Token", text: $syncManager.ingestToken)
-                        .textContentType(.password)
-                        .autocorrectionDisabled()
-                        .textInputAutocapitalization(.never)
+                    HStack {
+                        SecureField("Ingest Token", text: $syncManager.ingestToken)
+                            .textContentType(.password)
+                            .autocorrectionDisabled()
+                            .textInputAutocapitalization(.never)
+                        PasteButton(payloadType: String.self) { strings in
+                            if let token = strings.first?.trimmingCharacters(in: .whitespacesAndNewlines) {
+                                syncManager.ingestToken = token
+                            }
+                        }
+                        .labelStyle(.iconOnly)
+                        .buttonBorderShape(.capsule)
+                    }
                 } header: {
                     Text("Server")
                 } footer: {
-                    Text("Your Cloudflare Worker URL (e.g. https://apple-health.your-subdomain.workers.dev) and the INGEST_TOKEN you set up.")
+                    Text("Your Cloudflare Worker URL (e.g. https://apple-health.your-subdomain.workers.dev) and the INGEST_TOKEN you set up. The token is stored in the iOS Keychain.")
                 }
 
                 Section {
                     Toggle("Auto Sync", isOn: $syncManager.autoSync)
+                        .onChange(of: syncManager.autoSync) {
+                            SyncManager.scheduleBackgroundSync()
+                        }
                 } header: {
                     Text("Background")
                 } footer: {
-                    Text("Automatically sync health data every few hours in the background.")
+                    Text("Syncs whenever Apple Health records new sleep, HRV, resting heart rate or workouts (at most every 15 minutes), plus a periodic background refresh. Failed days are retried automatically for 14 days.")
                 }
 
                 Section {

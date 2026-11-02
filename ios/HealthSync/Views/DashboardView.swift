@@ -12,6 +12,16 @@ struct DashboardView: View {
                         configBanner
                     }
 
+                    TodaySummaryCard(snapshot: syncManager.snapshot)
+
+                    BriefCard(brief: syncManager.brief, isLoading: syncManager.isGeneratingBrief) {
+                        Task { await syncManager.loadBrief(regenerate: true) }
+                    }
+
+                    if let prediction = syncManager.prediction {
+                        PredictionCard(prediction: prediction)
+                    }
+
                     if let metrics = syncManager.todayMetrics {
                         metricsGrid(metrics)
                     } else {
@@ -27,6 +37,7 @@ struct DashboardView: View {
                         Task {
                             isLoading = true
                             await loadMetrics()
+                            await syncManager.refreshInsights()
                             isLoading = false
                         }
                     } label: {

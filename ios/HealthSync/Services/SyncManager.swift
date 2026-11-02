@@ -1,45 +1,57 @@
 import SwiftUI
 import BackgroundTasks
 
+/// UI-facing state. All actual sync work is delegated to `SyncEngine`, which is also
+/// used by background delivery, BGTask refreshes and App Intents.
 @MainActor
 final class SyncManager: ObservableObject {
     static let shared = SyncManager()
 
-    @AppStorage("serverURL") var serverURL: String = ""
-    @AppStorage("ingestToken") var ingestToken: String = ""
+    @AppStorage("serverURL") var serverURL: String = AppConfig.defaultServerURL
     @AppStorage("autoSync") var autoSync: Bool = true
-    @AppStorage("lastSyncDate") var lastSyncDateString: String = ""
+
+    /// Stored in the Keychain, never in UserDefaults or source.
+    @Published var ingestToken: String {
+        didSet { AppConfig.token = ingestToken }
+    }
 
     @Published var isSyncing = false
     @Published var lastError: String?
     @Published var todayMetrics: HealthMetrics?
     @Published var syncHistory: [SyncRecord] = []
     @Published var healthKitAuthorized = false
+    @Published var lastSyncDate: Date?
+    @Published var snapshot: HealthSnapshot?
+    @Published var prediction: RecoveryPrediction?
+    @Published var brief: BriefContent?
+    @Published var isGeneratingBrief = false
+    @Published var backfillProgress: (done: Int, total: Int)?
 
-    private let healthKit = HealthKitManager.shared
-    private let syncService = SyncService.shared
+    private let engine = SyncEngine.shared
 
     init() {
-        loadSyncHistory()
+        AppConfig.migrateLegacyToken()
+        ingestToken = AppConfig.token
+        reloadFromStore()
     }
 
     var isConfigured: Bool {
         !serverURL.isEmpty && !ingestToken.isEmpty
     }
 
-    var lastSyncDate: Date? {
-        guard !lastSyncDateString.isEmpty else { return nil }
-        return ISO8601DateFormatter().date(from: lastSyncDateString)
+    var dashboardURL: URL? {
+        URL(string: AppConfig.serverURL)
     }
 
     func requestHealthKitAccess() async {
-        guard healthKit.isAvailable else {
+        guard HealthKitManager.shared.isAvailable else {
             lastError = "HealthKit not available on this device"
             return
         }
         do {
-            try await healthKit.requestAuthorization()
+            try await HealthKitManager.shared.requestAuthorization()
             healthKitAuthorized = true
+            await engine.startObserving()
         } catch {
             lastError = error.localizedDescription
         }
@@ -50,51 +62,10 @@ final class SyncManager: ObservableObject {
             lastError = SyncError.noConfiguration.localizedDescription
             return
         }
-
         isSyncing = true
         lastError = nil
-
-        do {
-            let metrics = try await healthKit.queryMetrics(for: Date())
-            todayMetrics = metrics
-
-            if metrics.nonNilCount == 0 {
-                lastError = "No health data found for today"
-                isSyncing = false
-                return
-            }
-
-            let response = try await syncService.sync(
-                metrics: metrics, serverURL: serverURL, token: ingestToken
-            )
-
-            let record = SyncRecord(
-                id: UUID(),
-                date: metrics.date,
-                syncedAt: Date(),
-                metricsCount: metrics.nonNilCount,
-                success: response.ok ?? false,
-                errorMessage: response.error
-            )
-            appendSyncRecord(record)
-            lastSyncDateString = ISO8601DateFormatter().string(from: Date())
-
-            if let err = response.error {
-                lastError = err
-            }
-        } catch {
-            let record = SyncRecord(
-                id: UUID(),
-                date: HealthKitManager.dateFormatter.string(from: Date()),
-                syncedAt: Date(),
-                metricsCount: 0,
-                success: false,
-                errorMessage: error.localizedDescription
-            )
-            appendSyncRecord(record)
-            lastError = error.localizedDescription
-        }
-
+        let outcome = await engine.syncRecent(trigger: .manual)
+        apply(outcome)
         isSyncing = false
     }
 
@@ -103,76 +74,71 @@ final class SyncManager: ObservableObject {
             lastError = SyncError.noConfiguration.localizedDescription
             return
         }
-
         isSyncing = true
         lastError = nil
-
-        var current = Calendar.current.startOfDay(for: start)
-        let endDay = Calendar.current.startOfDay(for: end)
-        var synced = 0
-        var failed = 0
-
-        while current <= endDay {
-            do {
-                let metrics = try await healthKit.queryMetrics(for: current)
-                if metrics.nonNilCount > 0 {
-                    let _ = try await syncService.sync(
-                        metrics: metrics, serverURL: serverURL, token: ingestToken
-                    )
-                    synced += 1
-                }
-            } catch {
-                failed += 1
-            }
-            current = Calendar.current.date(byAdding: .day, value: 1, to: current) ?? endDay.addingTimeInterval(86400)
+        backfillProgress = (0, 1)
+        let outcome = await engine.backfill(from: start, to: end) { done, total in
+            Task { @MainActor in SyncManager.shared.backfillProgress = (done, total) }
         }
-
-        lastSyncDateString = ISO8601DateFormatter().string(from: Date())
-        if failed > 0 {
-            lastError = "Synced \(synced) days, \(failed) failed"
+        apply(outcome)
+        if outcome.failed > 0 {
+            lastError = "Synced \(outcome.synced) days, \(outcome.failed) failed: \(outcome.lastError ?? "")"
         }
+        backfillProgress = nil
         isSyncing = false
     }
 
-    nonisolated func performBackgroundSync() async {
-        let serverURL = await self.serverURL
-        let ingestToken = await self.ingestToken
-        guard !serverURL.isEmpty, !ingestToken.isEmpty else { return }
-
-        do {
-            let metrics = try await HealthKitManager.shared.queryMetrics(for: Date())
-            guard metrics.nonNilCount > 0 else { return }
-            let _ = try await SyncService.shared.sync(
-                metrics: metrics, serverURL: serverURL, token: ingestToken
-            )
-        } catch {
-            // Background sync failures are silent
+    /// Called whenever the app becomes active: catch up, then make sure today's brief exists.
+    func onForeground() async {
+        reloadFromStore()
+        guard isConfigured else { return }
+        let outcome = await engine.syncRecent(trigger: .foreground)
+        apply(outcome)
+        if brief?.date != HealthKitManager.dateFormatter.string(from: Date()) {
+            await loadBrief(regenerate: false)
         }
     }
 
+    func refreshInsights() async {
+        snapshot = await engine.refreshInsights(today: todayMetrics, forcePrediction: true)
+        reloadFromStore()
+    }
+
+    func loadBrief(regenerate: Bool) async {
+        isGeneratingBrief = true
+        brief = await engine.brief(regenerate: regenerate)
+        snapshot = SharedStore.snapshot
+        isGeneratingBrief = false
+    }
+
+    private func apply(_ outcome: SyncEngine.Outcome) {
+        if let today = outcome.today { todayMetrics = today }
+        if let error = outcome.lastError { lastError = error }
+        reloadFromStore()
+    }
+
+    private func reloadFromStore() {
+        syncHistory = SyncEngine.loadHistory()
+        lastSyncDate = SharedStore.lastSuccessfulSync
+        snapshot = SharedStore.snapshot
+        prediction = SharedStore.prediction
+        brief = SharedStore.brief
+    }
+
+    // MARK: - BGTaskScheduler fallback
+
+    static let autoSyncInterval: TimeInterval = 2 * 3600
+    static let refreshTaskIdentifier = "com.jaiparmani.HealthSync.refresh"
+
+    /// Submits (or cancels) the background refresh request based on the Auto Sync setting.
+    /// HealthKit background delivery is the primary trigger; this is a safety net.
     static func scheduleBackgroundSync() {
-        let request = BGAppRefreshTaskRequest(identifier: "com.jaiparmani.HealthSync.refresh")
-        request.earliestBeginDate = Date(timeIntervalSinceNow: 4 * 3600)
-        try? BGTaskScheduler.shared.submit(request)
-    }
-
-    // MARK: - Persistence
-
-    private func appendSyncRecord(_ record: SyncRecord) {
-        syncHistory.insert(record, at: 0)
-        if syncHistory.count > 50 { syncHistory = Array(syncHistory.prefix(50)) }
-        saveSyncHistory()
-    }
-
-    private func saveSyncHistory() {
-        if let data = try? JSONEncoder().encode(syncHistory) {
-            UserDefaults.standard.set(data, forKey: "syncHistory")
+        guard AppConfig.autoSync else {
+            BGTaskScheduler.shared.cancel(taskRequestWithIdentifier: refreshTaskIdentifier)
+            return
         }
-    }
-
-    private func loadSyncHistory() {
-        guard let data = UserDefaults.standard.data(forKey: "syncHistory"),
-              let records = try? JSONDecoder().decode([SyncRecord].self, from: data) else { return }
-        syncHistory = records
+        let request = BGAppRefreshTaskRequest(identifier: refreshTaskIdentifier)
+        request.earliestBeginDate = Date(timeIntervalSinceNow: autoSyncInterval)
+        try? BGTaskScheduler.shared.submit(request)
     }
 }

@@ -29,6 +29,22 @@ describe("normalizePayload", () => {
     expect(result.workoutType).toBe("Running");
   });
 
+  it("passes through well-formed workoutStrains and drops malformed entries", () => {
+    const result = normalizePayload({
+      date: "2026-01-01",
+      workoutStrains: [
+        { type: "Running", strain: 9.4, minutes: 42, avgHR: 151 },
+        { type: "Yoga", strain: "2.1", minutes: 30 },
+        { type: "Bad", minutes: 10 },
+        "garbage",
+      ],
+    }, "ios-app");
+    expect(result.workoutStrains).toEqual([
+      { type: "Running", strain: 9.4, minutes: 42, avgHR: 151 },
+      { type: "Yoga", strain: 2.1, minutes: 30 },
+    ]);
+  });
+
   it("ignores unknown fields instead of throwing", () => {
     const result = normalizePayload({ date: "2026-01-01", madeUpField: 42 }, "shortcut");
     expect((result as unknown as Record<string, unknown>).madeUpField).toBeUndefined();

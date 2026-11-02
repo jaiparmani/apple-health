@@ -28,8 +28,16 @@ struct SyncView: View {
                         }
                         .disabled(syncManager.isSyncing)
                     }
+                    if let progress = syncManager.backfillProgress {
+                        ProgressView(value: Double(progress.done), total: Double(max(progress.total, 1))) {
+                            Text("Reading Health data… \(progress.done)/\(progress.total) days")
+                                .font(.caption)
+                        }
+                    }
                 } header: {
                     Text("Backfill")
+                } footer: {
+                    Text("Uploads in 31-day batches. Re-run for the last 60 days once after updating, so past days get the new sleep window, overnight HRV and workout data.")
                 }
 
                 if !syncManager.syncHistory.isEmpty {
@@ -39,9 +47,10 @@ struct SyncView: View {
                                 VStack(alignment: .leading, spacing: 2) {
                                     Text(record.date)
                                         .font(.subheadline.weight(.medium))
-                                    Text("\(record.metricsCount) metrics")
+                                    Text(record.errorMessage ?? "\(record.metricsCount) metrics")
                                         .font(.caption)
                                         .foregroundStyle(.secondary)
+                                        .lineLimit(2)
                                 }
                                 Spacer()
                                 VStack(alignment: .trailing, spacing: 2) {
