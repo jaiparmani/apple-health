@@ -46735,28 +46735,28 @@
     },
     {
       "date": "2026-11-02",
-      "receivedAt": "2026-11-02T12:49:42.730Z",
+      "receivedAt": "2026-11-02T16:05:56.587Z",
       "source": "ios-app",
-      "heartRateAvg": 105.88846656158078,
+      "heartRateAvg": 104.71766875394803,
       "heartRateMin": 52,
       "heartRateMax": 148,
       "walkingHeartRateAvg": 108,
-      "steps": 5279,
-      "activeEnergy": 622.2279999999994,
-      "basalEnergy": 1583.2599999999868,
-      "exerciseMinutes": 68,
-      "standMinutes": 114,
+      "steps": 5472,
+      "activeEnergy": 664.7240000000013,
+      "basalEnergy": 1923.0229999999901,
+      "exerciseMinutes": 70,
+      "standMinutes": 116,
       "flightsClimbed": 6,
-      "distanceKm": 4.379310275994241,
-      "daylightMinutes": 30,
+      "distanceKm": 4.537012705461355,
+      "daylightMinutes": 33,
       "restingHeartRate": 69,
       "hrv": 39.70623139940229,
       "walkingSpeed": 1.2604761904761905,
       "walkingStepLength": 71.5238095238095,
       "walkingAsymmetryPct": 0.004285714285714286,
       "walkingDoubleSupportPct": 0.28733333333333333,
-      "hrZone1Min": 252.2,
-      "hrZone2Min": 52.4,
+      "hrZone1Min": 294.5,
+      "hrZone2Min": 55,
       "hrZone3Min": 7.1,
       "hrZone4Min": 0,
       "hrZone5Min": 0,
@@ -46765,9 +46765,23 @@
       "workoutEnergy": 344.4668826592704,
       "activeEnergyGoal": 360,
       "exerciseMinutesGoal": 30,
-      "standHours": 8,
+      "standHours": 9,
       "standHoursGoal": 6,
-      "workoutType": "TraditionalStrengthTraining,Cycling"
+      "workoutType": "TraditionalStrengthTraining,Cycling",
+      "workoutStrains": [
+        {
+          "type": "Cycling",
+          "strain": 1.7,
+          "minutes": 9.5,
+          "avgHR": 117
+        },
+        {
+          "type": "TraditionalStrengthTraining",
+          "strain": 6.2,
+          "minutes": 35.2,
+          "avgHR": 125
+        }
+      ]
     }
   ]
 }
