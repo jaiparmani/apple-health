@@ -850,6 +850,17 @@ export function renderDashboard(): string {
   .qg-expand .qe-day .qed-val { font-family:var(--mono); font-size:13px; font-weight:700; }
   .qg-expand .qe-day .qed-label { color:var(--dim); }
   .qg-expand .qe-insight { font-size:12px; color:var(--dim); margin-top:8px; padding-top:8px; border-top:1px solid var(--line); }
+  /* today activity grid */
+  .ta-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; }
+  .ta-item { background:var(--panel2); border-radius:10px; padding:12px 10px; text-align:center; position:relative; overflow:hidden; }
+  .ta-item .ta-icon { font-size:16px; margin-bottom:4px; }
+  .ta-item .ta-val { font-family:var(--mono); font-size:20px; font-weight:800; line-height:1.1; }
+  .ta-item .ta-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; margin-top:3px; }
+  .ta-item .ta-goal { font-size:10px; color:var(--faint); margin-top:2px; }
+  .ta-item .ta-prog { position:absolute; bottom:0; left:0; right:0; height:3px; background:var(--line); }
+  .ta-item .ta-prog-fill { height:100%; border-radius:0 2px 2px 0; transition:width .6s var(--ease-smooth); }
+  @media(max-width:420px) { .ta-grid { grid-template-columns:repeat(2,1fr); } }
+
   .body-inline-detail { width:100%; max-width:280px; margin:12px auto 0; }
   .bid-card { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:14px; animation:fadeSlideUp .25s ease both; }
   .bid-head { display:flex; justify-content:space-between; align-items:center; margin-bottom:10px; }
@@ -1582,6 +1593,27 @@ export function renderDashboard(): string {
 
     <!-- Quick-glance metric cards -->
     <div class="qg-row" id="quickGlanceRow"></div>
+
+    <!-- Activity rings (home) -->
+    <div class="card" id="homeRingsCard" style="display:none">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
+        <h3 style="margin:0;">Activity Rings</h3>
+        <span class="faint" id="homeRingsStatus"></span>
+      </div>
+      <div id="homeRings"></div>
+    </div>
+
+    <!-- Today's activity stats -->
+    <div class="card" id="todayActivityCard" style="display:none">
+      <h3>Today's activity</h3>
+      <div class="ta-grid" id="todayActivityGrid"></div>
+    </div>
+
+    <!-- Today's workouts -->
+    <div class="card" id="todayWorkoutsCard" style="display:none">
+      <h3 id="todayWorkoutsTitle">Today's workouts</h3>
+      <div class="workout-cards" id="todayWorkoutsList"></div>
+    </div>
 
     <!-- Strain budget bar -->
     <div class="card" id="strainBudgetCard" style="display:none;cursor:pointer;" onclick="toggleStrainDetail()">
@@ -3754,6 +3786,9 @@ function renderBodyHome(todayData) {
   }
 
   renderQuickGlance(d);
+  renderHomeRings(d && d.today);
+  renderTodayActivity(d && d.today);
+  renderTodayWorkouts(d && d.today);
   renderHomeStrainBudget(d);
   renderHomeWhatMoved(d);
 }
@@ -3961,6 +3996,130 @@ function renderQuickGlance(d) {
       sparkHtml +
     '</div>' + expandHtml;
   }).join('');
+}
+
+// ---- Home: activity rings, today's activity, today's workouts ----
+
+function renderHomeRings(today) {
+  var card = document.getElementById('homeRingsCard');
+  var el = document.getElementById('homeRings');
+  var statusEl = document.getElementById('homeRingsStatus');
+  if (!card || !el || !today) return;
+  if (today.activeEnergyGoal === undefined && today.exerciseMinutesGoal === undefined && today.standHoursGoal === undefined) return;
+  card.style.display = '';
+  var rings = [
+    { label: 'Move', actual: today.activeEnergy || 0, goal: today.activeEnergyGoal, unit: 'kcal', color: C.down },
+    { label: 'Exercise', actual: today.exerciseMinutes || 0, goal: today.exerciseMinutesGoal, unit: 'min', color: C.up },
+    { label: 'Stand', actual: today.standHours || 0, goal: today.standHoursGoal, unit: 'hr', color: C.pulse },
+  ].filter(function(r) { return r.goal !== undefined; });
+  var allClosed = rings.every(function(r) { return r.actual >= r.goal; });
+  if (statusEl) statusEl.textContent = allClosed ? '\\u{1F451} All rings closed!' : '';
+  var radii = [38, 29, 20];
+  var sw = 7;
+  var svgSize = 90;
+  var svgParts = rings.map(function(r, i) {
+    var pct = Math.min(r.actual / r.goal, 1.5);
+    var radius = radii[i];
+    var circ = 2 * Math.PI * radius;
+    var offset = circ * (1 - pct);
+    return '<circle cx="' + svgSize/2 + '" cy="' + svgSize/2 + '" r="' + radius + '" fill="none" stroke="' + r.color + '" stroke-opacity=".12" stroke-width="' + sw + '"/>' +
+      '<circle cx="' + svgSize/2 + '" cy="' + svgSize/2 + '" r="' + radius + '" fill="none" stroke="' + r.color + '" stroke-width="' + sw + '" stroke-linecap="round" stroke-dasharray="' + circ.toFixed(1) + '" stroke-dashoffset="' + circ.toFixed(1) + '" data-target="' + offset.toFixed(1) + '"/>';
+  });
+  var rows = rings.map(function(r) {
+    var pct = Math.round(Math.min(r.actual / r.goal, 1.5) * 100);
+    var closed = r.actual >= r.goal;
+    return '<div style="display:flex;align-items:center;gap:8px;padding:4px 0;">' +
+      '<span style="width:8px;height:8px;border-radius:50%;background:' + r.color + ';flex-shrink:0;"></span>' +
+      '<span style="flex:1;font-size:12px;color:var(--dim);">' + r.label + '</span>' +
+      '<span style="font-family:var(--mono);font-size:14px;font-weight:700;">' + Math.round(r.actual) + '</span>' +
+      '<span style="font-size:11px;color:var(--faint);">/ ' + r.goal + ' ' + r.unit + '</span>' +
+      '<span style="font-size:12px;font-weight:700;color:' + (closed ? r.color : 'var(--dim)') + ';">' + pct + '%' + (closed ? ' \\u2713' : '') + '</span>' +
+    '</div>';
+  });
+  el.innerHTML = '<div style="display:flex;align-items:center;gap:16px;">' +
+    '<svg viewBox="0 0 ' + svgSize + ' ' + svgSize + '" width="90" height="90" style="transform:rotate(-90deg);flex-shrink:0;">' + svgParts.join('') + '</svg>' +
+    '<div style="flex:1;">' + rows.join('') + '</div></div>';
+  requestAnimationFrame(function() {
+    el.querySelectorAll('circle[data-target]').forEach(function(c) { c.style.transition = 'stroke-dashoffset .8s ease'; c.style.strokeDashoffset = c.dataset.target; });
+  });
+}
+
+function renderTodayActivity(today) {
+  var card = document.getElementById('todayActivityCard');
+  var grid = document.getElementById('todayActivityGrid');
+  if (!card || !grid || !today) return;
+  var items = [];
+  if (today.steps !== undefined && today.steps !== null) {
+    var stepGoal = 10000;
+    items.push({ icon: '\\u{1F6B6}', val: today.steps.toLocaleString(), label: 'Steps', goal: stepGoal.toLocaleString(), pct: Math.min(100, Math.round(today.steps / stepGoal * 100)), color: 'var(--pulse)' });
+  }
+  if (today.exerciseMinutes !== undefined && today.exerciseMinutes !== null) {
+    var exGoal = today.exerciseMinutesGoal || 30;
+    items.push({ icon: '\\u{1F3C3}', val: Math.round(today.exerciseMinutes), label: 'Exercise min', goal: exGoal + ' goal', pct: Math.min(100, Math.round(today.exerciseMinutes / exGoal * 100)), color: 'var(--up)' });
+  }
+  if (today.activeEnergy !== undefined && today.activeEnergy !== null) {
+    var enGoal = today.activeEnergyGoal || 500;
+    items.push({ icon: '\\u{1F525}', val: Math.round(today.activeEnergy), label: 'Active kcal', goal: enGoal + ' goal', pct: Math.min(100, Math.round(today.activeEnergy / enGoal * 100)), color: 'var(--down)' });
+  }
+  if (today.distanceKm !== undefined && today.distanceKm !== null) {
+    items.push({ icon: '\\u{1F4CD}', val: today.distanceKm.toFixed(1), label: 'km', goal: null, pct: null, color: 'var(--dim)' });
+  }
+  if (today.flightsClimbed !== undefined && today.flightsClimbed !== null && today.flightsClimbed > 0) {
+    items.push({ icon: '\\u{1F3D4}', val: today.flightsClimbed, label: 'Flights', goal: null, pct: null, color: 'var(--dim)' });
+  }
+  if (today.standHours !== undefined && today.standHours !== null) {
+    var standGoal = today.standHoursGoal || 12;
+    items.push({ icon: '\\u{1F9CD}', val: today.standHours, label: 'Stand hrs', goal: standGoal + ' goal', pct: Math.min(100, Math.round(today.standHours / standGoal * 100)), color: 'var(--pulse)' });
+  }
+  if (items.length === 0) return;
+  card.style.display = '';
+  grid.innerHTML = items.map(function(it) {
+    var prog = it.pct !== null ? '<div class="ta-prog"><div class="ta-prog-fill" style="width:' + it.pct + '%;background:' + it.color + ';"></div></div>' : '';
+    var goalHtml = it.goal ? '<div class="ta-goal">' + it.goal + '</div>' : '';
+    return '<div class="ta-item">' +
+      '<div class="ta-icon">' + it.icon + '</div>' +
+      '<div class="ta-val">' + it.val + '</div>' +
+      '<div class="ta-label">' + it.label + '</div>' +
+      goalHtml + prog + '</div>';
+  }).join('');
+}
+
+function renderTodayWorkouts(today) {
+  var card = document.getElementById('todayWorkoutsCard');
+  var list = document.getElementById('todayWorkoutsList');
+  var titleEl = document.getElementById('todayWorkoutsTitle');
+  if (!card || !list || !today) return;
+  var count = today.workoutCount || 0;
+  if (count === 0 || !today.workoutType) return;
+  card.style.display = '';
+  var types = today.workoutType.split(',').map(function(t) { return t.trim(); });
+  var wkIcons = { running: '\\u{1F3C3}', cycling: '\\u{1F6B4}', walking: '\\u{1F6B6}', swimming: '\\u{1F3CA}', yoga: '\\u{1F9D8}', hiking: '\\u26F0\\uFE0F', dance: '\\u{1F483}', tennis: '\\u{1F3BE}', pickleball: '\\u{1F3D3}', soccer: '\\u26BD', basketball: '\\u{1F3C0}', elliptical: '\\u{1F3CB}', strength: '\\u{1F4AA}' };
+  var wkColors = { running: C.up, cycling: C.blue || '#60a5fa', strength: C.purple || '#c084fc', walking: C.pulse, swimming: '#22d3ee', yoga: C.gold || '#d4a853', hiking: C.up, pickleball: C.caution, tennis: C.caution };
+  var totalMin = today.workoutMinutes || 0;
+  var totalCal = today.workoutEnergy || 0;
+  var avgMin = types.length > 0 ? totalMin / types.length : 0;
+  var avgCal = types.length > 0 ? totalCal / types.length : 0;
+  titleEl.textContent = 'Today\\u2019s workouts (' + count + ')';
+  list.innerHTML = types.map(function(t, i) {
+    var name = workoutName(t) || 'Workout';
+    var key = name.toLowerCase();
+    var icon = wkIcons[key] || '\\u{1F4AA}';
+    var color = wkColors[key] || C.pulse;
+    var meta = [];
+    if (avgMin > 0) meta.push(Math.round(avgMin) + ' min');
+    if (avgCal > 0) meta.push(Math.round(avgCal) + ' kcal');
+    return '<div class="wk-card" style="border-left-color:' + color + '">' +
+      '<div class="wk-icon" style="background:linear-gradient(135deg,' + color + '26,' + color + '12)">' + icon + '</div>' +
+      '<div class="wk-info"><div class="wk-name">' + name + '</div>' +
+      (meta.length ? '<div class="wk-meta">' + meta.join(' \\u00B7 ') + '</div>' : '') +
+      '</div></div>';
+  }).join('');
+  if (totalMin > 0 || totalCal > 0) {
+    var summaryParts = [];
+    if (totalMin > 0) summaryParts.push(Math.round(totalMin) + ' min total');
+    if (totalCal > 0) summaryParts.push(Math.round(totalCal) + ' kcal burned');
+    list.innerHTML += '<div style="font-size:12px;color:var(--dim);margin-top:6px;font-family:var(--mono);font-weight:600;">' + summaryParts.join(' \\u00B7 ') + '</div>';
+  }
 }
 
 // Metric drawer system
