@@ -46782,6 +46782,31 @@
           "avgHR": 125
         }
       ]
+    },
+    {
+      "date": "2026-11-03",
+      "receivedAt": "2026-11-03T04:55:43.407Z",
+      "source": "ios-app",
+      "heartRateAvg": 108.79752851711025,
+      "heartRateMin": 92,
+      "heartRateMax": 130,
+      "walkingHeartRateAvg": 101,
+      "vo2max": 40.44,
+      "steps": 612,
+      "activeEnergy": 43.927,
+      "basalEnergy": 882.3809999999996,
+      "exerciseMinutes": 7,
+      "standMinutes": 10,
+      "distanceKm": 0.5558874623710289,
+      "hrZone1Min": 10.7,
+      "hrZone2Min": 1.1,
+      "hrZone3Min": 0,
+      "hrZone4Min": 0,
+      "hrZone5Min": 0,
+      "activeEnergyGoal": 360,
+      "exerciseMinutesGoal": 30,
+      "standHours": 1,
+      "standHoursGoal": 6
     }
   ]
 }
