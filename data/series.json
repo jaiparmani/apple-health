@@ -46785,28 +46785,65 @@
     },
     {
       "date": "2026-11-03",
-      "receivedAt": "2026-11-03T04:55:43.407Z",
+      "receivedAt": "2026-11-03T05:49:56.952Z",
       "source": "ios-app",
-      "heartRateAvg": 108.79752851711025,
+      "heartRateAvg": 128.38056634668644,
       "heartRateMin": 92,
-      "heartRateMax": 130,
-      "walkingHeartRateAvg": 101,
+      "heartRateMax": 157,
+      "walkingHeartRateAvg": 140,
       "vo2max": 40.44,
-      "steps": 612,
-      "activeEnergy": 43.927,
-      "basalEnergy": 882.3809999999996,
-      "exerciseMinutes": 7,
-      "standMinutes": 10,
-      "distanceKm": 0.5558874623710289,
-      "hrZone1Min": 10.7,
-      "hrZone2Min": 1.1,
-      "hrZone3Min": 0,
-      "hrZone4Min": 0,
+      "steps": 3736,
+      "activeEnergy": 506.506999999998,
+      "basalEnergy": 987.2159999999865,
+      "exerciseMinutes": 59,
+      "standMinutes": 58,
+      "distanceKm": 2.7261875719244126,
+      "hrZone1Min": 17.7,
+      "hrZone2Min": 22.2,
+      "hrZone3Min": 23.9,
+      "hrZone4Min": 2.5,
       "hrZone5Min": 0,
       "activeEnergyGoal": 360,
       "exerciseMinutesGoal": 30,
-      "standHours": 1,
-      "standHoursGoal": 6
+      "standHours": 2,
+      "standHoursGoal": 6,
+      "flightsClimbed": 1,
+      "daylightMinutes": 8,
+      "walkingSpeed": 1.2375,
+      "walkingStepLength": 68,
+      "walkingAsymmetryPct": 0,
+      "walkingDoubleSupportPct": 0.275,
+      "workoutCount": 4,
+      "workoutMinutes": 51.386227498451866,
+      "workoutEnergy": 459.07454268578186,
+      "workoutDistanceKm": 1.128687668055296,
+      "workoutType": "Elliptical,Walking,Cycling,CoreTraining",
+      "workoutStrains": [
+        {
+          "type": "Cycling",
+          "strain": 2.9,
+          "minutes": 15.3,
+          "avgHR": 118
+        },
+        {
+          "type": "Elliptical",
+          "strain": 4.2,
+          "minutes": 16.2,
+          "avgHR": 141
+        },
+        {
+          "type": "Walking",
+          "strain": 3.8,
+          "minutes": 15.3,
+          "avgHR": 137
+        },
+        {
+          "type": "CoreTraining",
+          "strain": 1,
+          "minutes": 4.6,
+          "avgHR": 120
+        }
+      ]
     }
   ]
 }
