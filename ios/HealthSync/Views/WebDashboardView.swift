@@ -14,7 +14,6 @@ struct WebDashboardView: View {
                     WebView(page)
                         .webViewBackForwardNavigationGestures(.enabled)
                         .webViewLinkPreviews(.enabled)
-                        .ignoresSafeArea(edges: .bottom)
                         .overlay(alignment: .top) {
                             if page.isLoading {
                                 ProgressView(value: page.estimatedProgress)
