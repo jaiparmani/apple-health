@@ -4,8 +4,8 @@ node_modules/
 *.log
 
 # Xcode
-ios/HealthSync.xcodeproj/
 ios/build/
 ios/DerivedData/
 *.xcuserstate
 *.xcuserdatad
+.DS_Store
