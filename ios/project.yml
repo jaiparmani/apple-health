@@ -7,6 +7,8 @@ options:
 settings:
   base:
     SWIFT_VERSION: "5.9"
+    DEVELOPMENT_TEAM: C88HGTZJ68
+    CODE_SIGN_STYLE: Automatic
 
 targets:
   HealthSync:

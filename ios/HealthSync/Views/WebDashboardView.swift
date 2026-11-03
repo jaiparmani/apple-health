@@ -53,12 +53,12 @@ struct WebDashboardView: View {
             return
         }
 
-        let configuration = WebPage.Configuration()
+        var configuration = WebPage.Configuration()
         configuration.userContentController.addUserScript(
             WKUserScript(source: Self.tokenScript(token: syncManager.ingestToken, origin: origin),
                          injectionTime: .atDocumentStart, forMainFrameOnly: true)
         )
-        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
+        configuration.defaultNavigationPreferences.allowsContentJavaScript = true
         let newPage = WebPage(configuration: configuration)
         newPage.isInspectable = true
         newPage.load(URLRequest(url: url))

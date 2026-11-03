@@ -52,7 +52,7 @@ struct SyncView: View {
                                         .font(.subheadline.weight(.medium))
                                     Text(record.errorMessage ?? "\(record.metricsCount) metrics")
                                         .font(.caption)
-                                        .foregroundStyle(record.success ? .secondary : .red)
+                                        .foregroundStyle(record.success ? Color.secondary : Color.red)
                                         .lineLimit(2)
                                 }
                                 Spacer()
