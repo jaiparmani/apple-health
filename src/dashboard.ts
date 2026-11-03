@@ -24,7 +24,7 @@ export function renderDashboard(): string {
 <html lang="en">
 <head>
 <meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>Body</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#0a0a0a">
@@ -88,7 +88,7 @@ export function renderDashboard(): string {
   .num { font-family:var(--mono); font-weight:700; }
 
   /* ---- gate ---- */
-  #gate { max-width:360px; margin:18vh auto; padding:0; text-align:left; }
+  #gate { max-width:360px; margin:18vh auto; padding:0 env(safe-area-inset-right, 0) 0 env(safe-area-inset-left, 0); text-align:left; }
   #gate .mark { font-family:var(--mono); font-weight:700; font-size:26px; color:var(--pulse); margin-bottom:10px; }
   #gate h1 { font-size:19px; margin:0 0 6px; font-weight:700; }
   #gate input { width:100%; padding:11px 12px; margin:16px 0 10px; border-radius:6px; border:1px solid var(--line); background:var(--panel2); color:var(--ink); font-size:14px; font-family:var(--sans); text-align:left; }
@@ -106,7 +106,7 @@ export function renderDashboard(): string {
   /* ---- shell ---- */
   #app { display:none; max-width:900px; margin:0 auto; padding:0 20px 60px; }
   #app.app-revealing { animation:appReveal .5s var(--ease-smooth) both; }
-  header.top { position:sticky; top:0; z-index:20; background:rgba(0,0,0,.94); backdrop-filter:blur(24px) saturate(1.3); padding:16px 20px 10px; margin:0 -20px 20px; border-bottom:1px solid var(--line); }
+  header.top { position:sticky; top:0; z-index:20; background:rgba(0,0,0,.94); backdrop-filter:blur(24px) saturate(1.3); padding:calc(env(safe-area-inset-top, 0px) + 16px) 20px 10px; margin:0 -20px 20px; border-bottom:1px solid var(--line); }
   header.top .row { display:flex; align-items:baseline; justify-content:space-between; max-width:900px; margin:0 auto; }
   header.top h1 { font-size:17px; margin:0; font-weight:800; letter-spacing:-.01em; color:var(--ink); }
   header.top .sub { font-family:var(--mono); font-weight:600; font-size:12.5px; color:var(--dim); }

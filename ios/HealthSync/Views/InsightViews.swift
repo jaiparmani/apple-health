@@ -1,6 +1,5 @@
 import SwiftUI
 
-/// WHOOP-style recovery colour bands: green 67+, yellow 34-66, red below 34.
 func recoveryColor(_ score: Int?) -> Color {
     guard let score else { return .gray }
     switch score {
@@ -21,12 +20,14 @@ struct RecoveryRing: View {
                 .trim(from: 0, to: CGFloat(score ?? 0) / 100)
                 .stroke(recoveryColor(score), style: StrokeStyle(lineWidth: lineWidth, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+                .animation(.easeOut(duration: 1.0), value: score)
             VStack(spacing: 0) {
                 Text(score.map { "\($0)%" } ?? "—")
                     .font(.system(.title3, design: .rounded, weight: .bold))
                     .minimumScaleFactor(0.5)
+                    .contentTransition(.numericText())
                 Text("Recovery")
-                    .font(.caption2)
+                    .font(.caption2.weight(.medium))
                     .foregroundStyle(.secondary)
             }
             .padding(lineWidth)
@@ -43,7 +44,7 @@ struct TodaySummaryCard: View {
         HStack(spacing: 20) {
             RecoveryRing(score: snapshot?.recoveryScore)
                 .frame(width: 96, height: 96)
-            VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 10) {
                 stat("Strain", value: snapshot?.strain.map { String(format: "%.1f", $0) }, icon: "flame.fill", tint: .orange)
                 stat("Sleep", value: snapshot?.sleepHours.map { String(format: "%.1f h", $0) }, icon: "bed.double.fill", tint: .indigo)
                 stat("HRV", value: snapshot?.hrv.map { String(format: "%.0f ms", $0) }, icon: "waveform.path.ecg", tint: .pink)
@@ -52,15 +53,20 @@ struct TodaySummaryCard: View {
         }
         .padding()
         .background(.background, in: RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
     }
 
     private func stat(_ label: String, value: String?, icon: String, tint: Color) -> some View {
-        HStack {
-            Image(systemName: icon).foregroundStyle(tint).frame(width: 20)
-            Text(label).foregroundStyle(.secondary)
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .foregroundStyle(tint)
+                .frame(width: 20)
+                .font(.subheadline)
+            Text(label)
+                .foregroundStyle(.secondary)
             Spacer()
-            Text(value ?? "—").font(.system(.body, design: .rounded, weight: .semibold))
+            Text(value ?? "—")
+                .font(.system(.body, design: .rounded, weight: .semibold))
+                .contentTransition(.numericText())
         }
         .font(.subheadline)
     }
@@ -71,48 +77,50 @@ struct PredictionCard: View {
     var compact = false
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 10) {
+        VStack(alignment: .leading, spacing: 12) {
             HStack {
                 Label("Tomorrow's Recovery", systemImage: "chart.line.uptrend.xyaxis")
-                    .font(.headline)
+                    .font(.subheadline.weight(.bold))
                 Spacer()
                 Text("\(prediction.score)%")
                     .font(.system(.title2, design: .rounded, weight: .bold))
                     .foregroundStyle(recoveryColor(prediction.score))
+                    .contentTransition(.numericText())
             }
             Text("Likely \(prediction.low)–\(prediction.high)% with \(hours(prediction.assumedSleepHours)) of sleep")
                 .font(.subheadline)
                 .foregroundStyle(.secondary)
 
-            // "What if" sleep scenarios
             HStack(spacing: 8) {
                 ForEach(prediction.scenarios, id: \.self) { scenario in
-                    VStack(spacing: 2) {
+                    VStack(spacing: 4) {
                         Text("\(scenario.score)%")
                             .font(.system(.subheadline, design: .rounded, weight: .semibold))
                             .foregroundStyle(recoveryColor(scenario.score))
                         Text(hours(scenario.sleepHours))
-                            .font(.caption2)
+                            .font(.caption2.weight(.medium))
                             .foregroundStyle(.secondary)
                     }
                     .frame(maxWidth: .infinity)
-                    .padding(.vertical, 6)
-                    .background(.quaternary, in: RoundedRectangle(cornerRadius: 8))
+                    .padding(.vertical, 8)
+                    .background(.fill.tertiary, in: RoundedRectangle(cornerRadius: 10))
                 }
             }
 
             if !compact {
                 ForEach(prediction.drivers, id: \.self) { driver in
-                    HStack {
+                    HStack(spacing: 8) {
                         Image(systemName: driver.impact >= 0 ? "arrow.up.right" : "arrow.down.right")
+                            .font(.caption2.weight(.bold))
                             .foregroundStyle(driver.impact >= 0 ? .green : .red)
+                            .frame(width: 16)
                         Text(driver.label)
+                            .font(.caption)
                         Spacer()
                         Text(String(format: "%+.1f", driver.impact))
-                            .monospacedDigit()
+                            .font(.caption.monospacedDigit().weight(.semibold))
                             .foregroundStyle(.secondary)
                     }
-                    .font(.caption)
                 }
                 Text(footnote)
                     .font(.caption2)
@@ -121,7 +129,6 @@ struct PredictionCard: View {
         }
         .padding()
         .background(.background, in: RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
     }
 
     private var footnote: String {
@@ -146,26 +153,45 @@ struct BriefCard: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                Label("Daily Brief", systemImage: brief?.generatedOnDevice == true ? "apple.intelligence" : "text.bubble")
-                    .font(.headline)
+                Label {
+                    Text("Daily Brief")
+                        .font(.subheadline.weight(.bold))
+                } icon: {
+                    Image(systemName: brief?.generatedOnDevice == true ? "apple.intelligence" : "text.bubble")
+                }
                 Spacer()
                 if isLoading {
                     ProgressView()
                 } else {
                     Button("Regenerate", systemImage: "arrow.clockwise", action: regenerate)
                         .labelStyle(.iconOnly)
+                        .font(.subheadline)
                 }
             }
             if let brief {
-                Text(brief.headline).font(.title3.weight(.semibold))
-                Text(brief.summary).font(.subheadline)
+                Text(brief.headline)
+                    .font(.title3.weight(.semibold))
+                Text(brief.summary)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
                 ForEach(brief.focus, id: \.self) { item in
-                    Label(item, systemImage: "checkmark.circle").font(.subheadline)
+                    Label {
+                        Text(item).font(.subheadline)
+                    } icon: {
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(.green)
+                            .font(.caption)
+                    }
                 }
                 if !brief.watchOut.isEmpty {
-                    Label(brief.watchOut, systemImage: "exclamationmark.triangle")
-                        .font(.subheadline)
-                        .foregroundStyle(.orange)
+                    Label {
+                        Text(brief.watchOut)
+                            .font(.subheadline)
+                    } icon: {
+                        Image(systemName: "exclamationmark.triangle.fill")
+                            .foregroundStyle(.orange)
+                            .font(.caption)
+                    }
                 }
                 Text(brief.generatedOnDevice ? "Written on-device by Apple Intelligence" : "Rule-based (Apple Intelligence unavailable)")
                     .font(.caption2)
@@ -179,6 +205,5 @@ struct BriefCard: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding()
         .background(.background, in: RoundedRectangle(cornerRadius: 16))
-        .shadow(color: .black.opacity(0.05), radius: 4, y: 2)
     }
 }

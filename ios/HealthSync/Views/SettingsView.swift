@@ -28,7 +28,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Server")
                 } footer: {
-                    Text("Your Cloudflare Worker URL (e.g. https://apple-health.your-subdomain.workers.dev) and the INGEST_TOKEN you set up. The token is stored in the iOS Keychain.")
+                    Text("Your Cloudflare Worker URL and the INGEST_TOKEN. The token is stored in the iOS Keychain.")
                 }
 
                 Section {
@@ -39,42 +39,45 @@ struct SettingsView: View {
                 } header: {
                     Text("Background")
                 } footer: {
-                    Text("Syncs whenever Apple Health records new sleep, HRV, resting heart rate or workouts (at most every 15 minutes), plus a periodic background refresh. Failed days are retried automatically for 14 days.")
+                    Text("Syncs when Apple Health records new data (at most every 15 minutes), plus periodic background refresh.")
                 }
 
-                Section {
+                Section("Status") {
                     HStack {
-                        Text("HealthKit")
+                        Label("HealthKit", systemImage: "heart.fill")
+                            .foregroundStyle(.primary)
                         Spacer()
                         if syncManager.healthKitAuthorized {
-                            Label("Authorized", systemImage: "checkmark.circle.fill")
+                            Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
                         } else {
-                            Button("Request Access") {
+                            Button("Request") {
                                 Task { await syncManager.requestHealthKitAccess() }
                             }
+                            .font(.subheadline.weight(.medium))
                         }
                     }
                     HStack {
-                        Text("Server Connection")
+                        Label("Server", systemImage: "server.rack")
+                            .foregroundStyle(.primary)
                         Spacer()
                         if syncManager.isConfigured {
-                            Label("Configured", systemImage: "checkmark.circle.fill")
+                            Image(systemName: "checkmark.circle.fill")
                                 .foregroundStyle(.green)
                         } else {
                             Text("Not configured")
+                                .font(.subheadline)
                                 .foregroundStyle(.secondary)
                         }
                     }
-                } header: {
-                    Text("Status")
                 }
 
-                Section {
-                    Link("View Dashboard", destination: URL(string: syncManager.serverURL.isEmpty ? "about:blank" : syncManager.serverURL)!)
-                        .disabled(syncManager.serverURL.isEmpty)
-                } header: {
-                    Text("Links")
+                if syncManager.isConfigured, let url = URL(string: syncManager.serverURL) {
+                    Section("Links") {
+                        Link(destination: url) {
+                            Label("Open Dashboard in Safari", systemImage: "safari")
+                        }
+                    }
                 }
             }
             .navigationTitle("Settings")

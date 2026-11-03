@@ -17,15 +17,19 @@ struct SyncView: View {
                 }
 
                 Section {
-                    Button("Backfill Date Range") { showBackfill.toggle() }
-                    if showBackfill {
+                    DisclosureGroup("Backfill Date Range", isExpanded: $showBackfill) {
                         DatePicker("From", selection: $backfillStart, displayedComponents: .date)
                         DatePicker("To", selection: $backfillEnd, displayedComponents: .date)
-                        Button("Sync Range") {
+                        Button {
                             Task {
                                 await syncManager.syncDateRange(from: backfillStart, to: backfillEnd)
                             }
+                        } label: {
+                            Label("Sync Range", systemImage: "calendar.badge.clock")
+                                .frame(maxWidth: .infinity)
+                                .font(.subheadline.weight(.semibold))
                         }
+                        .buttonStyle(.borderedProminent)
                         .disabled(syncManager.isSyncing)
                     }
                     if let progress = syncManager.backfillProgress {
@@ -33,37 +37,35 @@ struct SyncView: View {
                             Text("Reading Health data… \(progress.done)/\(progress.total) days")
                                 .font(.caption)
                         }
+                        .tint(.green)
                     }
-                } header: {
-                    Text("Backfill")
                 } footer: {
-                    Text("Uploads in 31-day batches. Re-run for the last 60 days once after updating, so past days get the new sleep window, overnight HRV and workout data.")
+                    Text("Uploads in 31-day batches. Re-run for the last 60 days once after updating.")
                 }
 
                 if !syncManager.syncHistory.isEmpty {
-                    Section {
+                    Section("History") {
                         ForEach(syncManager.syncHistory) { record in
                             HStack {
-                                VStack(alignment: .leading, spacing: 2) {
+                                VStack(alignment: .leading, spacing: 3) {
                                     Text(record.date)
                                         .font(.subheadline.weight(.medium))
                                     Text(record.errorMessage ?? "\(record.metricsCount) metrics")
                                         .font(.caption)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(record.success ? .secondary : .red)
                                         .lineLimit(2)
                                 }
                                 Spacer()
-                                VStack(alignment: .trailing, spacing: 2) {
+                                VStack(alignment: .trailing, spacing: 3) {
                                     Image(systemName: record.success ? "checkmark.circle.fill" : "xmark.circle.fill")
                                         .foregroundStyle(record.success ? .green : .red)
+                                        .font(.subheadline)
                                     Text(record.syncedAt, style: .relative)
                                         .font(.caption2)
-                                        .foregroundStyle(.secondary)
+                                        .foregroundStyle(.tertiary)
                                 }
                             }
                         }
-                    } header: {
-                        Text("History")
                     }
                 }
             }
@@ -80,7 +82,7 @@ struct SyncView: View {
                 if syncManager.isSyncing {
                     ProgressView()
                         .padding(.trailing, 8)
-                    Text("Syncing...")
+                    Text("Syncing…")
                 } else {
                     Image(systemName: "arrow.triangle.2.circlepath")
                     Text("Sync Today")
@@ -96,14 +98,23 @@ struct SyncView: View {
     @ViewBuilder
     private var statusRow: some View {
         if let error = syncManager.lastError {
-            Label(error, systemImage: "exclamationmark.triangle.fill")
-                .font(.subheadline)
-                .foregroundStyle(.red)
+            Label {
+                Text(error)
+                    .font(.subheadline)
+            } icon: {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(.red)
+            }
         }
         if let lastSync = syncManager.lastSyncDate {
-            Label("Last sync: \(lastSync, style: .relative) ago", systemImage: "clock")
-                .font(.subheadline)
-                .foregroundStyle(.secondary)
+            Label {
+                Text("Last sync: \(lastSync, style: .relative) ago")
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+            } icon: {
+                Image(systemName: "clock")
+                    .foregroundStyle(.secondary)
+            }
         }
     }
 }

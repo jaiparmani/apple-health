@@ -14,10 +14,12 @@ struct WebDashboardView: View {
                     WebView(page)
                         .webViewBackForwardNavigationGestures(.enabled)
                         .webViewLinkPreviews(.enabled)
+                        .ignoresSafeArea(edges: .bottom)
                         .overlay(alignment: .top) {
                             if page.isLoading {
                                 ProgressView(value: page.estimatedProgress)
                                     .progressViewStyle(.linear)
+                                    .tint(.green)
                             }
                         }
                 } else {
@@ -30,13 +32,13 @@ struct WebDashboardView: View {
             }
             .navigationTitle("Dashboard")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(.ultraThinMaterial, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Reload", systemImage: "arrow.clockwise") { page?.reload() }
                         .disabled(page == nil)
                 }
             }
-            // Rebuild the page when the server or token changes so the injected script stays current.
             .task(id: "\(syncManager.serverURL)|\(syncManager.ingestToken)") { configurePage() }
         }
     }
@@ -56,13 +58,13 @@ struct WebDashboardView: View {
             WKUserScript(source: Self.tokenScript(token: syncManager.ingestToken, origin: origin),
                          injectionTime: .atDocumentStart, forMainFrameOnly: true)
         )
+        configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         let newPage = WebPage(configuration: configuration)
+        newPage.isInspectable = true
         newPage.load(URLRequest(url: url))
         page = newPage
     }
 
-    /// The dashboard reads its token from `localStorage.healthToken`. The origin check keeps
-    /// the token from being written into any other site the user navigates to.
     private static func tokenScript(token: String, origin: String) -> String {
         let encode = { (value: String) -> String in
             let data = (try? JSONEncoder().encode(value)) ?? Data("\"\"".utf8)

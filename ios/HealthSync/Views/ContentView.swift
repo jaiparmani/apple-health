@@ -5,7 +5,7 @@ struct ContentView: View {
 
     var body: some View {
         TabView {
-            Tab("Today", systemImage: "heart.text.square") {
+            Tab("Today", systemImage: "heart.text.square.fill") {
                 DashboardView()
             }
             Tab("Dashboard", systemImage: "chart.bar.xaxis") {
@@ -14,10 +14,11 @@ struct ContentView: View {
             Tab("Sync", systemImage: "arrow.triangle.2.circlepath") {
                 SyncView()
             }
-            Tab("Settings", systemImage: "gear") {
+            Tab("Settings", systemImage: "gearshape") {
                 SettingsView()
             }
         }
+        .tint(.green)
         .task {
             await syncManager.requestHealthKitAccess()
         }
