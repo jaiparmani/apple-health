@@ -46846,6 +46846,16 @@
       ],
       "restingHeartRate": 77,
       "hrv": 20.002590508379228
+    },
+    {
+      "date": "2026-11-04",
+      "receivedAt": "2026-11-04T08:16:45.225Z",
+      "source": "ios-app",
+      "steps": 334,
+      "distanceKm": 0.2122251795998309,
+      "walkingSpeed": 1.04,
+      "walkingStepLength": 67,
+      "walkingDoubleSupportPct": 0.31
     }
   ]
 }
