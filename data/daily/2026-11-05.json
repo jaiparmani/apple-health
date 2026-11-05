@@ -1,0 +1,50 @@
+{
+  "date": "2026-11-05",
+  "receivedAt": "2026-11-05T14:50:27.098Z",
+  "source": "ios-app",
+  "restingHeartRate": 86,
+  "heartRateAvg": 129.46730894975707,
+  "heartRateMin": 67,
+  "heartRateMax": 167,
+  "walkingHeartRateAvg": 122.99999999999999,
+  "hrv": 16.950879167042235,
+  "steps": 2647,
+  "activeEnergy": 653.7079999999995,
+  "basalEnergy": 1196.9719999999827,
+  "exerciseMinutes": 67,
+  "standMinutes": 74,
+  "flightsClimbed": 1,
+  "distanceKm": 2.163156542103621,
+  "daylightMinutes": 15,
+  "hrZone1Min": 63.6,
+  "hrZone2Min": 37.4,
+  "hrZone3Min": 35,
+  "hrZone4Min": 7.6,
+  "hrZone5Min": 0,
+  "walkingSpeed": 1.3550000000000002,
+  "walkingStepLength": 75.75,
+  "walkingAsymmetryPct": 0.003999999999999999,
+  "walkingDoubleSupportPct": 0.2754285714285714,
+  "workoutCount": 2,
+  "workoutMinutes": 58.52426459789276,
+  "workoutEnergy": 560.9686806078237,
+  "activeEnergyGoal": 360,
+  "exerciseMinutesGoal": 30,
+  "standHours": 2,
+  "standHoursGoal": 6,
+  "workoutType": "TraditionalStrengthTraining,Cycling",
+  "workoutStrains": [
+    {
+      "type": "Cycling",
+      "strain": 1.8,
+      "minutes": 10.1,
+      "avgHR": 128
+    },
+    {
+      "type": "TraditionalStrengthTraining",
+      "strain": 8.6,
+      "minutes": 48.4,
+      "avgHR": 138
+    }
+  ]
+}
