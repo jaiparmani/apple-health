@@ -5606,67 +5606,79 @@ function renderQuickStats(today, trends) {
     : '';
 }
 
-// ---------------- plan & goals ----------------
+// ---------------- week log & goals ----------------
 var PLAN = null;
 function fmtGoalVal(v, unit) { if (v === null || v === undefined) return '—'; return Math.abs(v) >= 100 ? Math.round(v).toLocaleString() : String(Math.round(v * 100) / 100); }
 var GOAL_METRIC_OPTIONS = [];
-var SESSION_ICON = { rest: '–', walk: 'W', easy: 'E', zone2: 'Z2', intervals: 'HI', strength: 'S', long: 'L', mobility: 'M' };
 var STATUS_TEXT = { done: ['good', 'Done'], missed: ['bad', 'Missed'], rest: ['unknown', 'Rest'], today: ['ok', 'Today'], upcoming: ['unknown', 'Upcoming'] };
+var WEEKDAY_SHORT = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
-function sessionLine(d) {
-  var s = d.adjusted || d;
-  return s.type === 'rest' ? 'Rest day' : s.title + '<small>' + s.minutes + ' min</small>';
-}
+var WORKOUT_LABELS = {
+  TraditionalStrengthTraining: 'Strength', Cycling: 'Cycling', Walking: 'Walking',
+  Running: 'Running', Elliptical: 'Elliptical', CoreTraining: 'Core',
+  HIIT: 'HIIT', Yoga: 'Yoga', Swimming: 'Swimming', Hiking: 'Hiking',
+  FunctionalStrengthTraining: 'Functional', MixedCardio: 'Cardio',
+  Dance: 'Dance', Pickleball: 'Pickleball', Tennis: 'Tennis',
+};
 
-// "Up next": today plus the next two planned days, so the week ahead is
-// one glance away without leaving Today.
-function renderTodaySession(view) {
+function renderTodaySession() {
   var el = document.getElementById('todaySessionInner');
-  if (!el) el = document.getElementById('todaySession');
-  el.style.display = 'none';
+  if (el) el.style.display = 'none';
 }
 
-function renderPlan(view) {
-  PLAN = view;
-  TODAY.plan = view; renderVerdict();
-  renderTodaySession(view);
-  document.getElementById('planSub').textContent = 'Week of ' + niceDate(view.weekStart);
-  document.getElementById('planDays').innerHTML = view.days.map(function (d) {
-    var didSomething = d.status === 'done' || (d.actualMinutes && d.actualMinutes > 0);
-    var isRest = d.type === 'rest' && !didSomething;
-    var label = didSomething ? (d.title || 'Active') : (isRest ? 'Rest' : '—');
-    var mins = d.actualMinutes || d.minutes;
-    var st = d.status === 'done' ? STATUS_TEXT.done : (d.status === 'upcoming' ? STATUS_TEXT.upcoming : STATUS_TEXT[d.status]);
-    return '<div class="pday ' + d.status + '">' +
-      '<div class="pd-day">' + d.weekday + '<b>' + Number(d.date.slice(8)) + '</b></div>' +
-      '<div><div class="pd-title">' + label + (didSomething && mins ? '<span class="pd-min">' + mins + ' min</span>' : '') + ' ' + (st ? pill(st[0], st[1]) : '') + '</div>' +
-      (didSomething && d.detail ? '<div class="pd-detail">' + d.detail + '</div>' : '') + '</div>' +
+function renderWeekLog(days) {
+  renderTodaySession();
+  var todayStr = new Date().toISOString().slice(0, 10);
+  var todayDate = new Date(todayStr + 'T12:00:00');
+  var dow = todayDate.getDay();
+  var monOffset = dow === 0 ? 6 : dow - 1;
+  var monday = new Date(todayDate); monday.setDate(monday.getDate() - monOffset);
+  var monStr = monday.toISOString().slice(0, 10);
+  document.getElementById('planSub').textContent = 'Week of ' + niceDate(monStr);
+  var dayMap = {};
+  days.forEach(function (d) { dayMap[d.date] = d; });
+  var html = '';
+  for (var i = 0; i < 7; i++) {
+    var d = new Date(monday); d.setDate(d.getDate() + i);
+    var dateStr = d.toISOString().slice(0, 10);
+    var wd = WEEKDAY_SHORT[d.getDay()];
+    var dayNum = d.getDate();
+    var data = dayMap[dateStr];
+    var isToday = dateStr === todayStr;
+    var isFuture = dateStr > todayStr;
+    var wMin = data ? Math.round(data.workoutMinutes || 0) : 0;
+    var exMin = data ? (data.exerciseMinutes || 0) : 0;
+    var steps = data ? Math.round(data.steps || 0) : 0;
+    var wType = data && data.workoutType ? data.workoutType : '';
+    var types = wType.split(',').filter(Boolean).map(function (t) { return WORKOUT_LABELS[t] || t.replace(/([A-Z])/g, ' $1').trim(); });
+    var label = '';
+    var detail = '';
+    var statusClass = isFuture ? 'upcoming' : 'done';
+    var st = null;
+    if (isFuture) {
+      label = '—';
+      st = STATUS_TEXT.upcoming;
+    } else if (wMin > 0) {
+      label = types.join(', ') || 'Workout';
+      detail = steps.toLocaleString() + ' steps · ' + exMin + ' exercise min';
+      st = STATUS_TEXT.done;
+    } else if (exMin >= 20) {
+      label = 'Active';
+      detail = steps.toLocaleString() + ' steps · ' + exMin + ' exercise min';
+      st = STATUS_TEXT.done;
+    } else {
+      label = 'Rest';
+      detail = steps.toLocaleString() + ' steps';
+      st = STATUS_TEXT.rest;
+    }
+    if (isToday) st = STATUS_TEXT.today;
+    html += '<div class="pday ' + statusClass + '">' +
+      '<div class="pd-day">' + wd + '<b>' + dayNum + '</b></div>' +
+      '<div><div class="pd-title">' + label + (wMin > 0 ? '<span class="pd-min">' + wMin + ' min</span>' : '') + ' ' + (st ? pill(st[0], st[1]) : '') + '</div>' +
+      (detail ? '<div class="pd-detail">' + detail + '</div>' : '') + '</div>' +
       '<span></span></div>';
-  }).join('');
-}
-
-async function loadPlanView() {
-  try {
-    renderPlan(await authedFetch('/api/plan'));
-  } catch (err) {
-    document.getElementById('planDays').innerHTML = '<p class="sub">Couldn\\'t load the plan (' + err.message + ').</p>';
-    var _tsEl = document.getElementById('todaySessionInner') || document.getElementById('todaySession');
-    if (_tsEl) _tsEl.innerHTML = '<div class="tp-label">Up next</div><div class="sub">Couldn\\'t load the plan.</div>';
   }
-}
-
-async function regeneratePlan() {
-  var btn = document.getElementById('planRegenBtn');
-  btn.disabled = true;
-  btn.textContent = 'Writing…';
-  try { renderPlan(await authedFetch('/api/plan', { method: 'POST' })); }
-  catch (err) { alert('Could not rewrite the plan: ' + err.message); }
-  finally { btn.disabled = false; btn.textContent = 'Rewrite plan'; }
-}
-
-async function togglePlanDay(date) {
-  try { var res = await authedFetch('/api/plan/done?date=' + date, { method: 'POST' }); renderPlan(res.view); }
-  catch (err) { alert('Could not update: ' + err.message); }
+  document.getElementById('planDays').innerHTML = html;
 }
 
 var GOAL_STATUS = { achieved: ['good', 'Reached'], ahead: ['good', 'Ahead'], on_track: ['ok', 'On track'], behind: ['watch', 'Behind'], no_data: ['unknown', 'No data'] };
@@ -7284,7 +7296,7 @@ async function boot() {
       renderBodyState(today, (function () { var m = {}; w30.forEach(function (x) { m[x.metric] = x; }); return m; })());
     }
   }).catch(function () {});
-  loadPlanView();
+  renderWeekLog(days);
   loadGoals();
   loadDataQuality();
   loadDiscoveries();
