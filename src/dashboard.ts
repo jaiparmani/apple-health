@@ -118,6 +118,11 @@ export function renderDashboard(): string {
 
   .section { display:none; }
   .section.active { display:block; }
+  .section-header { display:flex; justify-content:space-between; align-items:center; padding:28px 0 14px; cursor:pointer; border-top:1px solid var(--line); margin-top:8px; -webkit-tap-highlight-color:transparent; }
+  .section-header-title { font-family:var(--mono); font-size:15px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); }
+  .section-header-chev { width:18px; height:18px; color:var(--faint); transition:transform .25s var(--ease-smooth); flex-shrink:0; }
+  .section-collapsed .section-header-chev { transform:rotate(-90deg); }
+  .section-collapsed > *:not(.section-header) { display:none !important; }
 
   /* ---- hero: big, bold, color-coded — this is the first thing you see ---- */
   .hero { display:grid; grid-template-columns:auto 1fr; gap:24px; padding:0 0 20px; margin-bottom:20px; border-bottom:1px solid var(--line); align-items:center; }
@@ -228,11 +233,10 @@ export function renderDashboard(): string {
   .live-countdown .cd-label { font-family:var(--sans); font-weight:600; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; }
   .live-countdown .cd-time { font-size:22px; letter-spacing:.02em; }
 
-  /* ---- premium: tab slide ---- */
-  .section { transition:opacity .25s var(--ease-smooth), transform .25s var(--ease-smooth); }
-  .section.slide-out { opacity:0; transform:translateX(-20px); pointer-events:none; }
-  .section.slide-in { opacity:0; transform:translateX(20px); }
-  .section.active { opacity:1; transform:translateX(0); }
+  /* ---- section stacking ---- */
+  .section { transition:opacity .25s var(--ease-smooth); }
+  .section.active { opacity:1; }
+  .section.active + .section.active { margin-top:0; }
 
   /* ---- premium: dynamic header glow ---- */
   .header-glow { position:absolute; inset:0; pointer-events:none; opacity:.15; transition:background 1s; border-radius:0; }
@@ -503,7 +507,7 @@ export function renderDashboard(): string {
   .link-btn { background:none; border:none; color:var(--faint); cursor:pointer; font-size:12.5px; padding:0; }
   .link-btn:hover { color:var(--down); }
 
-  /* ---- 5-tab navigation: top on desktop, bottom bar on phones ---- */
+  /* ---- 2-tab navigation: top on desktop, bottom bar on phones ---- */
   .tabs.primary .tab { display:inline-flex; align-items:center; gap:6px; }
   .tabs.primary .tab svg { width:16px; height:16px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
   .subnav { display:flex; gap:18px; overflow-x:auto; margin-top:10px; scrollbar-width:none; max-width:900px; margin-left:auto; margin-right:auto; position:relative; }
@@ -514,7 +518,6 @@ export function renderDashboard(): string {
   .subtab:hover { color:var(--ink); }
   .subtab.active { color:var(--ink); border-bottom-color:transparent; }
   .section { transition:opacity .2s ease; }
-  .section.active.tab-enter { animation:fadeSlideUp .35s var(--ease-smooth) both; }
 
   /* ---- Today: verdict + dials ---- */
   .verdict { border-radius:12px; padding:22px 24px; margin-bottom:14px; border:1px solid var(--line); position:relative; overflow:hidden; }
@@ -1560,11 +1563,10 @@ export function renderDashboard(): string {
       <div class="sub" id="lastUpdated"><span class="live-dot"></span>—</div>
     </div>
     <nav class="tabs primary" id="primaryNav">
-      <button class="tab" data-view="today" onclick="showView('today')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 3c1.7 0 3 1.3 3 3s-1.3 3-3 3-3-1.3-3-3 1.3-3 3-3zm0 14c-2.7 0-5-1.3-6.4-3.3C7.6 13.9 12 13 12 13s4.4.9 6.4 2.7C17 17.7 14.7 19 12 19z"/></svg><span>Body</span></button>
-      <button class="tab" data-view="trends" onclick="showView('trends')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 18l5-6 4 3 7-9"/></svg><span>Timeline</span></button>
-      <button class="tab" data-view="coach" onclick="showView('coach')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l2 6 6 2-6 2-2 6-2-6-6-2 6-2z"/></svg><span>Coach</span></button>
+      <button class="tab active" data-view="home" onclick="showView('home')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/></svg><span>Dashboard</span></button>
+      <button class="tab" data-view="more" onclick="showView('more')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><span>Explore</span></button>
     </nav>
-    <nav class="subnav" id="subNav"></nav>
+    <nav class="subnav" id="subNav" style="display:none"></nav>
   </header>
 
   <!-- TODAY — BODY-CENTRIC HOME -->
@@ -2297,7 +2299,7 @@ export function renderDashboard(): string {
     <div class="fab-menu" id="fabMenu">
       <button class="fab-item" onclick="openWorkoutLogger(); toggleFab();"><span class="fab-item-icon">🏋️</span> Log workout</button>
       <button class="fab-item" onclick="openCheckin(); toggleFab();"><span class="fab-item-icon">📝</span> Evening check-in</button>
-      <button class="fab-item" onclick="scrollTo(document.getElementById('tab-directive'),0); switchTab('directive'); toggleFab();"><span class="fab-item-icon">🧠</span> Coach advice</button>
+      <button class="fab-item" onclick="scrollToSection('directive'); toggleFab();"><span class="fab-item-icon">🧠</span> Coach advice</button>
     </div>
     <button class="fab-btn" onclick="toggleFab()">+</button>
   </div>
@@ -4528,60 +4530,78 @@ var TAB_REVIEWS = { overview: ['today'], plan: ['weekly'], longview: ['longterm'
 // Five top-level views, each a group of sections shown one at a time via
 // a sub-tab row. Sections keep their old ids, so every loader still works.
 var VIEWS = {
-  today: [['overview', 'Home'], ['body', 'Body'], ['age', 'Bio age'], ['records', 'Records'], ['plan', 'Plan'], ['settings', 'Settings']],
-  trends: [['heart', 'Heart'], ['activity', 'Activity'], ['workouts', 'Workouts'], ['sleep', 'Sleep'], ['training', 'Training'], ['longview', 'Long view'], ['insights', 'Insights'], ['dayexplorer', 'Explorer'], ['allmetrics', 'All metrics'], ['more', 'Extra']],
-  coach: [['directive', 'Coach'], ['ai', 'Ask AI'], ['discoveries', 'Discoveries'], ['story', 'Weekly story']],
+  home: [['overview', ''], ['directive', 'Coach'], ['plan', 'Plan & goals'], ['heart', 'Heart & recovery'], ['sleep', 'Sleep'], ['training', 'Training'], ['activity', 'Activity'], ['records', 'Records'], ['story', 'Weekly story']],
+  more: [['ai', 'Ask AI'], ['discoveries', 'Discoveries'], ['workouts', 'Workouts'], ['body', 'Body analysis'], ['age', 'Bio age'], ['longview', 'Long view'], ['dayexplorer', 'Day explorer'], ['allmetrics', 'All metrics'], ['insights', 'Insights'], ['more', 'Extra'], ['settings', 'Settings']],
 };
 function viewOf(sectionId) {
   for (var v in VIEWS) if (VIEWS[v].some(function (x) { return x[0] === sectionId; })) return v;
-  return 'today';
+  return 'home';
 }
 function showView(view) {
-  var last = null;
-  try { last = localStorage.getItem('healthSub:' + view); } catch (e) {}
-  var ok = last && VIEWS[view].some(function (x) { return x[0] === last; });
-  showTab(ok ? last : VIEWS[view][0][0]);
-  window.scrollTo(0, 0);
+  if (!VIEWS[view]) view = 'home';
+  document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active', 'tab-enter'); });
+  var secs = VIEWS[view];
+  var footer = document.querySelector('footer');
+  secs.forEach(function (x) {
+    var el = document.getElementById('tab-' + x[0]);
+    if (el) {
+      el.classList.add('active');
+      if (footer && el.parentNode) el.parentNode.insertBefore(el, footer);
+    }
+  });
+  document.querySelectorAll('#primaryNav .tab').forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-view') === view); });
+  try { localStorage.setItem('healthView', view); } catch (e) {}
+  if (appBooted) {
+    secs.forEach(function (x) {
+      (TAB_REVIEWS[x[0]] || []).forEach(function (d) {
+        if (!reviewLoadedOnce[d]) { reviewLoadedOnce[d] = true; loadReview(d, false); }
+      });
+    });
+    secs.forEach(function (x) {
+      var el = document.getElementById('tab-' + x[0]);
+      if (el) { staggerReveal(el); initScrollAnimations(el); }
+    });
+  }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 function showTab(id) {
   if (!document.getElementById('tab-' + id)) id = 'overview';
   var view = viewOf(id);
-  document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active', 'tab-enter'); });
-  var activeSection = document.getElementById('tab-' + id);
-  activeSection.classList.add('active');
-  void activeSection.offsetWidth;
-  activeSection.classList.add('tab-enter');
-  // Stagger card entrances on tab switch
-  var cards = activeSection.querySelectorAll('.card, .fit');
-  cards.forEach(function(c, i) {
-    c.style.opacity = '0';
-    c.style.transform = 'translateY(12px)';
-    c.style.transition = 'opacity .3s ease, transform .3s ease';
-    c.style.transitionDelay = (i * 35) + 'ms';
-    requestAnimationFrame(function() {
-      requestAnimationFrame(function() { c.style.opacity = '1'; c.style.transform = 'translateY(0)'; });
-    });
-  });
-  document.querySelectorAll('#primaryNav .tab').forEach(function (t) { t.classList.toggle('active', t.getAttribute('data-view') === view); });
-  var subs = VIEWS[view];
-  document.getElementById('subNav').innerHTML = subs.length < 2 ? '' : subs.map(function (x) {
-    return '<button class="subtab' + (x[0] === id ? ' active' : '') + '" onclick="showTab(&quot;' + x[0] + '&quot;)">' + x[1] + '</button>';
-  }).join('');
-  try { localStorage.setItem('healthTab', id); localStorage.setItem('healthSub:' + view, id); } catch (e) {}
-
-  // Reviews are pre-written server-side and all loaded at boot (see
-  // loadAllReviews); this only covers a tab opened before that finished.
-  if (appBooted) (TAB_REVIEWS[id] || []).forEach(function (domain) {
-    if (!reviewLoadedOnce[domain]) { reviewLoadedOnce[domain] = true; loadReview(domain, false); }
-  });
-  if (appBooted) { staggerReveal(activeSection); initScrollAnimations(activeSection); window.scrollTo({ top: 0, behavior: 'smooth' }); }
-  requestAnimationFrame(function () {
-    var subNav = document.getElementById('subNav');
-    var activeBtn = subNav ? subNav.querySelector('.subtab.active') : null;
-    if (activeBtn && subNav) {
-      subNav.style.setProperty('--ul-left', activeBtn.offsetLeft + 'px');
-      subNav.style.setProperty('--ul-width', activeBtn.offsetWidth + 'px');
-    }
+  showView(view);
+  var el = document.getElementById('tab-' + id);
+  if (el) {
+    el.classList.remove('section-collapsed');
+    setTimeout(function () { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 100);
+  }
+}
+function scrollToSection(id) {
+  var el = document.getElementById('tab-' + id);
+  if (!el) return;
+  var view = viewOf(id);
+  showView(view);
+  el.classList.remove('section-collapsed');
+  setTimeout(function () { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 150);
+}
+var SECTION_LABELS = {
+  directive: 'Coach', plan: 'Plan & goals', heart: 'Heart & recovery', sleep: 'Sleep',
+  training: 'Training', activity: 'Activity', records: 'Records', story: 'Weekly story',
+  ai: 'Ask AI', discoveries: 'Discoveries', workouts: 'Workouts', body: 'Body analysis',
+  age: 'Bio age', longview: 'Long view', dayexplorer: 'Day explorer', allmetrics: 'All metrics',
+  insights: 'Insights', more: 'Extra', settings: 'Settings',
+};
+function injectSectionHeaders() {
+  Object.keys(SECTION_LABELS).forEach(function (id) {
+    var section = document.getElementById('tab-' + id);
+    if (!section || section.querySelector('.section-header')) return;
+    var header = document.createElement('div');
+    header.className = 'section-header';
+    header.innerHTML = '<span class="section-header-title">' + SECTION_LABELS[id] + '</span><svg class="section-header-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>';
+    header.onclick = function () {
+      section.classList.toggle('section-collapsed');
+      try { localStorage.setItem('sec-' + id, section.classList.contains('section-collapsed') ? '1' : '0'); } catch (e) {}
+    };
+    section.insertBefore(header, section.firstChild);
+    try { if (localStorage.getItem('sec-' + id) === '1') section.classList.add('section-collapsed'); } catch (e) {}
   });
 }
 
@@ -5578,7 +5598,7 @@ function renderTodaySession(view) {
       (i === 0 && d.adjusted ? '<div class="pd-adj">Swapped from ' + d.title + '.</div>' : '') + '</div></div>';
   }).join('');
   el.innerHTML = '<div class="tp-label">Up next <span style="font-weight:400;color:var(--dim);font-size:11px;letter-spacing:0;">' + view.completed + '/' + view.planned + ' done</span></div>' + rows +
-    '<div style="margin-top:6px;"><a href="#" style="color:var(--pulse);font-size:12px;" onclick="showView(&quot;plan&quot;);return false;">See the full week →</a></div>';
+    '<div style="margin-top:6px;"><a href="#" style="color:var(--pulse);font-size:12px;" onclick="scrollToSection(&quot;plan&quot;);return false;">See the full week →</a></div>';
 }
 
 function renderPlan(view) {
@@ -7230,16 +7250,16 @@ async function boot() {
   if (deInput) deInput.addEventListener('change', function () { renderDayExplorer(deInput.value); });
   buildCharts(days.slice(-180), history.slice(-180));
 
-  var savedTab = null;
-  try { savedTab = localStorage.getItem('healthTab'); } catch (e) {}
   appBooted = true;
-  var firstTab = savedTab && document.getElementById('tab-' + savedTab) ? savedTab : 'overview';
+  injectSectionHeaders();
+  var savedView = null;
+  try { savedView = localStorage.getItem('healthView'); } catch (e) {}
+  var firstView = savedView && VIEWS[savedView] ? savedView : 'home';
   var appEl = document.getElementById('app');
   appEl.classList.add('app-revealing');
   requestAnimationFrame(function () { appEl.classList.remove('app-revealing'); });
-  showTab(firstTab);
-  initScrollAnimations(document.getElementById('tab-' + firstTab));
-  loadAllReviews(firstTab);
+  showView(firstView);
+  loadAllReviews('overview');
 
   loadFitness();
   loadOverview();
