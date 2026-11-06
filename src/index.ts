@@ -805,6 +805,9 @@ async function handlePostKnowledgeNote(req: Request, env: Env): Promise<Response
     meditation: typeof body.meditation === "boolean" ? body.meditation : undefined,
     meditationMinutes: typeof body.meditationMinutes === "number" ? Math.max(0, Math.min(480, Math.round(body.meditationMinutes))) : undefined,
     preWorkout: typeof body.preWorkout === "boolean" ? body.preWorkout : undefined,
+    sleepBedtime: typeof body.sleepBedtime === "string" && /^\d{1,2}:\d{2}$/.test(body.sleepBedtime) ? body.sleepBedtime : undefined,
+    sleepWakeTime: typeof body.sleepWakeTime === "string" && /^\d{1,2}:\d{2}$/.test(body.sleepWakeTime) ? body.sleepWakeTime : undefined,
+    sleepHours: typeof body.sleepHours === "number" ? Math.max(0, Math.min(24, Math.round(body.sleepHours * 10) / 10)) : undefined,
   };
 
   const { data: existing, sha } = await getJson<UserKnowledge>(env, KNOWLEDGE_PATH);

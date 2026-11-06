@@ -118,6 +118,9 @@ export interface KnowledgeNote {
   meditation?: boolean;
   meditationMinutes?: number;
   preWorkout?: boolean;
+  sleepBedtime?: string; // HH:MM (previous night)
+  sleepWakeTime?: string; // HH:MM
+  sleepHours?: number; // total hours slept
 }
 
 export interface RecoverySnapshot {

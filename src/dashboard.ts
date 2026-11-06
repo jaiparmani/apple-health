@@ -1238,6 +1238,13 @@ export function renderDashboard(): string {
   .freq-change.up { color:var(--up); }
   .freq-change.down { color:var(--down); }
 
+  /* ---- sleep log ---- */
+  .sleep-log-form { display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px; margin-top:10px; }
+  .sl-row { display:flex; gap:10px; flex:1; }
+  .sl-row label { display:flex; flex-direction:column; font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; gap:4px; }
+  .sl-row input { background:var(--panel); border:1px solid var(--line); border-radius:6px; padding:6px 8px; color:var(--txt); font-family:var(--mono); font-size:14px; width:90px; }
+  .sl-row input[type="number"] { width:70px; }
+
   /* ---- sleep protocol ---- */
   .sp-card { background:linear-gradient(135deg, var(--royal)08, var(--panel2)); border:1px solid var(--royal)33; border-radius:10px; padding:16px; }
   .sp-times { display:grid; grid-template-columns:repeat(3, 1fr); gap:8px; margin:12px 0; }
@@ -1815,13 +1822,6 @@ export function renderDashboard(): string {
       <div class="injury-bar"><div class="injury-fill" id="irFill"></div></div>
       <div class="injury-factors" id="irFactors"></div>
 
-      <div class="coach-rx" id="coachRx"></div>
-    </div>
-
-    <div class="card" id="coachPatternsCard" style="display:none;">
-      <h3>Your patterns</h3>
-      <div class="card-sub">Discovered from your personal data</div>
-      <div class="pattern-list" id="patternList"></div>
     </div>
 
     <div class="card" id="coachReportCard" style="display:none;">
@@ -1837,10 +1837,10 @@ export function renderDashboard(): string {
       <div class="pred-list" id="predList"></div>
     </div>
 
-    <div class="card" id="sleepProtocolCard" style="display:none">
-      <h3>Tonight's sleep protocol</h3>
-      <div class="card-sub">Personalized from your data and tomorrow's demands</div>
-      <div id="sleepProtocol"></div>
+    <div class="card" id="coachPatternsCard" style="display:none;">
+      <h3>Your patterns</h3>
+      <div class="card-sub">Discovered from your personal data</div>
+      <div class="pattern-list" id="patternList"></div>
     </div>
 
     <div class="card" id="recoveryCountdownCard" style="display:none">
@@ -2102,6 +2102,25 @@ export function renderDashboard(): string {
 
   <!-- SLEEP -->
   <section class="section" id="tab-sleep">
+    <div class="card" id="sleepLogCard">
+      <div style="display:flex;justify-content:space-between;align-items:center;">
+        <div>
+          <div class="sl-assumed" id="slAssumed">Last night: <b id="slHoursDisplay">7.5</b>h sleep</div>
+          <div class="card-sub" id="slSub">Assumed — tap to correct</div>
+        </div>
+        <button class="btn btn-ghost btn-sm" id="slEditBtn" onclick="toggleSleepEdit()">Edit</button>
+      </div>
+      <div id="slEditArea" style="display:none;margin-top:10px;">
+        <form class="sleep-log-form" onsubmit="submitSleepLog(event)">
+          <div class="sl-row">
+            <label>Hours<input type="number" id="slHours" step="0.5" min="0" max="24" value="7.5" /></label>
+            <label>Bedtime<input type="time" id="slBedtime" value="22:30" /></label>
+            <label>Wake<input type="time" id="slWake" value="06:00" /></label>
+          </div>
+          <button type="submit" class="btn btn-sm" id="slBtn">Save</button>
+        </form>
+      </div>
+    </div>
     ${reviewCard("sleep", "Sleep review")}
     <div class="card" id="sleepAnalysisCard" style="display:none">
       <h3>Sleep analysis</h3>
@@ -3281,6 +3300,30 @@ async function submitCheckIn(field, value, btnEl) {
     }
     showToast(field.replace(/([A-Z])/g, ' $1').toLowerCase() + ' logged', 'success');
   } catch (e) {}
+}
+
+function toggleSleepEdit() {
+  var area = document.getElementById('slEditArea');
+  area.style.display = area.style.display === 'none' ? 'block' : 'none';
+}
+
+async function submitSleepLog(e) {
+  e.preventDefault();
+  var bed = document.getElementById('slBedtime').value;
+  var wake = document.getElementById('slWake').value;
+  var hrs = Number(document.getElementById('slHours').value) || 7.5;
+  var today = new Date().toISOString().slice(0, 10);
+  var payload = { date: today, sleepBedtime: bed || undefined, sleepWakeTime: wake || undefined, sleepHours: hrs };
+  var btn = document.getElementById('slBtn');
+  btn.disabled = true; btn.textContent = 'Saving…';
+  try {
+    await authedFetch('/api/knowledge/notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+    document.getElementById('slHoursDisplay').textContent = hrs;
+    document.getElementById('slSub').textContent = bed + ' → ' + wake + ' · Saved';
+    document.getElementById('slEditArea').style.display = 'none';
+    showToast('Sleep logged', 'success');
+  } catch (err) { showToast('Error: ' + err.message, 'error'); }
+  finally { btn.disabled = false; btn.textContent = 'Save'; }
 }
 
 // ---- Premium features ----
@@ -7106,14 +7149,6 @@ async function loadCoach() {
       fill.style.width = ir.score + '%';
       fill.style.background = ir.level === 'high' ? 'var(--down)' : ir.level === 'moderate' ? 'var(--caution)' : 'var(--up)';
       document.getElementById('irFactors').textContent = ir.factors.map(function (f) { return f.detail; }).join(' · ');
-
-      // Rx items
-      var rxEl = document.getElementById('coachRx');
-      var rxItems = [];
-      if (d.sleepRx) rxItems.push({ icon: '💤', text: d.sleepRx });
-      if (d.nutritionCue) rxItems.push({ icon: '🍽', text: d.nutritionCue });
-      if (d.mentalNote) rxItems.push({ icon: '🧠', text: d.mentalNote });
-      rxEl.innerHTML = rxItems.map(function (r) { return '<div class="coach-rx-item"><span class="coach-rx-icon">' + r.icon + '</span><span>' + r.text + '</span></div>'; }).join('');
 
       document.getElementById('coachDirectiveCard').style.display = 'block';
     }
