@@ -1655,14 +1655,14 @@ export function renderDashboard(): string {
     <!-- Smart check-in prompts -->
     <div id="smartCheckInArea"></div>
 
-    <!-- Today’s plan: session + coach + focus combined -->
+    <!-- Today: coach + focus -->
     <div class="card" id="todayPlanCard">
       <div class="coll-header" onclick="toggleCollapsible(‘todayPlanBody’)">
-        <h3 style="margin:0;">Today’s plan</h3>
+        <h3 style="margin:0;">Today</h3>
         <svg class="coll-chevron open" id="todayPlanBody-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
       </div>
       <div class="coll-body open" id="todayPlanBody">
-        <div class="tp-section" id="todaySessionInner"><div class="tp-label">Up next</div><div class="skel-line" style="width:60%;"></div></div>
+        <div class="tp-section" id="todaySessionInner" style="display:none"></div>
         <div class="tp-section" id="todayCoachInner"><div class="tp-label">Coach’s note <button class="btn btn-ghost btn-sm" id="review-today-btn" onclick="event.stopPropagation();loadReview(‘today’,true)" style="margin-left:8px;">Retry</button></div><div id="review-today"><div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:55%"></div></div></div>
         <div class="tp-section" id="todayFocusInner" style="display:none"><div class="tp-label">Focus</div><div id="oneActionText"></div></div>
       </div>
@@ -1924,15 +1924,8 @@ export function renderDashboard(): string {
 
   <!-- PLAN & GOALS -->
   <section class="section" id="tab-plan">
-    <h2 class="sec" style="margin-top:6px;">This week's plan<span id="planSub">Adapts to your recovery each day</span></h2>
-    <div class="card">
-      <div class="plan-head">
-        <div id="planProgress" class="plan-progress"></div>
-        <button class="btn btn-ghost btn-sm" id="planRegenBtn" onclick="regeneratePlan()">Rewrite plan</button>
-      </div>
-      <div id="planRationale" class="card-sub" style="margin-top:8px;"></div>
-      <div class="plan-days" id="planDays"><div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:60%"></div></div>
-    </div>
+    <h2 class="sec" style="margin-top:6px;">This week<span id="planSub">What you actually did</span></h2>
+    <div class="plan-days" id="planDays"><div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:60%"></div></div>
 
     <h2 class="sec">Goals<span>Targets with deadlines, tracked against your trend</span></h2>
     <div id="goalsList"></div>
@@ -4530,7 +4523,7 @@ var TAB_REVIEWS = { overview: ['today'], plan: ['weekly'], longview: ['longterm'
 // Five top-level views, each a group of sections shown one at a time via
 // a sub-tab row. Sections keep their old ids, so every loader still works.
 var VIEWS = {
-  home: [['overview', ''], ['directive', 'Coach'], ['plan', 'Plan & goals'], ['heart', 'Heart & recovery'], ['sleep', 'Sleep'], ['training', 'Training'], ['activity', 'Activity'], ['records', 'Records'], ['story', 'Weekly story']],
+  home: [['overview', ''], ['directive', 'Coach'], ['plan', 'Goals & activity'], ['heart', 'Heart & recovery'], ['sleep', 'Sleep'], ['training', 'Training'], ['activity', 'Activity'], ['records', 'Records'], ['story', 'Weekly story']],
   more: [['ai', 'Ask AI'], ['discoveries', 'Discoveries'], ['workouts', 'Workouts'], ['body', 'Body analysis'], ['age', 'Bio age'], ['longview', 'Long view'], ['dayexplorer', 'Day explorer'], ['allmetrics', 'All metrics'], ['insights', 'Insights'], ['more', 'Extra'], ['settings', 'Settings']],
 };
 function viewOf(sectionId) {
@@ -4583,7 +4576,7 @@ function scrollToSection(id) {
   setTimeout(function () { el.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 150);
 }
 var SECTION_LABELS = {
-  directive: 'Coach', plan: 'Plan & goals', heart: 'Heart & recovery', sleep: 'Sleep',
+  directive: 'Coach', plan: 'Goals & activity', heart: 'Heart & recovery', sleep: 'Sleep',
   training: 'Training', activity: 'Activity', records: 'Records', story: 'Weekly story',
   ai: 'Ask AI', discoveries: 'Discoveries', workouts: 'Workouts', body: 'Body analysis',
   age: 'Bio age', longview: 'Long view', dayexplorer: 'Day explorer', allmetrics: 'All metrics',
@@ -5587,41 +5580,25 @@ function sessionLine(d) {
 function renderTodaySession(view) {
   var el = document.getElementById('todaySessionInner');
   if (!el) el = document.getElementById('todaySession');
-  if (!view || !view.days || !view.today) { el.innerHTML = '<div class="tp-label">Up next</div><div class="sub">No plan for this week yet.</div>'; return; }
-  var idx = view.days.indexOf(view.days.filter(function (d) { return d.date === view.today.date; })[0]);
-  var rows = view.days.slice(idx, idx + 3).map(function (d, i) {
-    var s = d.adjusted || d;
-    var ico = d.status === 'done' ? '<span class="s-ico done">✓</span>' : i === 0 ? '<span class="s-ico now">•</span>' : '<span class="s-ico">' + d.weekday.charAt(0) + '</span>';
-    var when = i === 0 ? 'Today' : i === 1 ? 'Tomorrow' : d.weekday;
-    var what = s.type === 'rest' ? 'Rest' : s.title + ' · ' + s.minutes + ' min';
-    return '<div class="s-row">' + ico + '<div><b>' + when + '</b> <span style="color:var(--dim)">' + what + '</span>' +
-      (i === 0 && d.adjusted ? '<div class="pd-adj">Swapped from ' + d.title + '.</div>' : '') + '</div></div>';
-  }).join('');
-  el.innerHTML = '<div class="tp-label">Up next <span style="font-weight:400;color:var(--dim);font-size:11px;letter-spacing:0;">' + view.completed + '/' + view.planned + ' done</span></div>' + rows +
-    '<div style="margin-top:6px;"><a href="#" style="color:var(--pulse);font-size:12px;" onclick="scrollToSection(&quot;plan&quot;);return false;">See the full week →</a></div>';
+  el.style.display = 'none';
 }
 
 function renderPlan(view) {
   PLAN = view;
   TODAY.plan = view; renderVerdict();
   renderTodaySession(view);
-  var pct = view.planned ? Math.round(view.completed / view.planned * 100) : 0;
-  document.getElementById('planProgress').innerHTML = '<span class="num">' + view.completed + '/' + view.planned + '</span> sessions done so far (' + pct + '%)';
-  document.getElementById('planSub').textContent = 'Week of ' + niceDate(view.weekStart) + '. Adapts to your recovery each day.';
-  document.getElementById('planRationale').textContent = (view.rationale || '') + (view.source === 'template' ? ' (Standard plan: the AI was unavailable.)' : '');
+  document.getElementById('planSub').textContent = 'Week of ' + niceDate(view.weekStart);
   document.getElementById('planDays').innerHTML = view.days.map(function (d) {
-    var st = STATUS_TEXT[d.status];
-    var s = d.adjusted || d;
-    var canTick = d.type !== 'rest' && d.status !== 'upcoming';
-    var tickTitle = d.status === 'done' ? (d.autoDetected ? 'Detected from your data (' + d.actualMinutes + ' min)' : 'Marked done. Tap to undo.') : 'Mark as done';
+    var didSomething = d.status === 'done' || (d.actualMinutes && d.actualMinutes > 0);
+    var isRest = d.type === 'rest' && !didSomething;
+    var label = didSomething ? (d.title || 'Active') : (isRest ? 'Rest' : '—');
+    var mins = d.actualMinutes || d.minutes;
+    var st = d.status === 'done' ? STATUS_TEXT.done : (d.status === 'upcoming' ? STATUS_TEXT.upcoming : STATUS_TEXT[d.status]);
     return '<div class="pday ' + d.status + '">' +
       '<div class="pd-day">' + d.weekday + '<b>' + Number(d.date.slice(8)) + '</b></div>' +
-      '<div><div class="pd-title">' + (s.type === 'rest' ? 'Rest' : s.title) + (s.minutes ? '<span class="pd-min">' + s.minutes + ' min</span>' : '') + ' ' + pill(st[0], st[1]) + '</div>' +
-      (d.adjusted ? '<div class="pd-was">' + d.title + ', ' + d.minutes + ' min</div>' : '') +
-      '<div class="pd-detail">' + s.detail + (d.actualMinutes && d.type !== 'rest' ? ' · You did ' + d.actualMinutes + ' min.' : '') + '</div>' +
-      (d.adjusted ? '<div class="pd-adj">' + d.adjusted.reason + '</div>' : '') + '</div>' +
-      (canTick ? '<button class="tick' + (d.status === 'done' ? ' on' : '') + '" title="' + tickTitle + '" ' + (d.autoDetected ? 'disabled' : '') + ' onclick="togglePlanDay(\\'' + d.date + '\\')">✓</button>' : '<span></span>') +
-      '</div>';
+      '<div><div class="pd-title">' + label + (didSomething && mins ? '<span class="pd-min">' + mins + ' min</span>' : '') + ' ' + (st ? pill(st[0], st[1]) : '') + '</div>' +
+      (didSomething && d.detail ? '<div class="pd-detail">' + d.detail + '</div>' : '') + '</div>' +
+      '<span></span></div>';
   }).join('');
 }
 
