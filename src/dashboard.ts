@@ -379,12 +379,20 @@ export function renderDashboard(): string {
   .p-watch { background:rgba(251,191,36,.15); color:var(--caution); }
   .p-bad { background:rgba(247,107,77,.15); color:var(--down); }
   .p-unknown { background:var(--panel2); color:var(--dim); }
-  details.more { margin-top:8px; font-size:13px; color:var(--dim); }
-  details.more summary { cursor:pointer; color:var(--faint); font-size:12.5px; list-style:none; }
+  details.more { margin-top:6px; font-size:13px; color:var(--dim); }
+  details.more summary { cursor:pointer; color:var(--faint); font-size:12.5px; list-style:none; padding:6px 0; }
   details.more summary::-webkit-details-marker { display:none; }
   details.more summary::before { content:"＋ "; }
   details.more[open] summary::before { content:"− "; }
-  details.more > div { margin-top:6px; line-height:1.6; }
+  details.more > div { margin-top:4px; line-height:1.6; }
+  details.chart-detail { margin-bottom:8px; }
+  details.chart-detail summary { cursor:pointer; list-style:none; padding:8px 12px; background:var(--panel2); border-radius:10px; }
+  details.chart-detail summary::-webkit-details-marker { display:none; }
+  details.chart-detail summary h3 { margin:0; display:inline; }
+  details.chart-detail summary::after { content:" ▸"; font-size:11px; color:var(--dim); }
+  details.chart-detail[open] summary::after { content:" ▾"; }
+  details.chart-detail[open] summary { border-radius:10px 10px 0 0; margin-bottom:0; }
+  details.chart-detail .card { border-radius:0 0 10px 10px; margin-top:0; }
 
   .scoreboard { padding:14px; background:var(--panel); border:1px solid var(--line); border-radius:10px; }
   .scoreboard:hover { border-color:var(--faint); }
@@ -1607,35 +1615,28 @@ export function renderDashboard(): string {
     <!-- Quick-glance metric cards -->
     <div class="qg-row" id="quickGlanceRow"></div>
 
-    <!-- Activity rings (home) -->
+    <details class="more"><summary style="font-size:13px;font-weight:700;">Activity rings</summary><div>
     <div class="card" id="homeRingsCard" style="display:none">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <h3 style="margin:0;">Activity Rings</h3>
-        <span class="faint" id="homeRingsStatus"></span>
-      </div>
       <div id="homeRings"></div>
     </div>
-
-    <!-- Today's activity stats -->
     <div class="card" id="todayActivityCard" style="display:none">
-      <h3>Today's activity</h3>
       <div class="ta-grid" id="todayActivityGrid"></div>
     </div>
+    </div></details>
 
-    <!-- Today's workouts -->
+    <details class="more"><summary style="font-size:13px;font-weight:700;">Workouts</summary><div>
     <div class="card" id="todayWorkoutsCard" style="display:none">
-      <h3 id="todayWorkoutsTitle">Today's workouts</h3>
+      <h3 id="todayWorkoutsTitle">Today’s workouts</h3>
       <div class="workout-cards" id="todayWorkoutsList"></div>
     </div>
-
-    <!-- Strain budget bar -->
     <div class="card" id="strainBudgetCard" style="display:none;cursor:pointer;" onclick="toggleStrainDetail()">
       <div class="sb-label">Strain <span id="sbUsed2">0</span> / <span id="sbMax2">21</span></div>
       <div class="sb-track"><div class="sb-fill" id="sbFill2"></div><div class="sb-target" id="sbTarget2"></div></div>
       <div id="strainDetailInline"></div>
     </div>
+    </div></details>
 
-    <!-- Body silhouette -->
+    <details class="more"><summary style="font-size:13px;font-weight:700;">Body map</summary><div>
     <div class="body-home" id="bodyHome">
       <div class="body-stage" id="bodyStage">
         <div class="body-score-badge" id="bodyScoreBadge" style="cursor:pointer;" onclick="toggleBodyScoreDetail()">
@@ -1656,38 +1657,29 @@ export function renderDashboard(): string {
       <div id="bodyScoreDetail"></div>
       <div class="body-inline-detail" id="bodyInlineDetail" style="display:none"></div>
     </div>
-
-    <!-- What moved vs yesterday -->
     <div class="card" id="whatMovedCard" style="display:none;cursor:pointer;" onclick="toggleWhatMoved()">
       <div class="wm-summary" id="wmSummary"></div>
       <div class="wm-details" id="wmDetails"></div>
     </div>
+    </div></details>
 
-    <!-- Smart check-in prompts -->
     <div id="smartCheckInArea"></div>
 
-    <!-- Today: coach + focus -->
+    <details class="more"><summary style="font-size:13px;font-weight:700;">Today’s note</summary><div>
     <div class="card" id="todayPlanCard">
-      <div class="coll-header" onclick="toggleCollapsible(‘todayPlanBody’)">
-        <h3 style="margin:0;">Today</h3>
-        <svg class="coll-chevron open" id="todayPlanBody-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><polyline points="6 9 12 15 18 9"/></svg>
-      </div>
-      <div class="coll-body open" id="todayPlanBody">
-        <div class="tp-section" id="todaySessionInner" style="display:none"></div>
-        <div class="tp-section" id="todayCoachInner"><div class="tp-label">Coach’s note <button class="btn btn-ghost btn-sm" id="review-today-btn" onclick="event.stopPropagation();loadReview(‘today’,true)" style="margin-left:8px;">Retry</button></div><div id="review-today"><div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:55%"></div></div></div>
-        <div class="tp-section" id="todayFocusInner" style="display:none"><div class="tp-label">Focus</div><div id="oneActionText"></div></div>
-      </div>
+      <div class="tp-section" id="todaySessionInner" style="display:none"></div>
+      <div class="tp-section" id="todayCoachInner"><div class="tp-label">Coach’s note <button class="btn btn-ghost btn-sm" id="review-today-btn" onclick="event.stopPropagation();loadReview(‘today’,true)" style="margin-left:8px;">Retry</button></div><div id="review-today"><div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:55%"></div></div></div>
+      <div class="tp-section" id="todayFocusInner" style="display:none"><div class="tp-label">Focus</div><div id="oneActionText"></div></div>
     </div>
+    </div></details>
 
-    <!-- Illness alert (hidden unless triggered) -->
     <div class="card illness-card" id="illnessCard" style="display:none">
       <div class="illness-head"><span class="illness-icon">⚠</span><span class="illness-title" id="illnessTitle"></span></div>
       <div class="illness-body sub" id="illnessBody"></div>
     </div>
 
-    <!-- Progress: heatmap + streaks + weekly + PRs in one card -->
+    <details class="more"><summary style="font-size:13px;font-weight:700;">Progress</summary><div>
     <div class="card" id="progressCard" style="display:none">
-      <h3>Your progress</h3>
       <div class="pg-tabs" id="pgTabs">
         <div class="pg-tab active" onclick="showProgressTab(0)">Heatmap</div>
         <div class="pg-tab" onclick="showProgressTab(1)">Streaks</div>
@@ -1699,6 +1691,7 @@ export function renderDashboard(): string {
       <div class="pg-view" id="pgWeekly"><div class="wc-grid" id="weeklyCompGrid"></div></div>
       <div class="pg-view" id="pgRecords"><div class="pr-grid" id="prGrid"></div></div>
     </div>
+    </div></details>
 
     <!-- Offscreen render targets for JS functions that populate them -->
     <div id="sleepArch" style="display:none"></div>
@@ -1715,42 +1708,40 @@ export function renderDashboard(): string {
 
   <!-- TRENDS: LONG VIEW -->
   <section class="section" id="tab-longview">
-    <h2 class="sec" style="margin-top:6px;">The long view<span>12 months of monthly averages</span></h2>
+    <h2 class="sec" style="margin-top:6px;">The long view</h2>
     <div class="longview" id="longView"></div>
     <div class="card">
       <h3>Your weekly rhythm</h3>
-      <div class="card-sub">Average steps by weekday, last 12 weeks.</div>
       <div id="weekdayBars"></div>
     </div>
-    ${reviewCard("longterm", "Where you’re heading", "Where your trends point, and habits for the next 3 months.")}
+    ${reviewCard("longterm", "Where you’re heading")}
   </section>
 
   <!-- TRENDS: ALL METRICS -->
   <section class="section" id="tab-allmetrics">
-    <h2 class="sec" style="margin-top:6px;">All metrics<span>Every metric with data, at a glance</span></h2>
+    <h2 class="sec" style="margin-top:6px;">All metrics</h2>
     <div class="am-grid" id="allMetricsGrid"></div>
   </section>
 
   <!-- TRENDS: INSIGHTS (strain, workout types, seasonal) -->
   <section class="section" id="tab-insights">
-    <h2 class="sec" style="margin-top:6px;">Strain vs recovery<span>Exercise load vs your recovery signals</span></h2>
+    <h2 class="sec" style="margin-top:6px;">Strain vs recovery</h2>
     <div class="card">
       <div class="chart-box"><canvas id="scatterChart"></canvas></div>
-      <div class="card-sub" style="margin-top:8px;">Dot size = exercise minutes. X = strain (exercise + active energy). Y = recovery (HRV percentile).</div>
     </div>
 
-    <h2 class="sec">Workouts by type<span>What you do most</span></h2>
+    <h2 class="sec">Workouts by type</h2>
     <div class="card">
       <div class="wt-bars" id="wtBars"></div>
     </div>
 
-    <h2 class="sec">Seasonal patterns<span>How your metrics shift across months</span></h2>
+    <h2 class="sec">Seasonal patterns</h2>
     <div class="season-grid" id="seasonGrid"></div>
   </section>
 
   <!-- TRENDS: DAY EXPLORER -->
   <section class="section" id="tab-dayexplorer">
-    <h2 class="sec" style="margin-top:6px;">Day explorer<span>Pick any day and see every metric</span></h2>
+    <h2 class="sec" style="margin-top:6px;">Day explorer</h2>
     <div class="de-picker">
       <input type="date" id="deDate" />
       <button onclick="deNav(-1)">&larr; Prev</button>
@@ -1762,7 +1753,7 @@ export function renderDashboard(): string {
 
   <!-- YOU: RECORDS -->
   <section class="section" id="tab-records">
-    <h2 class="sec" style="margin-top:6px;">Heatmap<span>Every day at a glance</span></h2>
+    <h2 class="sec" style="margin-top:6px;">Heatmap</h2>
     <div class="card">
       <div class="hm-metric-sel">
         <select id="hmMetricSel" onchange="changeHmMetric(this.value)">
@@ -1781,19 +1772,19 @@ export function renderDashboard(): string {
       <div class="hm-legend">Less <span class="hm-cell"></span><span class="hm-cell hm-1"></span><span class="hm-cell hm-2"></span><span class="hm-cell hm-3"></span><span class="hm-cell hm-4"></span> More</div>
     </div>
 
-    <h2 class="sec">Then vs now<span>How your key metrics changed over the years</span></h2>
+    <h2 class="sec">Then vs now</h2>
     <div class="tvn-grid" id="thenVsNow"></div>
 
-    <h2 class="sec">Personal bests<span>Your all-time records</span></h2>
+    <h2 class="sec">Personal bests</h2>
     <div class="card"><div class="bests" id="bestsGrid"></div></div>
 
-    <h2 class="sec">Milestones<span>What you have accomplished</span></h2>
+    <h2 class="sec">Milestones</h2>
     <div class="milestones" id="milestones"></div>
   </section>
 
   <!-- WEEKLY STORY -->
   <section class="section" id="tab-story">
-    <h2 class="sec" style="margin-top:6px;">Your weeks<span>Swipe through recent weeks</span></h2>
+    <h2 class="sec" style="margin-top:6px;">Your weeks</h2>
     <div class="story-scroll" id="storyScroll"></div>
 
     <h2 class="sec">Year in review<span id="yirYear"></span></h2>
@@ -1893,7 +1884,7 @@ export function renderDashboard(): string {
 
   <!-- DISCOVERIES -->
   <section class="section" id="tab-discoveries">
-    ${reviewCard("discoveries", "Discoveries review", "What your patterns suggest, and how to test them.")}
+    ${reviewCard("discoveries", "Discoveries review")}
     <div class="card">
       <h3>Report
         <button class="btn btn-ghost btn-sm" onclick="loadReport('week')" style="margin-left:8px;">Week</button>
@@ -1928,36 +1919,37 @@ export function renderDashboard(): string {
 
   <!-- PLAN & GOALS -->
   <section class="section" id="tab-plan">
-    <h2 class="sec" style="margin-top:6px;">This week<span id="planSub">What you actually did</span></h2>
-    <div class="plan-days" id="planDays"><div class="skeleton" style="width:80%"></div><div class="skeleton" style="width:60%"></div></div>
+    <details class="more"><summary style="font-size:13px;font-weight:700;">This week <span id="planSub" style="color:var(--dim);font-weight:500;"></span></summary><div class="plan-days" id="planDays"></div></details>
 
-    <h2 class="sec">Goals<span>Targets with deadlines, tracked against your trend</span></h2>
+    <details class="more"><summary style="font-size:13px;font-weight:700;">Goals</summary><div>
     <div id="goalsList"></div>
     <div class="card">
-      <h3>Add a goal</h3>
       <form class="goal-form" onsubmit="addGoal(event)">
         <select id="goalMetric" onchange="updateGoalHint()"></select>
         <input id="goalTarget" type="number" step="any" placeholder="Target" required />
         <input id="goalDeadline" type="date" required />
         <input id="goalTitle" type="text" placeholder="Name (optional)" />
-        <button type="submit" class="btn btn-sm">Add goal</button>
+        <button type="submit" class="btn btn-sm">Add</button>
       </form>
-      <div class="card-sub" id="goalHint" style="margin-top:8px;"></div>
+      <div class="card-sub" id="goalHint" style="margin-top:4px;"></div>
     </div>
-    <h2 class="sec">This week<span>Last 7 days</span></h2>
-    <div class="card"><div class="week" id="weekStrip"></div>
-      <div class="legend"><span><i class="lg-bar"></i>steps</span><span><i class="lg-dot on"></i>ring closed</span><span><i class="lg-dot"></i>ring missed</span></div>
-    </div>
+    </div></details>
+
+    <details class="more"><summary style="font-size:13px;font-weight:700;">7-day strip</summary><div>
+    <div class="card"><div class="week" id="weekStrip"></div></div>
     <div class="highlights" id="highlights"></div>
-    <button class="btn btn-ghost btn-sm" id="moreHighlights" style="display:none;margin:-4px 0 14px;" onclick="toggleHighlights()">Show all highlights</button>
-    ${reviewCard("weekly", "Your week in review", "What worked, what slipped, what to change.")}
+    <button class="btn btn-ghost btn-sm" id="moreHighlights" style="display:none;margin:-4px 0 10px;" onclick="toggleHighlights()">All highlights</button>
+    </div></details>
+
+    ${reviewCard("weekly", "Your week in review")}
     <div id="weekRecap"></div>
 
-    <h2 class="sec">Key numbers<span>Latest values with 30-day trend</span></h2>
+    <details class="more"><summary style="font-size:13px;font-weight:700;">Key numbers</summary><div>
     <div class="grid" id="quickStats"></div>
     <div class="untracked" id="untracked"></div>
+    </div></details>
 
-    <h2 class="sec" id="scoreSection">Health score<span>Four areas, scored against your own data</span></h2>
+    <details class="more" id="scoreSection"><summary style="font-size:13px;font-weight:700;">Health score <span class="num" id="scoreNumInline" style="color:var(--pulse);margin-left:4px;"></span></summary><div>
     <div class="scoreboard card" id="scoreboardCard">
       <div class="multi-ring-layout">
         <div class="multi-ring" id="multiRing">
@@ -1979,62 +1971,41 @@ export function renderDashboard(): string {
           <div class="ring-legend" id="ringLegend"></div>
         </div>
       </div>
-      <details class="more"><summary>How is this calculated?</summary><div>The average of four 0-100 scores. <b>Recovery</b>: today\\'s heart data vs your normal. <b>Activity</b>: exercise minutes vs 150 a week, steps vs 8,000. <b>Fitness</b>: VO2max for your age, plus active days. <b>Sleep</b>: hours vs your goal. Areas without data are skipped, not guessed.</div></details>
     </div>
+    </div></details>
   </section>
 
   <!-- TRAINING -->
   <section class="section" id="tab-training">
-    ${reviewCard("training", "Training review", "Load, consistency, and your next 7 days.")}
-    <div class="card">
-      <h3>Action items</h3>
-      <ul class="actions" id="trainingActions"><li class="sub">Loading…</li></ul>
-    </div>
+    ${reviewCard("training", "Training review")}
+    <div class="card"><details class="more"><summary>Action items</summary><div><ul class="actions" id="trainingActions"><li class="sub">Loading…</li></ul></div></details></div>
     <div id="trainingLoadStats" class="grid"></div>
     <div class="fit-grid" id="fitnessMetrics"></div>
-    <div class="card">
-      <h3>Fitness, fatigue &amp; form</h3>
-      <div class="card-sub">Bars: daily load. Green: fitness base. Red: fatigue. Blue: freshness.</div>
-      <div class="chart-box"><canvas id="loadChart"></canvas></div>
-      <div class="guide"><div class="g-mean">Fitness rising slowly while form hovers between −5 and +3 is productive training. Form below −5 for days = overreaching; above +5 for weeks = detraining.</div><div class="g-act">Build fitness ~5-10% a week; every 3-4 weeks take an easier week to let form recover.</div></div>
-    </div>
-    <div class="card">
-      <h3>Weekly volume (last 8 weeks)</h3>
-      <div class="card-sub">Active day: 20+ exercise minutes or a workout.</div>
-      <div id="weeklyTable"></div>
-    </div>
+    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Fitness &amp; form</h3></summary><div class="chart-box"><canvas id="loadChart"></canvas></div></details></div>
+    <div class="card"><details class="more"><summary>Weekly volume</summary><div id="weeklyTable"></div></details></div>
   </section>
 
   <!-- HEART & RECOVERY -->
   <section class="section" id="tab-heart">
-    ${reviewCard("recovery", "Recovery review", "How well you bounce back.")}
-    <div class="card"><h3>Resting heart rate &amp; HRV</h3><div class="chart-box"><canvas id="heartChart"></canvas></div><div data-guide="restingHeartRate,hrv"></div></div>
-    <div class="card"><h3>Heart rate range (avg / min / max)</h3><div class="chart-box"><canvas id="hrRangeChart"></canvas></div><div data-guide="heartRateAvg,walkingHeartRateAvg"></div></div>
-    <div class="card"><h3>VO2max trend</h3><div class="chart-box"><canvas id="vo2Chart"></canvas></div><div data-guide="vo2max"></div></div>
-    <div class="card">
-      <h3>Readiness, explained</h3>
-      <div class="card-sub">HRV, resting heart rate and sleep vs <em>your</em> 30-day normal.</div>
-      <div data-guide="readiness,strain,respiratoryRate,oxygenSaturation"></div>
-    </div>
+    ${reviewCard("recovery", "Recovery review")}
+    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">RHR &amp; HRV</h3></summary><div class="chart-box"><canvas id="heartChart"></canvas></div></details><div data-guide="restingHeartRate,hrv"></div></div>
+    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">HR range</h3></summary><div class="chart-box"><canvas id="hrRangeChart"></canvas></div></details><div data-guide="heartRateAvg,walkingHeartRateAvg"></div></div>
+    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">VO2max</h3></summary><div class="chart-box"><canvas id="vo2Chart"></canvas></div></details><div data-guide="vo2max"></div></div>
+    <div class="card"><h3>Readiness</h3><div data-guide="readiness,strain,respiratoryRate,oxygenSaturation"></div></div>
   </section>
 
   <!-- ACTIVITY & MOBILITY -->
   <section class="section" id="tab-activity">
     ${reviewCard("activity", "Activity review")}
-    <div class="card"><h3>Steps</h3><div class="chart-box"><canvas id="stepsChart"></canvas></div><div data-guide="steps"></div></div>
-    <div class="card"><h3>Active energy &amp; exercise minutes</h3><div class="chart-box"><canvas id="energyChart"></canvas></div><div data-guide="activeEnergy,exerciseMinutes"></div></div>
-    <div class="card"><h3>Stand minutes &amp; flights climbed</h3><div class="chart-box"><canvas id="standChart"></canvas></div><div data-guide="standHours,flightsClimbed"></div></div>
-    <div class="card"><h3>Walking speed &amp; gait quality</h3><div class="card-sub">Walking speed is a strong marker of healthy ageing.</div><div class="chart-box"><canvas id="gaitChart"></canvas></div><div data-guide="walkingSpeed,walkingAsymmetryPct,walkingDoubleSupportPct"></div></div>
-    <div class="card"><h3>Workouts</h3><div class="chart-box"><canvas id="workoutChart"></canvas></div><div data-guide="workoutMinutes"></div></div>
-    <div class="card">
-      <h3>Recent sessions</h3>
-      <div id="workoutList" class="card-sub">No workout sessions in the imported data yet.</div>
-    </div>
-    <div class="card">
-      <h3>Activity Rings</h3>
-      <div class="card-sub">Today vs your ring goals.</div>
-      <div id="activityRings" class="sub">No Activity Ring data in the imported data yet.</div>
-    </div>
+    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Steps</h3></summary><div class="chart-box"><canvas id="stepsChart"></canvas></div></details><div data-guide="steps"></div></div>
+    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Energy &amp; exercise</h3></summary><div class="chart-box"><canvas id="energyChart"></canvas></div></details><div data-guide="activeEnergy,exerciseMinutes"></div></div>
+    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Stand &amp; flights</h3></summary><div class="chart-box"><canvas id="standChart"></canvas></div></details><div data-guide="standHours,flightsClimbed"></div></div>
+    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Gait quality</h3></summary><div class="chart-box"><canvas id="gaitChart"></canvas></div></details><div data-guide="walkingSpeed,walkingAsymmetryPct,walkingDoubleSupportPct"></div></div>
+    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Workouts</h3></summary><div class="chart-box"><canvas id="workoutChart"></canvas></div></details><div data-guide="workoutMinutes"></div></div>
+    <details class="more"><summary>Sessions &amp; rings</summary><div>
+    <div class="card"><h3>Recent sessions</h3><div id="workoutList" class="card-sub">No sessions yet.</div></div>
+    <div class="card"><h3>Activity Rings</h3><div id="activityRings" class="sub">No data yet.</div></div>
+    </div></details>
   </section>
 
   <!-- WORKOUTS (manual log) -->
@@ -2110,11 +2081,11 @@ export function renderDashboard(): string {
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div>
           <div class="sl-assumed" id="slAssumed">Last night: <b id="slHoursDisplay">7.5</b>h sleep</div>
-          <div class="card-sub" id="slSub">Assumed — tap to correct</div>
+          <div class="card-sub" id="slSub" style="margin:0;">Assumed — tap to correct</div>
         </div>
         <button class="btn btn-ghost btn-sm" id="slEditBtn" onclick="toggleSleepEdit()">Edit</button>
       </div>
-      <div id="slEditArea" style="display:none;margin-top:10px;">
+      <div id="slEditArea" style="display:none;margin-top:8px;">
         <form class="sleep-log-form" onsubmit="submitSleepLog(event)">
           <div class="sl-row">
             <label>Hours<input type="number" id="slHours" step="0.5" min="0" max="24" value="7.5" /></label>
@@ -2126,13 +2097,10 @@ export function renderDashboard(): string {
       </div>
     </div>
     ${reviewCard("sleep", "Sleep review")}
-    <div class="card" id="sleepAnalysisCard" style="display:none">
-      <h3>Sleep analysis</h3>
-      <div class="brief-row" id="sleepAnalysisRow"></div>
-    </div>
-    <div class="card"><h3>Sleep duration</h3><div class="chart-box"><canvas id="sleepChart"></canvas></div><div data-guide="sleepHours,sleepEfficiency"></div></div>
-    <div class="card"><h3>Sleep stages</h3><div class="card-sub">Core, deep, REM and awake time.</div><div class="chart-box"><canvas id="sleepStagesChart"></canvas></div><div data-guide="sleepDeepHours,sleepRemHours"></div></div>
-    <div class="card"><h3>Weight</h3><div class="chart-box"><canvas id="weightChart"></canvas></div><div data-guide="weightKg,bodyFatPct"></div></div>
+    <div class="card" id="sleepAnalysisCard" style="display:none"><h3>Sleep analysis</h3><div class="brief-row" id="sleepAnalysisRow"></div></div>
+    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Sleep duration</h3></summary><div class="chart-box"><canvas id="sleepChart"></canvas></div></details><div data-guide="sleepHours,sleepEfficiency"></div></div>
+    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Sleep stages</h3></summary><div class="chart-box"><canvas id="sleepStagesChart"></canvas></div></details><div data-guide="sleepDeepHours,sleepRemHours"></div></div>
+    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Weight</h3></summary><div class="chart-box"><canvas id="weightChart"></canvas></div></details><div data-guide="weightKg,bodyFatPct"></div></div>
   </section>
 
   <!-- BIOLOGICAL AGE -->
@@ -2219,7 +2187,7 @@ export function renderDashboard(): string {
   </section>
 
   <section class="section" id="tab-age">
-    ${reviewCard("body", "Body & bio-age review", "Your oldest marker, and how to improve it.")}
+    ${reviewCard("body", "Body & bio-age review")}
     <div class="card"><h3>Biological vs chronological age</h3><div class="chart-box"><canvas id="ageChart"></canvas></div><div data-guide="biologicalAge"></div></div>
     <div class="card">
       <h3>What's driving it</h3>
@@ -5364,6 +5332,7 @@ function renderScore(score) {
   var n = score.overall;
   var numEl = document.getElementById('scoreNum');
   numEl.textContent = n === null ? '—' : String(n);
+  var inl = document.getElementById('scoreNumInline'); if (inl) inl.textContent = n === null ? '' : String(n);
   var funWord = n === null ? score.word : n >= 90 ? 'Royalty' : n >= 80 ? 'Crushing it' : n >= 65 ? 'Solid' : score.word;
   document.getElementById('scoreWord').textContent = funWord;
   document.getElementById('scoreWord').style.color = scoreColor(n);
