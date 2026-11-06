@@ -183,8 +183,12 @@ export function renderDashboard(): string {
   /* ---- AI insights ---- */
   .ai-card { background:var(--panel); border:1px solid var(--line); border-left:3px solid var(--pulse); border-radius:0 12px 12px 0; }
   .ai-head { display:flex; justify-content:space-between; align-items:flex-start; gap:10px; }
-  .ai-headline { font-size:17px; font-weight:800; margin:4px 0 12px; color:var(--ink); letter-spacing:-.02em; line-height:1.25; }
-  .ai-body { font-size:14px; line-height:1.65; color:rgba(255,255,255,.88); margin:0 0 10px; }
+  .ai-headline { font-size:17px; font-weight:800; margin:4px 0 8px; color:var(--ink); letter-spacing:-.02em; line-height:1.25; }
+  .ai-detail { margin-top:4px; }
+  .ai-detail > summary { font-size:12px; color:var(--faint); cursor:pointer; list-style:none; }
+  .ai-detail > summary::before { content:'▸ '; }
+  .ai-detail[open] > summary::before { content:'▾ '; }
+  .ai-body { font-size:14px; line-height:1.65; color:rgba(255,255,255,.88); margin:8px 0 10px; }
   .ai-concern { font-size:13.5px; line-height:1.55; color:var(--caution); margin:0 0 10px; padding:10px 12px; background:rgba(251,191,36,.06); border-radius:6px; border-left:3px solid var(--caution); }
   .ai-meta { color:var(--faint); font-size:11px; margin-top:10px; font-family:var(--mono); letter-spacing:.02em; text-transform:uppercase; }
   .skeleton { height:12px; border-radius:4px; background:linear-gradient(90deg,var(--panel2),rgba(255,255,255,.04),var(--panel2)); background-size:200% 100%; animation:shimmer 1.8s infinite; margin:8px 0; }
@@ -283,7 +287,11 @@ export function renderDashboard(): string {
   progress { width:100%; height:4px; border-radius:2px; overflow:hidden; accent-color:var(--pulse); margin-top:8px; }
 
   /* ---- "what it means / what to do" under every metric ---- */
-  .guide { margin-top:12px; padding-top:12px; border-top:1px solid var(--line); font-size:13px; line-height:1.55; }
+  .guide-wrap { margin-top:12px; padding-top:12px; border-top:1px solid var(--line); }
+  .guide-wrap > summary { font-size:12px; color:var(--faint); cursor:pointer; list-style:none; }
+  .guide-wrap > summary::before { content:'▸ '; }
+  .guide-wrap[open] > summary::before { content:'▾ '; }
+  .guide { margin-top:8px; font-size:13px; line-height:1.55; }
   .guide + .guide { margin-top:10px; }
   .guide .g-name { color:var(--ink); font-weight:700; font-size:12.5px; text-transform:uppercase; letter-spacing:.02em; }
   .guide .g-val { font-family:var(--mono); font-weight:700; color:var(--ink); margin-left:6px; }
@@ -4637,7 +4645,10 @@ function injectSectionHeaders() {
       try { localStorage.setItem('sec-' + id, section.classList.contains('section-collapsed') ? '1' : '0'); } catch (e) {}
     };
     section.insertBefore(header, section.firstChild);
-    try { if (localStorage.getItem('sec-' + id) === '1') section.classList.add('section-collapsed'); } catch (e) {}
+    var saved = null;
+    try { saved = localStorage.getItem('sec-' + id); } catch (e) {}
+    if (saved === '0') { /* user explicitly opened — keep open */ }
+    else section.classList.add('section-collapsed');
   });
 }
 
@@ -5798,7 +5809,8 @@ function miniGuide(key, v) {
 
 function fillGuides() {
   document.querySelectorAll('[data-guide]').forEach(function (el) {
-    el.innerHTML = el.getAttribute('data-guide').split(',').map(guideBlock).join('');
+    var html = el.getAttribute('data-guide').split(',').map(guideBlock).join('');
+    if (html) el.innerHTML = '<details class="guide-wrap"><summary>What does this mean?</summary>' + html + '</details>';
   });
 }
 
@@ -6375,20 +6387,22 @@ async function loadReview(domain, force, silent) {
     var res = await authedFetch('/api/insights?domain=' + domain + (force ? '&force=1' : ''));
     var ins = res.insights;
     var html = '<div class="ai-headline">' + ins.headline + '</div>';
+    var detail = '';
     if (ins.body) {
-      html += '<p class="ai-body">' + ins.body + '</p>';
-      if (ins.concern) html += '<p class="ai-concern">' + ins.concern + '</p>';
+      detail += '<p class="ai-body">' + ins.body + '</p>';
+      if (ins.concern) detail += '<p class="ai-concern">' + ins.concern + '</p>';
     } else {
       if (ins.recommendations && ins.recommendations.length) {
-        html += '<p class="ai-body">' + ins.recommendations.join(' ') + '</p>';
+        detail += '<p class="ai-body">' + ins.recommendations.join(' ') + '</p>';
       }
       if (ins.insights && ins.insights.length) {
-        html += '<p class="ai-body">' + ins.insights.join(' ') + '</p>';
+        detail += '<p class="ai-body">' + ins.insights.join(' ') + '</p>';
       }
       if (ins.concerns && ins.concerns.length) {
-        html += '<p class="ai-concern">' + ins.concerns[0] + '</p>';
+        detail += '<p class="ai-concern">' + ins.concerns[0] + '</p>';
       }
     }
+    if (detail) html += '<details class="ai-detail"><summary>Read more</summary>' + detail + '</details>';
     // Out of date: the server is rewriting it in the background — pick up
     // the new version shortly, without a loading state.
     if (res.refreshing && !silent) setTimeout(function () { loadReview(domain, false, true); }, 45000);
