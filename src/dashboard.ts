@@ -385,6 +385,14 @@ export function renderDashboard(): string {
   details.more summary::before { content:"＋ "; }
   details.more[open] summary::before { content:"− "; }
   details.more > div { margin-top:4px; line-height:1.6; }
+  details.expand-card { background:var(--panel2); border-radius:10px; margin-bottom:8px; }
+  details.expand-card summary { cursor:pointer; list-style:none; padding:10px 14px; font-size:13px; font-weight:700; color:var(--fg); display:flex; align-items:center; justify-content:space-between; gap:8px; }
+  details.expand-card summary::-webkit-details-marker { display:none; }
+  details.expand-card summary .ec-hint { font-weight:400; font-size:11.5px; color:var(--dim); }
+  details.expand-card summary::after { content:"▸"; font-size:11px; color:var(--dim); transition:transform .15s; }
+  details.expand-card[open] summary::after { transform:rotate(90deg); }
+  details.expand-card > .ec-body { padding:0 14px 10px; }
+  details.expand-card > .ec-body .card { margin:0 -2px 8px; }
   details.chart-detail { margin-bottom:8px; }
   details.chart-detail summary { cursor:pointer; list-style:none; padding:8px 12px; background:var(--panel2); border-radius:10px; }
   details.chart-detail summary::-webkit-details-marker { display:none; }
@@ -1615,82 +1623,70 @@ export function renderDashboard(): string {
     <!-- Quick-glance metric cards -->
     <div class="qg-row" id="quickGlanceRow"></div>
 
-    <details class="more"><summary style="font-size:13px;font-weight:700;">Activity rings</summary><div>
-    <div class="card" id="homeRingsCard" style="display:none">
-      <div id="homeRings"></div>
-    </div>
-    <div class="card" id="todayActivityCard" style="display:none">
-      <div class="ta-grid" id="todayActivityGrid"></div>
-    </div>
-    </div></details>
-
-    <details class="more"><summary style="font-size:13px;font-weight:700;">Workouts</summary><div>
-    <div class="card" id="todayWorkoutsCard" style="display:none">
-      <h3 id="todayWorkoutsTitle">Today’s workouts</h3>
-      <div class="workout-cards" id="todayWorkoutsList"></div>
-    </div>
-    <div class="card" id="strainBudgetCard" style="display:none;cursor:pointer;" onclick="toggleStrainDetail()">
-      <div class="sb-label">Strain <span id="sbUsed2">0</span> / <span id="sbMax2">21</span></div>
-      <div class="sb-track"><div class="sb-fill" id="sbFill2"></div><div class="sb-target" id="sbTarget2"></div></div>
-      <div id="strainDetailInline"></div>
-    </div>
-    </div></details>
-
-    <details class="more"><summary style="font-size:13px;font-weight:700;">Body map</summary><div>
-    <div class="body-home" id="bodyHome">
-      <div class="body-stage" id="bodyStage">
-        <div class="body-score-badge" id="bodyScoreBadge" style="cursor:pointer;" onclick="toggleBodyScoreDetail()">
-          <div class="bsb-ring">
-            <svg viewBox="0 0 80 80">
-              <defs><linearGradient id="bsbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--pulse)"/><stop offset="100%" stop-color="var(--up)"/></linearGradient></defs>
-              <circle cx="40" cy="40" r="34" class="bsb-bg"/>
-              <circle cx="40" cy="40" r="34" class="bsb-fill" id="bsbFill" stroke-dasharray="214" stroke-dashoffset="214"/>
-            </svg>
-            <div class="bsb-center">
-              <div class="bsb-num count-up" id="bsbNum" data-target="0">—</div>
-              <div class="bsb-label">Body</div>
-            </div>
-          </div>
-        </div>
-        <div class="body-stage-svg" id="bodyStageSvg"></div>
-      </div>
-      <div id="bodyScoreDetail"></div>
-      <div class="body-inline-detail" id="bodyInlineDetail" style="display:none"></div>
-    </div>
-    <div class="card" id="whatMovedCard" style="display:none;cursor:pointer;" onclick="toggleWhatMoved()">
-      <div class="wm-summary" id="wmSummary"></div>
-      <div class="wm-details" id="wmDetails"></div>
-    </div>
-    </div></details>
-
     <div id="smartCheckInArea"></div>
-
-    <details class="more"><summary style="font-size:13px;font-weight:700;">Today’s note</summary><div>
-    <div class="card" id="todayPlanCard">
-      <div class="tp-section" id="todaySessionInner" style="display:none"></div>
-      <div class="tp-section" id="todayCoachInner"><div class="tp-label">Coach’s note <button class="btn btn-ghost btn-sm" id="review-today-btn" onclick="event.stopPropagation();loadReview(‘today’,true)" style="margin-left:8px;">Retry</button></div><div id="review-today"><div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:55%"></div></div></div>
-      <div class="tp-section" id="todayFocusInner" style="display:none"><div class="tp-label">Focus</div><div id="oneActionText"></div></div>
-    </div>
-    </div></details>
 
     <div class="card illness-card" id="illnessCard" style="display:none">
       <div class="illness-head"><span class="illness-icon">⚠</span><span class="illness-title" id="illnessTitle"></span></div>
       <div class="illness-body sub" id="illnessBody"></div>
     </div>
 
-    <details class="more"><summary style="font-size:13px;font-weight:700;">Progress</summary><div>
-    <div class="card" id="progressCard" style="display:none">
-      <div class="pg-tabs" id="pgTabs">
-        <div class="pg-tab active" onclick="showProgressTab(0)">Heatmap</div>
-        <div class="pg-tab" onclick="showProgressTab(1)">Streaks</div>
-        <div class="pg-tab" onclick="showProgressTab(2)">Weekly</div>
-        <div class="pg-tab" onclick="showProgressTab(3)">Records</div>
-      </div>
-      <div class="pg-view active" id="pgHeatmap"><div class="hm-wrap" id="heatmapGrid"></div></div>
-      <div class="pg-view" id="pgStreaks"><div class="streak-grid" id="streakGrid"></div></div>
-      <div class="pg-view" id="pgWeekly"><div class="wc-grid" id="weeklyCompGrid"></div></div>
-      <div class="pg-view" id="pgRecords"><div class="pr-grid" id="prGrid"></div></div>
+    <div class="card" id="todayPlanCard" style="font-size:13px;">
+      <div class="tp-section" id="todayCoachInner"><div id="review-today"><div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:55%"></div></div></div>
+      <div class="tp-section" id="todayFocusInner" style="display:none"><div style="font-weight:600;font-size:11.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Focus</div><div id="oneActionText"></div></div>
+      <div class="tp-section" id="todaySessionInner" style="display:none"></div>
     </div>
+
+    <details class="expand-card"><summary>Today’s activity <span class="ec-hint" id="ecActivityHint"></span></summary><div class="ec-body">
+      <div id="homeRingsCard" style="display:none"><div id="homeRings"></div></div>
+      <div id="todayActivityCard" style="display:none"><div class="ta-grid" id="todayActivityGrid"></div></div>
+      <div id="todayWorkoutsCard" style="display:none">
+        <h3 id="todayWorkoutsTitle" style="font-size:12px;margin:10px 0 6px;">Today’s workouts</h3>
+        <div class="workout-cards" id="todayWorkoutsList"></div>
+      </div>
+      <div id="strainBudgetCard" style="display:none;cursor:pointer;" onclick="toggleStrainDetail()">
+        <div class="sb-label">Strain <span id="sbUsed2">0</span> / <span id="sbMax2">21</span></div>
+        <div class="sb-track"><div class="sb-fill" id="sbFill2"></div><div class="sb-target" id="sbTarget2"></div></div>
+        <div id="strainDetailInline"></div>
+      </div>
+    </div></details>
+
+    <details class="expand-card"><summary>Body & progress <span class="ec-hint" id="ecBodyHint"></span></summary><div class="ec-body">
+      <div class="body-home" id="bodyHome">
+        <div class="body-stage" id="bodyStage">
+          <div class="body-score-badge" id="bodyScoreBadge" style="cursor:pointer;" onclick="toggleBodyScoreDetail()">
+            <div class="bsb-ring">
+              <svg viewBox="0 0 80 80">
+                <defs><linearGradient id="bsbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--pulse)"/><stop offset="100%" stop-color="var(--up)"/></linearGradient></defs>
+                <circle cx="40" cy="40" r="34" class="bsb-bg"/>
+                <circle cx="40" cy="40" r="34" class="bsb-fill" id="bsbFill" stroke-dasharray="214" stroke-dashoffset="214"/>
+              </svg>
+              <div class="bsb-center">
+                <div class="bsb-num count-up" id="bsbNum" data-target="0">—</div>
+                <div class="bsb-label">Body</div>
+              </div>
+            </div>
+          </div>
+          <div class="body-stage-svg" id="bodyStageSvg"></div>
+        </div>
+        <div id="bodyScoreDetail"></div>
+        <div class="body-inline-detail" id="bodyInlineDetail" style="display:none"></div>
+      </div>
+      <div id="whatMovedCard" style="display:none;cursor:pointer;" onclick="toggleWhatMoved()">
+        <div class="wm-summary" id="wmSummary"></div>
+        <div class="wm-details" id="wmDetails"></div>
+      </div>
+      <div id="progressCard" style="display:none">
+        <div class="pg-tabs" id="pgTabs" style="margin-top:8px;">
+          <div class="pg-tab active" onclick="showProgressTab(0)">Heatmap</div>
+          <div class="pg-tab" onclick="showProgressTab(1)">Streaks</div>
+          <div class="pg-tab" onclick="showProgressTab(2)">Weekly</div>
+          <div class="pg-tab" onclick="showProgressTab(3)">Records</div>
+        </div>
+        <div class="pg-view active" id="pgHeatmap"><div class="hm-wrap" id="heatmapGrid"></div></div>
+        <div class="pg-view" id="pgStreaks"><div class="streak-grid" id="streakGrid"></div></div>
+        <div class="pg-view" id="pgWeekly"><div class="wc-grid" id="weeklyCompGrid"></div></div>
+        <div class="pg-view" id="pgRecords"><div class="pr-grid" id="prGrid"></div></div>
+      </div>
     </div></details>
 
     <!-- Offscreen render targets for JS functions that populate them -->
@@ -1919,12 +1915,19 @@ export function renderDashboard(): string {
 
   <!-- PLAN & GOALS -->
   <section class="section" id="tab-plan">
-    <details class="more"><summary style="font-size:13px;font-weight:700;">This week <span id="planSub" style="color:var(--dim);font-weight:500;"></span></summary><div class="plan-days" id="planDays"></div></details>
+    ${reviewCard("weekly", "Your week in review")}
+    <div id="weekRecap"></div>
 
-    <details class="more"><summary style="font-size:13px;font-weight:700;">Goals</summary><div>
-    <div id="goalsList"></div>
-    <div class="card">
-      <form class="goal-form" onsubmit="addGoal(event)">
+    <details class="expand-card"><summary>This week <span class="ec-hint" id="planSub"></span></summary><div class="ec-body">
+      <div class="plan-days" id="planDays"></div>
+      <div style="margin-top:8px;"><div class="week" id="weekStrip"></div></div>
+      <div class="highlights" id="highlights"></div>
+      <button class="btn btn-ghost btn-sm" id="moreHighlights" style="display:none;margin:-4px 0 10px;" onclick="toggleHighlights()">All highlights</button>
+    </div></details>
+
+    <details class="expand-card"><summary>Goals</summary><div class="ec-body">
+      <div id="goalsList"></div>
+      <form class="goal-form" onsubmit="addGoal(event)" style="margin-top:6px;">
         <select id="goalMetric" onchange="updateGoalHint()"></select>
         <input id="goalTarget" type="number" step="any" placeholder="Target" required />
         <input id="goalDeadline" type="date" required />
@@ -1932,46 +1935,33 @@ export function renderDashboard(): string {
         <button type="submit" class="btn btn-sm">Add</button>
       </form>
       <div class="card-sub" id="goalHint" style="margin-top:4px;"></div>
-    </div>
     </div></details>
 
-    <details class="more"><summary style="font-size:13px;font-weight:700;">7-day strip</summary><div>
-    <div class="card"><div class="week" id="weekStrip"></div></div>
-    <div class="highlights" id="highlights"></div>
-    <button class="btn btn-ghost btn-sm" id="moreHighlights" style="display:none;margin:-4px 0 10px;" onclick="toggleHighlights()">All highlights</button>
-    </div></details>
-
-    ${reviewCard("weekly", "Your week in review")}
-    <div id="weekRecap"></div>
-
-    <details class="more"><summary style="font-size:13px;font-weight:700;">Key numbers</summary><div>
-    <div class="grid" id="quickStats"></div>
-    <div class="untracked" id="untracked"></div>
-    </div></details>
-
-    <details class="more" id="scoreSection"><summary style="font-size:13px;font-weight:700;">Health score <span class="num" id="scoreNumInline" style="color:var(--pulse);margin-left:4px;"></span></summary><div>
-    <div class="scoreboard card" id="scoreboardCard">
-      <div class="multi-ring-layout">
-        <div class="multi-ring" id="multiRing">
-          <svg width="180" height="180" viewBox="0 0 180 180">
-            <circle cx="90" cy="90" r="72" fill="none" stroke="#1d1d1d" stroke-width="10" />
-            <circle cx="90" cy="90" r="58" fill="none" stroke="#1d1d1d" stroke-width="10" />
-            <circle cx="90" cy="90" r="44" fill="none" stroke="#1d1d1d" stroke-width="10" />
-            <circle cx="90" cy="90" r="30" fill="none" stroke="#1d1d1d" stroke-width="10" />
-            <circle id="sr0" cx="90" cy="90" r="72" fill="none" stroke="#34d399" stroke-width="10" stroke-linecap="round" stroke-dasharray="452.4" stroke-dashoffset="452.4" class="score-arc" />
-            <circle id="sr1" cx="90" cy="90" r="58" fill="none" stroke="#f76b4d" stroke-width="10" stroke-linecap="round" stroke-dasharray="364.4" stroke-dashoffset="364.4" class="score-arc" />
-            <circle id="sr2" cx="90" cy="90" r="44" fill="none" stroke="#60a5fa" stroke-width="10" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="276.5" class="score-arc" />
-            <circle id="sr3" cx="90" cy="90" r="30" fill="none" stroke="#a78bfa" stroke-width="10" stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="188.5" class="score-arc" />
-          </svg>
-          <div class="ring-label"><div class="n" id="scoreNum">—</div><div class="u"><span id="scoreCrown" style="display:none">&#128081; </span>health score</div></div>
-        </div>
-        <div class="multi-ring-info">
-          <div class="score-word" id="scoreWord">—</div>
-          <div class="score-summary" id="scoreSummary">Calculating…</div>
-          <div class="ring-legend" id="ringLegend"></div>
+    <details class="expand-card" id="scoreSection"><summary>Metrics & score <span class="ec-hint" id="scoreNumInline"></span></summary><div class="ec-body">
+      <div class="grid" id="quickStats"></div>
+      <div class="untracked" id="untracked"></div>
+      <div class="scoreboard" id="scoreboardCard" style="margin-top:10px;">
+        <div class="multi-ring-layout">
+          <div class="multi-ring" id="multiRing">
+            <svg width="180" height="180" viewBox="0 0 180 180">
+              <circle cx="90" cy="90" r="72" fill="none" stroke="#1d1d1d" stroke-width="10" />
+              <circle cx="90" cy="90" r="58" fill="none" stroke="#1d1d1d" stroke-width="10" />
+              <circle cx="90" cy="90" r="44" fill="none" stroke="#1d1d1d" stroke-width="10" />
+              <circle cx="90" cy="90" r="30" fill="none" stroke="#1d1d1d" stroke-width="10" />
+              <circle id="sr0" cx="90" cy="90" r="72" fill="none" stroke="#34d399" stroke-width="10" stroke-linecap="round" stroke-dasharray="452.4" stroke-dashoffset="452.4" class="score-arc" />
+              <circle id="sr1" cx="90" cy="90" r="58" fill="none" stroke="#f76b4d" stroke-width="10" stroke-linecap="round" stroke-dasharray="364.4" stroke-dashoffset="364.4" class="score-arc" />
+              <circle id="sr2" cx="90" cy="90" r="44" fill="none" stroke="#60a5fa" stroke-width="10" stroke-linecap="round" stroke-dasharray="276.5" stroke-dashoffset="276.5" class="score-arc" />
+              <circle id="sr3" cx="90" cy="90" r="30" fill="none" stroke="#a78bfa" stroke-width="10" stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="188.5" class="score-arc" />
+            </svg>
+            <div class="ring-label"><div class="n" id="scoreNum">—</div><div class="u"><span id="scoreCrown" style="display:none">&#128081; </span>health score</div></div>
+          </div>
+          <div class="multi-ring-info">
+            <div class="score-word" id="scoreWord">—</div>
+            <div class="score-summary" id="scoreSummary">Calculating…</div>
+            <div class="ring-legend" id="ringLegend"></div>
+          </div>
         </div>
       </div>
-    </div>
     </div></details>
   </section>
 
@@ -5332,7 +5322,7 @@ function renderScore(score) {
   var n = score.overall;
   var numEl = document.getElementById('scoreNum');
   numEl.textContent = n === null ? '—' : String(n);
-  var inl = document.getElementById('scoreNumInline'); if (inl) inl.textContent = n === null ? '' : String(n);
+  var inl = document.getElementById('scoreNumInline'); if (inl) inl.textContent = n === null ? '' : n + ' · ' + funWord;
   var funWord = n === null ? score.word : n >= 90 ? 'Royalty' : n >= 80 ? 'Crushing it' : n >= 65 ? 'Solid' : score.word;
   document.getElementById('scoreWord').textContent = funWord;
   document.getElementById('scoreWord').style.color = scoreColor(n);
@@ -6382,9 +6372,9 @@ function loadAllReviews(firstTab) {
 async function loadReview(domain, force, silent) {
   var btn = document.getElementById('review-' + domain + '-btn');
   var body = document.getElementById('review-' + domain);
-  if (!btn || !body) return;
+  if (!body) return;
   reviewLoadedOnce[domain] = true;
-  btn.disabled = true;
+  if (btn) btn.disabled = true;
   var slow = setTimeout(function () {
     if (body.querySelector('.skeleton') && !body.querySelector('.ai-loading')) body.insertAdjacentHTML('beforeend', '<div class="ai-loading">Writing your review. First run takes about 30 seconds.</div>');
   }, 2500);
@@ -6418,7 +6408,7 @@ async function loadReview(domain, force, silent) {
     body.innerHTML = '<p class="sub">Couldn\\'t load this review (' + err.message + ').</p>';
   } finally {
     clearTimeout(slow);
-    btn.disabled = false;
+    if (btn) btn.disabled = false;
   }
 }
 
@@ -7336,6 +7326,17 @@ async function boot() {
   loadBody().then(function() { renderBodyHome(_todayForBody); });
   loadCoach();
   loadAlerts();
+  // Populate expand-card hints
+  var ah = document.getElementById('ecActivityHint');
+  if (ah && today) {
+    var parts = [];
+    if (today.steps) parts.push(today.steps.toLocaleString() + ' steps');
+    if (today.exerciseMinutes) parts.push(Math.round(today.exerciseMinutes) + ' min');
+    if (today.workoutCount) parts.push(today.workoutCount + ' workout' + (today.workoutCount > 1 ? 's' : ''));
+    ah.textContent = parts.join(' · ');
+  }
+  var bh = document.getElementById('ecBodyHint');
+  if (bh && TODAY.score !== null && TODAY.score !== undefined) bh.textContent = 'Score ' + TODAY.score;
 }
 
 async function loadReport(period) {
