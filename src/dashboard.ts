@@ -556,8 +556,10 @@ export function renderDashboard(): string {
   .verdict .v-line { font-size:13px; font-weight:500; line-height:1.4; color:var(--ink); }
   .verdict .v-why { font-size:11px; color:var(--dim); margin-top:4px; font-family:var(--mono); font-weight:600; }
   .v-row { display:flex; align-items:center; gap:16px; }
-  .v-ring { position:relative; width:40px; height:40px; flex-shrink:0; }
-  .v-ring-num { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:900; }
+  .v-ring { position:relative; width:56px; height:56px; flex-shrink:0; }
+  .v-ring svg { filter:drop-shadow(0 0 8px var(--pulse)); transition:filter .3s; }
+  .v-ring:hover svg { filter:drop-shadow(0 0 14px var(--pulse)); }
+  .v-ring-num { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:900; }
   .v-info { flex:1; min-width:0; }
   .v-info .v-word { font-size:22px; margin:0; }
   .v-info .v-line { font-size:13px; }
@@ -859,11 +861,18 @@ export function renderDashboard(): string {
   .md-reco { font-size:12.5px; color:var(--dim); line-height:1.5; padding-top:10px; border-top:1px solid var(--line); }
 
   /* quick-glance row below body */
-  .qg-row { display:flex; gap:8px; margin:12px 0; width:100%; overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:4px; }
+  .qg-row { display:flex; gap:6px; margin:12px 0; width:100%; overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none; padding-bottom:4px; justify-content:center; flex-wrap:wrap; }
   .qg-row::-webkit-scrollbar { display:none; }
-  .qg-card { min-width:105px; max-width:140px; flex-shrink:0; scroll-snap-align:start; }
-  .qg-card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px 10px; cursor:pointer; transition:all .2s var(--ease-spring); }
-  .qg-card:hover { border-color:rgba(163,230,53,.3); transform:translateY(-1px); }
+  .qg-ring { width:80px; text-align:center; cursor:pointer; scroll-snap-align:start; position:relative; }
+  .qg-ring svg { display:block; margin:0 auto; filter:drop-shadow(0 0 6px var(--ring-glow, transparent)); transition:filter .3s; }
+  .qg-ring:hover svg { filter:drop-shadow(0 0 10px var(--ring-glow, rgba(163,230,53,.4))); }
+  .qg-ring .qr-val { position:absolute; top:50%; left:50%; transform:translate(-50%,-56%); font-family:var(--mono); font-size:13px; font-weight:900; line-height:1; pointer-events:none; }
+  .qg-ring .qr-name { font-size:9.5px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:.04em; margin-top:2px; }
+  .qg-ring .qr-sub { font-size:9px; color:var(--dim); }
+  @keyframes arcIn { from { stroke-dashoffset:var(--arc-full); } to { stroke-dashoffset:var(--arc-target); } }
+  .qg-ring .arc-fill { animation:arcIn .8s var(--ease-spring) both; }
+  .qg-card { min-width:105px; max-width:140px; flex-shrink:0; scroll-snap-align:start; display:none; }
+  .qg-card { background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:8px 10px; cursor:pointer; }
   .qg-card .qg-head { display:flex; align-items:center; gap:4px; margin-bottom:3px; }
   .qg-card .qg-icon { font-size:12px; }
   .qg-card .qg-name { font-size:10px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:.04em; }
@@ -942,6 +951,13 @@ export function renderDashboard(): string {
   .tr-factor-detail { font-size:12px; color:var(--dim); line-height:1.5; padding:6px 8px; margin:4px 0 8px; background:var(--panel2); border-radius:6px; border-left:3px solid var(--pulse); animation:fadeSlideUp .2s ease both; }
 
   /* quick-glance card entrance stagger */
+  .qg-ring { opacity:0; animation:qgCardIn .4s var(--ease-spring) both; }
+  .qg-ring:nth-child(1) { animation-delay:.05s; }
+  .qg-ring:nth-child(2) { animation-delay:.1s; }
+  .qg-ring:nth-child(3) { animation-delay:.15s; }
+  .qg-ring:nth-child(4) { animation-delay:.2s; }
+  .qg-ring:nth-child(5) { animation-delay:.25s; }
+  .qg-ring:nth-child(6) { animation-delay:.3s; }
   .qg-card { opacity:0; animation:qgCardIn .4s var(--ease-spring) both; }
   @keyframes qgCardIn { from { opacity:0; transform:translateY(14px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
   .qg-card:nth-child(1) { animation-delay:.05s; }
@@ -1615,7 +1631,7 @@ export function renderDashboard(): string {
     <div class="verdict v-neutral" id="verdict">
       <div class="v-row">
         <div class="v-ring" id="verdictRing" style="cursor:pointer;" onclick="toggleVerdictDetail()">
-          <svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="4"/><circle cx="24" cy="24" r="20" fill="none" stroke="var(--pulse)" stroke-width="4" stroke-linecap="round" stroke-dasharray="126" stroke-dashoffset="126" id="vRingFill" style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset .8s ease"/></svg>
+          <svg viewBox="0 0 56 56" width="56" height="56"><circle cx="28" cy="28" r="23" fill="none" stroke="var(--line)" stroke-width="4.5"/><circle cx="28" cy="28" r="23" fill="none" stroke="var(--pulse)" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="144.5" stroke-dashoffset="144.5" id="vRingFill" style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset .8s ease"/></svg>
           <span class="v-ring-num num" id="verdictNum">—</span>
         </div>
         <div class="v-info">
@@ -3983,18 +3999,17 @@ function renderQuickGlance(d) {
     if (comp.currentWeight !== null) items.push({ icon: '⚖️', name: 'Weight', val: comp.currentWeight.toFixed(1) + ' kg', color: 'var(--ink)', sub: comp.bmi ? ('BMI ' + comp.bmi) : '', histKey: null });
     if (comp.bodyFatPct !== null) items.push({ icon: '📊', name: 'Body fat', val: (comp.bodyFatPct * 100).toFixed(1) + '%', color: 'var(--ink)', sub: comp.estimatedLeanMass ? (comp.estimatedLeanMass + ' kg lean') : '', histKey: null });
   }
-  el.innerHTML = items.slice(0, 8).map(function(it, idx) {
-    var sparkHtml = '';
-    var deltaHtml = '';
+  var STATUS_COLOR = { good: 'var(--up)', ok: 'var(--caution)', watch: 'var(--caution)', bad: 'var(--down)' };
+  el.innerHTML = items.slice(0, 6).map(function(it, idx) {
+    var sc = it.verdict ? (STATUS_COLOR[it.verdict] || 'var(--dim)') : 'var(--dim)';
+    var pct = 0;
+    if (it.histKey && it.verdict) { pct = it.verdict === 'good' ? 1 : it.verdict === 'ok' ? 0.7 : it.verdict === 'watch' ? 0.45 : 0.25; }
+    else if (it.name === 'Recovery') { var rv = parseFloat(it.val); pct = Math.min(rv / 100, 1); }
+    else { pct = 0.5; }
+    var r = 28, circ = 2 * Math.PI * r, offset = circ * (1 - pct);
     var expandHtml = '';
     if (it.histKey) {
       var hist = qgGetHistory(it.histKey, 7);
-      if (hist.length >= 2) sparkHtml = miniSparkSvg(hist, it.color === 'var(--ink)' ? '#a3e635' : it.color);
-      var delta = qgDelta(it.histKey);
-      if (delta) {
-        var sign = delta.pct >= 0 ? '+' : '';
-        deltaHtml = '<div class="qg-delta ' + (delta.pct >= 0 ? 'up' : 'down') + '">' + sign + delta.pct + '% vs yesterday</div>';
-      }
       if (hist.length >= 3) {
         var last7 = GUIDE_DAYS.slice(-7);
         var daysHtml = last7.map(function(day) {
@@ -4003,18 +4018,18 @@ function renderQuickGlance(d) {
           return '<div class="qe-day"><div class="qed-val">' + (v !== null ? (v % 1 ? v.toFixed(1) : v) : '—') + '</div><div class="qed-label">' + dayLabel + '</div></div>';
         }).join('');
         var avg = hist.reduce(function(a,b){return a+b;}, 0) / hist.length;
-        expandHtml = '<div class="qg-expand" data-qg-expand="' + idx + '">' +
-          '<div class="qe-days">' + daysHtml + '</div>' +
-          '<div class="qe-insight">7-day avg: <strong>' + (avg % 1 ? avg.toFixed(1) : Math.round(avg)) + '</strong></div>' +
-          '</div>';
+        expandHtml = '<div class="qg-expand" data-qg-expand="' + idx + '"><div class="qe-days">' + daysHtml + '</div><div class="qe-insight">7-day avg: <strong>' + (avg % 1 ? avg.toFixed(1) : Math.round(avg)) + '</strong></div></div>';
       }
     }
-    var verdictHtml = it.verdict ? ' ' + pill(it.verdict) : '';
-    return '<div class="qg-card" onclick="toggleQgExpand(' + idx + ')">' +
-      '<div class="qg-head"><span class="qg-icon">' + it.icon + '</span><span class="qg-name">' + it.name + '</span>' + verdictHtml + '</div>' +
-      '<div class="qg-val" style="color:' + it.color + ';">' + it.val + '</div>' +
-      deltaHtml +
-      sparkHtml +
+    return '<div class="qg-ring" style="--ring-glow:' + sc + ';" onclick="toggleQgExpand(' + idx + ')">' +
+      '<svg viewBox="0 0 64 64" width="64" height="64">' +
+        '<circle cx="32" cy="32" r="' + r + '" fill="none" stroke="var(--line)" stroke-width="5"/>' +
+        '<circle cx="32" cy="32" r="' + r + '" fill="none" stroke="' + sc + '" stroke-width="5" stroke-linecap="round" ' +
+          'stroke-dasharray="' + circ.toFixed(1) + '" stroke-dashoffset="' + circ.toFixed(1) + '" ' +
+          'class="arc-fill" style="--arc-full:' + circ.toFixed(1) + ';--arc-target:' + offset.toFixed(1) + ';transform:rotate(-90deg);transform-origin:center;"/>' +
+      '</svg>' +
+      '<div class="qr-val" style="color:' + sc + ';">' + it.val + '</div>' +
+      '<div class="qr-name">' + it.name + '</div>' +
     '</div>' + expandHtml;
   }).join('');
 }
@@ -5168,7 +5183,7 @@ function renderVerdict() {
   if (ringFill && ringNum) {
     var score = r !== null ? r : 0;
     ringNum.textContent = r !== null ? String(score) : '—';
-    var circ = 2 * Math.PI * 20;
+    var circ = 2 * Math.PI * 23;
     var offset = circ - (score / 100) * circ;
     requestAnimationFrame(function() { ringFill.setAttribute('stroke-dashoffset', String(offset)); });
     var ringColor = score >= 70 ? 'var(--up)' : score >= 45 ? 'var(--caution)' : score > 0 ? 'var(--down)' : 'var(--dim)';
@@ -5826,6 +5841,17 @@ function fillGuides() {
   });
 }
 
+function vlArc(status) {
+  var sc = { good: 'var(--up)', ok: 'var(--caution)', watch: 'var(--caution)', bad: 'var(--down)' };
+  var pct = { good: 1, ok: 0.7, watch: 0.45, bad: 0.25 };
+  var c = sc[status] || 'var(--dim)', p = pct[status] || 0.5;
+  var r = 8, circ = 2 * Math.PI * r, off = circ * (1 - p);
+  return '<svg viewBox="0 0 20 20" width="18" height="18" style="vertical-align:middle;margin-right:3px;filter:drop-shadow(0 0 3px ' + c + ');">' +
+    '<circle cx="10" cy="10" r="' + r + '" fill="none" stroke="var(--line)" stroke-width="2.5"/>' +
+    '<circle cx="10" cy="10" r="' + r + '" fill="none" stroke="' + c + '" stroke-width="2.5" stroke-linecap="round" stroke-dasharray="' + circ.toFixed(1) + '" stroke-dashoffset="' + off.toFixed(1) + '" style="transform:rotate(-90deg);transform-origin:center;"/>' +
+  '</svg>';
+}
+
 function fillVerdictLines() {
   document.querySelectorAll('[data-vl]').forEach(function (el) {
     var keys = el.getAttribute('data-vl').split(',');
@@ -5834,9 +5860,9 @@ function fillVerdictLines() {
       var v = recentValue(k);
       var g = guideFor(k, v);
       var e = METRIC_GUIDE[k];
-      if (v !== null && e) parts.push(fmtGuideValue(k, v) + (g && g.status ? ' ' + pill(g.status) : ''));
+      if (v !== null && e) parts.push((g && g.status ? vlArc(g.status) : '') + fmtGuideValue(k, v));
     });
-    if (parts.length) el.innerHTML = parts.join(' · ');
+    if (parts.length) el.innerHTML = parts.join(' <span style="color:var(--line);margin:0 2px;">·</span> ');
   });
 }
 
