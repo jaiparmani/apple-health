@@ -46959,6 +46959,35 @@
       "exerciseMinutesGoal": 30,
       "standHours": 9,
       "standHoursGoal": 6
+    },
+    {
+      "date": "2026-11-07",
+      "receivedAt": "2026-11-07T19:10:20.467Z",
+      "source": "ios-app",
+      "restingHeartRate": 84,
+      "heartRateAvg": 100.01750531464431,
+      "heartRateMin": 73,
+      "heartRateMax": 152,
+      "walkingHeartRateAvg": 122.99999999999997,
+      "hrv": 16.210780230266725,
+      "steps": 2253,
+      "activeEnergy": 214.44800000000006,
+      "basalEnergy": 2180.671000000002,
+      "standMinutes": 30,
+      "distanceKm": 1.800768001799006,
+      "hrZone1Min": 214.2,
+      "hrZone2Min": 28.5,
+      "hrZone3Min": 0,
+      "hrZone4Min": 2.3,
+      "hrZone5Min": 0,
+      "walkingSpeed": 1.0637499999999998,
+      "walkingStepLength": 66.75,
+      "walkingAsymmetryPct": 0.11499999999999999,
+      "walkingDoubleSupportPct": 0.30400000000000005,
+      "activeEnergyGoal": 360,
+      "exerciseMinutesGoal": 30,
+      "standHours": 4,
+      "standHoursGoal": 6
     }
   ]
 }
