@@ -547,30 +547,36 @@ export function renderDashboard(): string {
   .subtab.active { color:var(--ink); border-bottom-color:transparent; }
   .section { transition:opacity .2s ease; }
 
-  /* ---- Today: verdict + dials ---- */
-  .verdict { border-radius:10px; padding:14px 16px; margin-bottom:10px; border:1px solid var(--line); position:relative; overflow:hidden; }
-  .verdict .v-word {
-    font-family:var(--mono); font-size:28px; font-weight:900; line-height:1.05; margin:0 0 3px; letter-spacing:-.02em;
-    color:currentColor;
-  }
-  .verdict .v-line { font-size:13px; font-weight:500; line-height:1.4; color:var(--ink); }
-  .verdict .v-why { font-size:11px; color:var(--dim); margin-top:4px; font-family:var(--mono); font-weight:600; }
-  .v-row { display:flex; align-items:center; gap:16px; }
-  .v-ring { position:relative; width:56px; height:56px; flex-shrink:0; }
-  .v-ring svg { filter:drop-shadow(0 0 8px var(--pulse)); transition:filter .3s; }
-  .v-ring:hover svg { filter:drop-shadow(0 0 14px var(--pulse)); }
-  .v-ring-num { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:17px; font-weight:900; }
-  .v-info { flex:1; min-width:0; }
-  .v-info .v-word { font-size:22px; margin:0; }
-  .v-info .v-line { font-size:13px; }
-  .v-stats { display:flex; gap:12px; flex-shrink:0; }
+  /* ---- Hero visual dashboard ---- */
+  .hero-ring { position:relative; width:120px; height:120px; margin:8px auto 4px; cursor:pointer; }
+  .hero-svg { display:block; filter:drop-shadow(0 0 12px var(--pulse)); transition:filter .3s; }
+  .hero-ring:hover .hero-svg { filter:drop-shadow(0 0 20px var(--pulse)); }
+  @keyframes heroArc { from { stroke-dashoffset:326.7; } }
+  .hero-arc { transform:rotate(-90deg); transform-origin:center; transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1); }
+  .hero-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
+  .hero-num { font-family:var(--mono); font-size:28px; font-weight:900; line-height:1; }
+  .hero-word { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); margin-top:2px; }
+  .hero-line { text-align:center; font-size:12px; color:var(--dim); margin:0 0 4px; }
+  @keyframes heroGlow { 0%,100%{filter:drop-shadow(0 0 10px var(--pulse));} 50%{filter:drop-shadow(0 0 20px var(--pulse));} }
+  .hero-ring.pulsing .hero-svg { animation:heroGlow 2s ease-in-out infinite; }
+
+  .dash-row { display:flex; justify-content:center; gap:16px; margin:4px 0 12px; }
+  .dash-cell { text-align:center; cursor:pointer; transition:transform .15s; position:relative; }
+  .dash-cell:hover { transform:scale(1.05); }
+  .dash-cell svg { display:block; margin:0 auto; filter:drop-shadow(0 0 6px rgba(163,230,53,.15)); transition:filter .3s; }
+  .dash-cell:hover svg { filter:drop-shadow(0 0 12px rgba(163,230,53,.3)); }
+  .dash-label { font-size:9px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-top:2px; }
+  @keyframes dashArc { from { stroke-dashoffset:var(--arc-full); } to { stroke-dashoffset:var(--arc-target); } }
+  .dash-arc { transform:rotate(-90deg); transform-origin:center; transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1); }
+  .dash-detail { background:var(--panel2); border-radius:10px; padding:10px 14px; margin-bottom:8px; }
+
   .v-stats .vs-item { text-align:center; }
-  .v-stats .vs-val { font-family:var(--mono); font-size:15px; font-weight:800; line-height:1; }
-  .v-stats .vs-label { font-size:9px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; }
-  .v-hard { background:rgba(52,211,153,.08); border-color:rgba(52,211,153,.25); color:#6ee7b7; }
-  .v-steady { background:rgba(251,191,36,.06); border-color:rgba(251,191,36,.25); color:#fcd34d; }
-  .v-recover { background:rgba(247,107,77,.08); border-color:rgba(247,107,77,.3); color:#fca594; }
-  .v-neutral { background:var(--panel); color:var(--dim); }
+  .v-stats .vs-val { font-family:var(--mono); font-size:13px; font-weight:800; line-height:1; }
+  .v-stats .vs-label { font-size:8px; color:var(--dim); text-transform:uppercase; letter-spacing:.04em; }
+  .v-hard { color:#6ee7b7; }
+  .v-steady { color:#fcd34d; }
+  .v-recover { color:#fca594; }
+  .v-neutral { color:var(--dim); }
   .brief-row { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; margin-bottom:14px; }
   .compact-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line); border-radius:8px; overflow:hidden; margin-bottom:14px; }
   .compact-grid .cg-cell { background:var(--panel); padding:10px 12px; }
@@ -1620,35 +1626,86 @@ export function renderDashboard(): string {
     <nav class="subnav" id="subNav" style="display:none"></nav>
   </header>
 
-  <!-- TODAY — BODY-CENTRIC HOME -->
+  <!-- TODAY — VISUAL DASHBOARD -->
   <section class="section active" id="tab-overview">
     <div class="greet">
       <div class="greet-hi"><span id="greeting">Hello</span><span id="greetStreak"></span></div>
       <div class="greet-sub" id="greetingSub">Loading your body…</div>
     </div>
 
-    <!-- Verdict banner -->
-    <div class="verdict v-neutral" id="verdict">
-      <div class="v-row">
-        <div class="v-ring" id="verdictRing" style="cursor:pointer;" onclick="toggleVerdictDetail()">
-          <svg viewBox="0 0 56 56" width="56" height="56"><circle cx="28" cy="28" r="23" fill="none" stroke="var(--line)" stroke-width="4.5"/><circle cx="28" cy="28" r="23" fill="none" stroke="var(--pulse)" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="144.5" stroke-dashoffset="144.5" id="vRingFill" style="transform:rotate(-90deg);transform-origin:center;transition:stroke-dashoffset .8s ease"/></svg>
-          <span class="v-ring-num num" id="verdictNum">—</span>
-        </div>
-        <div class="v-info">
-          <div class="v-word" id="verdictWord">…</div>
-          <div class="v-line" id="verdictLine">Reading your recovery.</div>
-        </div>
-        <div class="v-stats" id="verdictStats"></div>
+    <!-- HERO: Recovery ring (centered, large) -->
+    <div class="hero-ring" id="verdict" onclick="toggleVerdictDetail()">
+      <svg viewBox="0 0 120 120" width="120" height="120" class="hero-svg">
+        <circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="7"/>
+        <circle cx="60" cy="60" r="52" fill="none" stroke="var(--pulse)" stroke-width="7" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7" id="vRingFill" class="hero-arc"/>
+      </svg>
+      <div class="hero-center">
+        <div class="hero-num" id="verdictNum">—</div>
+        <div class="hero-word" id="verdictWord">…</div>
       </div>
-      <div class="v-why" id="verdictWhy"></div>
-      <div id="verdictDetail" style="display:none"></div>
+    </div>
+    <div class="hero-line" id="verdictLine">Reading your recovery.</div>
+    <div id="verdictDetail" style="display:none"></div>
+    <div class="v-why" id="verdictWhy" style="text-align:center;font-size:10px;color:var(--dim);margin:-2px 0 8px;"></div>
+    <div class="v-stats" id="verdictStats" style="display:flex;justify-content:center;gap:16px;margin-bottom:6px;"></div>
+
+    <!-- HERO ROW: Activity rings + Sleep arc + Strain gauge -->
+    <div class="dash-row">
+      <div class="dash-cell" id="dashRings" onclick="toggleDashDetail(‘dashRingsDetail’)">
+        <svg viewBox="0 0 80 80" width="72" height="72" id="dashRingsSvg">
+          <circle cx="40" cy="40" r="34" fill="none" stroke="var(--line)" stroke-width="6"/>
+          <circle cx="40" cy="40" r="26" fill="none" stroke="var(--line)" stroke-width="6"/>
+          <circle cx="40" cy="40" r="18" fill="none" stroke="var(--line)" stroke-width="6"/>
+          <circle id="dr0" cx="40" cy="40" r="34" fill="none" stroke="#f76b4d" stroke-width="6" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" class="dash-arc"/>
+          <circle id="dr1" cx="40" cy="40" r="26" fill="none" stroke="#34d399" stroke-width="6" stroke-linecap="round" stroke-dasharray="163.4" stroke-dashoffset="163.4" class="dash-arc"/>
+          <circle id="dr2" cx="40" cy="40" r="18" fill="none" stroke="#60a5fa" stroke-width="6" stroke-linecap="round" stroke-dasharray="113.1" stroke-dashoffset="113.1" class="dash-arc"/>
+        </svg>
+        <div class="dash-label">Activity</div>
+      </div>
+
+      <div class="dash-cell" id="dashSleep" onclick="toggleDashDetail(‘dashSleepDetail’)">
+        <svg viewBox="0 0 80 80" width="72" height="72" id="dashSleepSvg">
+          <path d="M12 60 A34 34 0 0 1 68 60" fill="none" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>
+          <path id="sleepArc" d="M12 60 A34 34 0 0 1 68 60" fill="none" stroke="#a78bfa" stroke-width="6" stroke-linecap="round" stroke-dasharray="107" stroke-dashoffset="107" class="dash-arc"/>
+          <text x="40" y="48" text-anchor="middle" fill="var(--fg)" font-family="var(--mono)" font-size="14" font-weight="900" id="sleepArcVal">—</text>
+          <text x="40" y="62" text-anchor="middle" fill="var(--dim)" font-size="8" font-weight="600">HOURS</text>
+        </svg>
+        <div class="dash-label">Sleep</div>
+      </div>
+
+      <div class="dash-cell" id="dashStrain" onclick="toggleDashDetail(‘dashStrainDetail’)">
+        <svg viewBox="0 0 80 80" width="72" height="72" id="dashStrainSvg">
+          <circle cx="40" cy="40" r="30" fill="none" stroke="var(--line)" stroke-width="6"/>
+          <circle id="strainArc" cx="40" cy="40" r="30" fill="none" stroke="#fbbf24" stroke-width="6" stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="188.5" class="dash-arc"/>
+          <text x="40" y="38" text-anchor="middle" fill="var(--fg)" font-family="var(--mono)" font-size="14" font-weight="900" id="strainArcVal">—</text>
+          <text x="40" y="52" text-anchor="middle" fill="var(--dim)" font-size="8" font-weight="600">STRAIN</text>
+        </svg>
+        <div class="dash-label">Strain</div>
+      </div>
     </div>
 
-    <!-- Quick-glance metric cards -->
+    <!-- Expandable detail panels (hidden, revealed by tapping SVGs) -->
+    <div class="dash-detail" id="dashRingsDetail" style="display:none">
+      <div id="homeRingsCard" style="display:none"><div id="homeRings"></div></div>
+      <div id="todayActivityCard" style="display:none"><div class="ta-grid" id="todayActivityGrid"></div></div>
+      <div id="todayWorkoutsCard" style="display:none">
+        <h3 id="todayWorkoutsTitle" style="font-size:12px;margin:6px 0 4px;">Workouts</h3>
+        <div class="workout-cards" id="todayWorkoutsList"></div>
+      </div>
+    </div>
+    <div class="dash-detail" id="dashSleepDetail" style="display:none"></div>
+    <div class="dash-detail" id="dashStrainDetail" style="display:none">
+      <div id="strainBudgetCard" style="display:none;cursor:pointer;" onclick="toggleStrainDetail()">
+        <div class="sb-label">Strain <span id="sbUsed2">0</span> / <span id="sbMax2">21</span></div>
+        <div class="sb-track"><div class="sb-fill" id="sbFill2"></div><div class="sb-target" id="sbTarget2"></div></div>
+        <div id="strainDetailInline"></div>
+      </div>
+    </div>
+
+    <!-- Sparkline metric pills (no numbers until tap) -->
     <div class="qg-row" id="quickGlanceRow"></div>
 
     <div id="smartCheckInArea"></div>
-
     <div class="card illness-card" id="illnessCard" style="display:none">
       <div class="illness-head"><span class="illness-icon">⚠</span><span class="illness-title" id="illnessTitle"></span></div>
       <div class="illness-body sub" id="illnessBody"></div>
@@ -1659,20 +1716,6 @@ export function renderDashboard(): string {
       <div class="tp-section" id="todayFocusInner" style="display:none"><div style="font-weight:600;font-size:11.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Focus</div><div id="oneActionText"></div></div>
       <div class="tp-section" id="todaySessionInner" style="display:none"></div>
     </div>
-
-    <details class="expand-card"><summary>Today’s activity <span class="ec-hint" id="ecActivityHint"></span></summary><div class="ec-body">
-      <div id="homeRingsCard" style="display:none"><div id="homeRings"></div></div>
-      <div id="todayActivityCard" style="display:none"><div class="ta-grid" id="todayActivityGrid"></div></div>
-      <div id="todayWorkoutsCard" style="display:none">
-        <h3 id="todayWorkoutsTitle" style="font-size:12px;margin:10px 0 6px;">Today’s workouts</h3>
-        <div class="workout-cards" id="todayWorkoutsList"></div>
-      </div>
-      <div id="strainBudgetCard" style="display:none;cursor:pointer;" onclick="toggleStrainDetail()">
-        <div class="sb-label">Strain <span id="sbUsed2">0</span> / <span id="sbMax2">21</span></div>
-        <div class="sb-track"><div class="sb-fill" id="sbFill2"></div><div class="sb-target" id="sbTarget2"></div></div>
-        <div id="strainDetailInline"></div>
-      </div>
-    </div></details>
 
     <details class="expand-card"><summary>Body & progress <span class="ec-hint" id="ecBodyHint"></span></summary><div class="ec-body">
       <div class="body-home" id="bodyHome">
@@ -3817,6 +3860,7 @@ function renderBodyHome(todayData) {
     }
   }
 
+  renderDashRow(d && d.today);
   renderQuickGlance(d);
   renderHomeRings(d && d.today);
   renderTodayActivity(d && d.today);
@@ -4032,6 +4076,68 @@ function renderQuickGlance(d) {
       '<div class="qr-name">' + it.name + '</div>' +
     '</div>' + expandHtml;
   }).join('');
+}
+
+// ---- Dashboard hero row SVGs ----
+
+function renderDashRow(today) {
+  if (!today) return;
+  // Activity rings
+  var rings = [
+    { id: 'dr0', actual: today.activeEnergy || 0, goal: today.activeEnergyGoal, circ: 213.6 },
+    { id: 'dr1', actual: today.exerciseMinutes || 0, goal: today.exerciseMinutesGoal, circ: 163.4 },
+    { id: 'dr2', actual: today.standHours || 0, goal: today.standHoursGoal, circ: 113.1 },
+  ];
+  rings.forEach(function(r) {
+    var el = document.getElementById(r.id);
+    if (!el || !r.goal) return;
+    var pct = Math.min(r.actual / r.goal, 1);
+    var off = r.circ * (1 - pct);
+    requestAnimationFrame(function() { el.setAttribute('stroke-dashoffset', off.toFixed(1)); });
+  });
+  // Sleep arc
+  var sh = today.sleepHours;
+  if (sh !== null && sh !== undefined) {
+    var sleepEl = document.getElementById('sleepArc');
+    var sleepVal = document.getElementById('sleepArcVal');
+    if (sleepEl) {
+      var pct = Math.min(sh / 9, 1);
+      var off = 107 * (1 - pct);
+      var sc = sh >= 7 ? '#a78bfa' : sh >= 6 ? '#fbbf24' : '#f76b4d';
+      sleepEl.setAttribute('stroke', sc);
+      requestAnimationFrame(function() { sleepEl.setAttribute('stroke-dashoffset', off.toFixed(1)); });
+    }
+    if (sleepVal) sleepVal.textContent = sh.toFixed(1);
+  }
+  // Strain arc
+  var st = today.strain;
+  if (st !== null && st !== undefined) {
+    var strainEl = document.getElementById('strainArc');
+    var strainVal = document.getElementById('strainArcVal');
+    if (strainEl) {
+      var pct = Math.min(st / 21, 1);
+      var off = 188.5 * (1 - pct);
+      var sc = st > 18 ? '#f76b4d' : st > 14 ? '#fbbf24' : '#34d399';
+      strainEl.setAttribute('stroke', sc);
+      requestAnimationFrame(function() { strainEl.setAttribute('stroke-dashoffset', off.toFixed(1)); });
+    }
+    if (strainVal) strainVal.textContent = st.toFixed(1);
+  }
+  // Sleep detail panel
+  var sd = document.getElementById('dashSleepDetail');
+  if (sd && sh !== null && sh !== undefined) {
+    var parts = [];
+    if (today.sleepDeepHours) parts.push('<span style="color:#7c3aed;">Deep ' + today.sleepDeepHours.toFixed(1) + 'h</span>');
+    if (today.sleepRemHours) parts.push('<span style="color:#06b6d4;">REM ' + today.sleepRemHours.toFixed(1) + 'h</span>');
+    if (today.sleepCoreHours) parts.push('<span style="color:#60a5fa;">Core ' + today.sleepCoreHours.toFixed(1) + 'h</span>');
+    sd.innerHTML = '<div style="font-size:12px;color:var(--dim);">' + (parts.length ? parts.join(' · ') : sh.toFixed(1) + 'h total sleep') + '</div>';
+  }
+}
+
+function toggleDashDetail(id) {
+  var el = document.getElementById(id);
+  if (!el) return;
+  el.style.display = el.style.display === 'none' ? '' : 'none';
 }
 
 // ---- Home: activity rings, today's activity, today's workouts ----
@@ -5173,9 +5279,9 @@ function renderVerdict() {
     if (flag) why.push(flag.why);
   }
   var el = document.getElementById('verdict');
-  el.className = 'verdict ' + cls;
-  document.getElementById('verdictWord').textContent = (r !== null && r >= 90 ? '\\u{1F451} ' : '') + word;
-  document.getElementById('verdictLine').textContent = (r !== null && r >= 85 && word === 'Go hard' ? 'Beast mode. ' : '') + line;
+  el.className = 'hero-ring' + (r !== null && r >= 70 ? ' pulsing' : '');
+  document.getElementById('verdictWord').textContent = word;
+  document.getElementById('verdictLine').textContent = line;
   document.getElementById('verdictWhy').textContent = why.join(' · ');
 
   var ringFill = document.getElementById('vRingFill');
@@ -5183,11 +5289,12 @@ function renderVerdict() {
   if (ringFill && ringNum) {
     var score = r !== null ? r : 0;
     ringNum.textContent = r !== null ? String(score) : '—';
-    var circ = 2 * Math.PI * 23;
+    var circ = 2 * Math.PI * 52;
     var offset = circ - (score / 100) * circ;
     requestAnimationFrame(function() { ringFill.setAttribute('stroke-dashoffset', String(offset)); });
     var ringColor = score >= 70 ? 'var(--up)' : score >= 45 ? 'var(--caution)' : score > 0 ? 'var(--down)' : 'var(--dim)';
     ringFill.setAttribute('stroke', ringColor);
+    el.style.setProperty('--pulse', ringColor);
   }
 
   var statsEl = document.getElementById('verdictStats');
