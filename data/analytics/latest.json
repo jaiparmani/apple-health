@@ -1,5 +1,5 @@
 {
-  "date": "2026-11-07",
+  "date": "2026-11-08",
   "chronologicalAge": 26,
   "biologicalAge": 41,
   "deltaYears": 15,
@@ -12,20 +12,20 @@
     },
     {
       "marker": "Walking speed (gait)",
-      "value": 1.156340674814177,
-      "markerAge": 64.24395501238821,
+      "value": 1.1685085650609843,
+      "markerAge": 63.43276232926771,
       "weight": 0.2
     },
     {
       "marker": "Heart rate variability",
-      "value": 26.722495637052663,
-      "markerAge": 60.55500872589467,
+      "value": 26.309850587996124,
+      "markerAge": 61.38029882400775,
       "weight": 0.2
     },
     {
       "marker": "Resting heart rate",
-      "value": 77.57142857142857,
-      "markerAge": 81.9047619047619,
+      "value": 77.5,
+      "markerAge": 81.66666666666667,
       "weight": 0.15
     }
   ]
