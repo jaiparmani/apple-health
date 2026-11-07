@@ -1332,27 +1332,28 @@ export function renderDashboard(): string {
   .rc-bar-fill { height:100%; border-radius:3px; transition:width .4s; }
   .rc-eta { font-family:var(--mono); font-weight:600; font-size:12px; color:var(--dim); text-align:right; min-width:50px; }
 
-  /* ---- smart check-in ---- */
-  #smartCheckInArea { display:flex; flex-direction:column; gap:10px; margin-bottom:12px; }
-  .sci-card { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px; transition:border-color .2s, transform .2s var(--ease-spring); }
-  .sci-card:hover { border-color:rgba(212,168,83,.25); }
-  .sci-card.sci-done { opacity:.6; pointer-events:none; }
-  .sci-head { display:flex; gap:10px; align-items:flex-start; margin-bottom:10px; }
-  .sci-icon { width:32px; height:32px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:15px; flex-shrink:0; background:rgba(212,168,83,.12); }
-  .sci-text { flex:1; min-width:0; }
-  .sci-q { font-size:14px; font-weight:700; line-height:1.4; margin:0; }
-  .sci-reason { font-size:11.5px; color:var(--dim); margin-top:3px; line-height:1.4; }
-  .sci-actions { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
-  .sci-actions input[type="number"], .sci-actions input[type="text"] { background:var(--void); border:1px solid var(--line); color:var(--ink); border-radius:8px; padding:9px 12px; font-size:14px; font-family:var(--mono); width:72px; transition:border-color .15s; }
-  .sci-actions input:focus { outline:none; border-color:var(--gold); }
-  .sci-actions .sci-save { background:var(--gold); color:var(--void); border:none; border-radius:8px; padding:9px 16px; font-size:13px; font-weight:700; cursor:pointer; transition:transform .15s var(--ease-spring), opacity .15s; }
-  .sci-actions .sci-save:active { transform:scale(.95); }
-  .sci-bool { display:flex; gap:8px; }
-  .sci-bool button { padding:10px 20px; border-radius:8px; font-size:13px; font-weight:700; cursor:pointer; border:1px solid var(--line); background:var(--panel2); color:var(--ink); transition:all .15s; }
-  .sci-bool button:hover { border-color:var(--gold); }
-  .sci-bool button.yes { background:rgba(212,168,83,.15); color:var(--gold); border-color:rgba(212,168,83,.4); }
-  .sci-bool button.no { background:var(--panel2); }
-  .sci-done-msg { display:flex; align-items:center; gap:8px; font-size:13px; font-weight:600; color:var(--up); padding:4px 0; }
+  /* ---- smart check-in (legacy, hidden) ---- */
+  #smartCheckInArea { display:none; }
+
+  /* ---- daily pulse orbs ---- */
+  .pulse-row { display:flex; justify-content:center; gap:10px; margin:6px 0 14px; flex-wrap:wrap; }
+  .pulse-orb { position:relative; width:48px; height:48px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .pulse-orb svg { display:block; }
+  .pulse-orb .po-icon { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:18px; pointer-events:none; }
+  .pulse-orb .po-ring { transition:stroke-dashoffset .6s var(--ease-spring), stroke .3s; }
+  .pulse-orb .po-check { position:absolute; top:-2px; right:-2px; width:14px; height:14px; border-radius:50%; background:var(--up); display:none; align-items:center; justify-content:center; font-size:8px; color:#000; font-weight:900; }
+  .pulse-orb.logged .po-check { display:flex; }
+  .pulse-orb.unlogged { animation:pulseNudge 2.5s ease-in-out infinite; }
+  @keyframes pulseNudge { 0%,100%{transform:scale(1);} 50%{transform:scale(1.06);} }
+  .pulse-orb.logged { animation:none; }
+  .pulse-label { font-size:8.5px; color:var(--dim); text-align:center; margin-top:1px; text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
+  .pulse-picker { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin:-4px 0 10px; animation:fadeSlideUp .2s var(--ease-spring) both; }
+  .pulse-picker .pp-q { font-size:12px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
+  .pulse-picker .pp-opts { display:flex; gap:6px; flex-wrap:wrap; }
+  .pulse-picker .pp-opt { padding:8px 14px; border-radius:8px; border:1px solid var(--line); background:var(--panel2); color:var(--ink); font-size:12px; font-weight:700; cursor:pointer; transition:all .15s var(--ease-spring); font-family:var(--mono); }
+  .pulse-picker .pp-opt:hover { border-color:var(--pulse); background:rgba(163,230,53,.08); }
+  .pulse-picker .pp-opt:active { transform:scale(.93); }
+  .pulse-picker .pp-close { background:none; border:none; color:var(--faint); font-size:16px; cursor:pointer; margin-left:auto; padding:0 2px; }
 
   /* ---- personal records ---- */
   .pr-grid { display:flex; flex-direction:column; gap:8px; }
@@ -1706,6 +1707,16 @@ export function renderDashboard(): string {
     <div class="qg-row" id="quickGlanceRow"></div>
 
     <div id="smartCheckInArea"></div>
+    <!-- Daily Pulse: tap-to-log lifestyle orbs -->
+    <div class="pulse-row" id="pulseRow">
+      <div><div class="pulse-orb unlogged" id="po-alcohol" onclick="openPulse('alcohol')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">🍷</div><div class="po-check">✓</div></div><div class="pulse-label">Drinks</div></div>
+      <div><div class="pulse-orb unlogged" id="po-caffeine" onclick="openPulse('caffeine')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">☕</div><div class="po-check">✓</div></div><div class="pulse-label">Caffeine</div></div>
+      <div><div class="pulse-orb unlogged" id="po-water" onclick="openPulse('water')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">💧</div><div class="po-check">✓</div></div><div class="pulse-label">Water</div></div>
+      <div><div class="pulse-orb unlogged" id="po-energy" onclick="openPulse('energy')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">⚡</div><div class="po-check">✓</div></div><div class="pulse-label">Energy</div></div>
+      <div><div class="pulse-orb unlogged" id="po-stress" onclick="openPulse('stress')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">😤</div><div class="po-check">✓</div></div><div class="pulse-label">Stress</div></div>
+      <div><div class="pulse-orb unlogged" id="po-soreness" onclick="openPulse('soreness')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">💪</div><div class="po-check">✓</div></div><div class="pulse-label">Sore</div></div>
+    </div>
+    <div id="pulsePicker"></div>
     <div class="card illness-card" id="illnessCard" style="display:none">
       <div class="illness-head"><span class="illness-icon">⚠</span><span class="illness-title" id="illnessTitle"></span></div>
       <div class="illness-body sub" id="illnessBody"></div>
@@ -3285,6 +3296,89 @@ function renderRecoveryCountdowns(items) {
 
 var SCI_ICONS = { soreness:'💪', energy:'⚡', lateMeal:'🍽', screenBeforeBed:'📱', stress:'😤', alcoholDrinks:'🍷', caffeineMg:'☕', hydrationLiters:'💧', illness:'🤒', note:'📝' };
 
+var PULSE_CONFIG = {
+  alcohol:   { field:'alcoholDrinks',    q:'How many drinks?', opts:[{l:'0',v:0},{l:'1',v:1},{l:'2',v:2},{l:'3+',v:3}], color:['var(--up)','var(--caution)','var(--down)','var(--down)'] },
+  caffeine:  { field:'caffeineMg',       q:'Caffeine today?',  opts:[{l:'None',v:0},{l:'1 cup',v:95},{l:'2-3',v:200},{l:'4+',v:400}], color:['var(--dim)','var(--up)','var(--caution)','var(--down)'] },
+  water:     { field:'hydrationLiters',  q:'Water intake?',    opts:[{l:'<1L',v:0.5},{l:'1-2L',v:1.5},{l:'2-3L',v:2.5},{l:'3L+',v:3.5}], color:['var(--down)','var(--caution)','var(--up)','var(--up)'] },
+  energy:    { field:'energy',           q:'Energy level?',    opts:[{l:'Low',v:2},{l:'OK',v:5},{l:'Good',v:7},{l:'Great',v:9}], color:['var(--down)','var(--caution)','var(--up)','var(--pulse)'] },
+  stress:    { field:'stress',           q:'Stress level?',    opts:[{l:'Low',v:2},{l:'Some',v:5},{l:'High',v:7},{l:'Very',v:9}], color:['var(--up)','var(--caution)','var(--down)','var(--down)'] },
+  soreness:  { field:'soreness',         q:'Body soreness?',   opts:[{l:'None',v:1},{l:'Mild',v:4},{l:'Sore',v:7},{l:'Very',v:9}], color:['var(--up)','var(--caution)','var(--down)','var(--down)'] }
+};
+var PULSE_CIRC = 2 * Math.PI * 20;
+
+function openPulse(key) {
+  var cfg = PULSE_CONFIG[key];
+  if (!cfg) return;
+  var picker = document.getElementById('pulsePicker');
+  if (!picker) return;
+  if (picker.dataset.open === key) { picker.innerHTML = ''; picker.dataset.open = ''; return; }
+  picker.dataset.open = key;
+  picker.innerHTML = '<div class="pulse-picker"><div class="pp-q"><span>' + document.querySelector('#po-' + key + ' .po-icon').textContent + '</span> ' + cfg.q + '<button class="pp-close" onclick="closePulse()">✕</button></div><div class="pp-opts">' +
+    cfg.opts.map(function(o, i) {
+      return '<button class="pp-opt" onclick="submitPulse(' + "'" + key + "'" + ',' + i + ',' + o.v + ')">' + o.l + '</button>';
+    }).join('') + '</div></div>';
+}
+
+function closePulse() {
+  var picker = document.getElementById('pulsePicker');
+  if (picker) { picker.innerHTML = ''; picker.dataset.open = ''; }
+}
+
+function submitPulse(key, idx, value) {
+  var cfg = PULSE_CONFIG[key];
+  if (!cfg) return;
+  var orb = document.getElementById('po-' + key);
+  if (orb) {
+    var ring = orb.querySelector('.po-ring');
+    var fillPct = [0.25, 0.5, 0.75, 1.0][idx] || 1;
+    if (ring) {
+      ring.style.strokeDashoffset = PULSE_CIRC * (1 - fillPct);
+      ring.style.stroke = cfg.color[idx] || 'var(--pulse)';
+    }
+    orb.classList.remove('unlogged');
+    orb.classList.add('logged');
+  }
+  closePulse();
+  var today = new Date().toISOString().slice(0, 10);
+  var payload = { date: today };
+  payload[cfg.field] = value;
+  authedFetch('/api/knowledge/notes', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+    .then(function() { showToast(key + ' logged', 'success'); })
+    .catch(function() {});
+}
+
+function prefillPulseOrbs(notes) {
+  if (!notes || !notes.length) return;
+  var today = new Date().toISOString().slice(0, 10);
+  var todayNote = null;
+  for (var i = notes.length - 1; i >= 0; i--) {
+    if (notes[i].date === today) { todayNote = notes[i]; break; }
+  }
+  if (!todayNote) return;
+  var fieldMap = { alcoholDrinks:'alcohol', caffeineMg:'caffeine', hydrationLiters:'water', energy:'energy', stress:'stress', soreness:'soreness' };
+  Object.keys(fieldMap).forEach(function(field) {
+    var val = todayNote[field];
+    if (val === undefined || val === null) return;
+    var key = fieldMap[field];
+    var cfg = PULSE_CONFIG[key];
+    if (!cfg) return;
+    var idx = 0;
+    for (var j = cfg.opts.length - 1; j >= 0; j--) {
+      if (val >= cfg.opts[j].v) { idx = j; break; }
+    }
+    var orb = document.getElementById('po-' + key);
+    if (!orb) return;
+    var ring = orb.querySelector('.po-ring');
+    var fillPct = [0.25, 0.5, 0.75, 1.0][idx] || 1;
+    if (ring) {
+      ring.style.strokeDashoffset = PULSE_CIRC * (1 - fillPct);
+      ring.style.stroke = cfg.color[idx] || 'var(--pulse)';
+    }
+    orb.classList.remove('unlogged');
+    orb.classList.add('logged');
+  });
+}
+
 function renderSmartCheckIn(items) {
   var el = document.getElementById('smartCheckInArea');
   if (!el || items.length === 0) return;
@@ -4786,6 +4880,7 @@ async function loadKnowledge() {
     document.getElementById('knowledgePreferences').value = k.preferences || '';
     document.getElementById('knowledgeSleepTarget').value = k.sleepTargetHours || '';
     renderKnowledgeNotes(k.notes || []);
+    prefillPulseOrbs(k.notes || []);
   } catch (err) {
     document.getElementById('knowledgeNotesList').textContent = 'Could not load (' + err.message + ').';
   }
