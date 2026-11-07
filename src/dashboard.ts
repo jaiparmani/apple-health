@@ -401,6 +401,14 @@ export function renderDashboard(): string {
   details.chart-detail[open] summary::after { content:" ▾"; }
   details.chart-detail[open] summary { border-radius:10px 10px 0 0; margin-bottom:0; }
   details.chart-detail .card { border-radius:0 0 10px 10px; margin-top:0; }
+  .vline { border-bottom:1px solid var(--line); }
+  .vline summary { cursor:pointer; list-style:none; display:flex; align-items:center; gap:6px; padding:9px 2px; font-size:13px; }
+  .vline summary::-webkit-details-marker { display:none; }
+  .vline summary .vl-name { font-weight:600; flex:1; }
+  .vline summary .vl-val { font-family:var(--mono); font-size:12.5px; color:var(--dim); }
+  .vline summary::after { content:"▸"; font-size:10px; color:var(--dim); margin-left:4px; transition:transform .15s; }
+  .vline[open] summary::after { transform:rotate(90deg); }
+  .vline > .vl-body { padding:4px 0 10px; }
 
   .scoreboard { padding:14px; background:var(--panel); border:1px solid var(--line); border-radius:10px; }
   .scoreboard:hover { border-color:var(--faint); }
@@ -1968,30 +1976,36 @@ export function renderDashboard(): string {
   <!-- TRAINING -->
   <section class="section" id="tab-training">
     ${reviewCard("training", "Training review")}
-    <div class="card"><details class="more"><summary>Action items</summary><div><ul class="actions" id="trainingActions"><li class="sub">Loading…</li></ul></div></details></div>
     <div id="trainingLoadStats" class="grid"></div>
     <div class="fit-grid" id="fitnessMetrics"></div>
-    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Fitness &amp; form</h3></summary><div class="chart-box"><canvas id="loadChart"></canvas></div></details></div>
-    <div class="card"><details class="more"><summary>Weekly volume</summary><div id="weeklyTable"></div></details></div>
+    <div class="card">
+      <details class="vline"><summary><span class="vl-name">Fitness & form</span><span class="vl-val" data-vl="strain"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="loadChart"></canvas></div></div></details>
+      <details class="vline"><summary><span class="vl-name">Action items</span></summary><div class="vl-body"><ul class="actions" id="trainingActions"><li class="sub">Loading…</li></ul></div></details>
+      <details class="vline"><summary><span class="vl-name">Weekly volume</span></summary><div class="vl-body"><div id="weeklyTable"></div></div></details>
+    </div>
   </section>
 
   <!-- HEART & RECOVERY -->
   <section class="section" id="tab-heart">
     ${reviewCard("recovery", "Recovery review")}
-    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">RHR &amp; HRV</h3></summary><div class="chart-box"><canvas id="heartChart"></canvas></div></details><div data-guide="restingHeartRate,hrv"></div></div>
-    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">HR range</h3></summary><div class="chart-box"><canvas id="hrRangeChart"></canvas></div></details><div data-guide="heartRateAvg,walkingHeartRateAvg"></div></div>
-    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">VO2max</h3></summary><div class="chart-box"><canvas id="vo2Chart"></canvas></div></details><div data-guide="vo2max"></div></div>
-    <div class="card"><h3>Readiness</h3><div data-guide="readiness,strain,respiratoryRate,oxygenSaturation"></div></div>
+    <div class="card">
+      <details class="vline"><summary><span class="vl-name">RHR & HRV</span><span class="vl-val" data-vl="restingHeartRate,hrv"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="heartChart"></canvas></div><div data-guide="restingHeartRate,hrv"></div></div></details>
+      <details class="vline"><summary><span class="vl-name">HR range</span><span class="vl-val" data-vl="heartRateAvg,walkingHeartRateAvg"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="hrRangeChart"></canvas></div><div data-guide="heartRateAvg,walkingHeartRateAvg"></div></div></details>
+      <details class="vline"><summary><span class="vl-name">VO2max</span><span class="vl-val" data-vl="vo2max"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="vo2Chart"></canvas></div><div data-guide="vo2max"></div></div></details>
+      <details class="vline"><summary><span class="vl-name">Readiness</span><span class="vl-val" data-vl="readiness,strain"></span></summary><div class="vl-body"><div data-guide="readiness,strain,respiratoryRate,oxygenSaturation"></div></div></details>
+    </div>
   </section>
 
   <!-- ACTIVITY & MOBILITY -->
   <section class="section" id="tab-activity">
     ${reviewCard("activity", "Activity review")}
-    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Steps</h3></summary><div class="chart-box"><canvas id="stepsChart"></canvas></div></details><div data-guide="steps"></div></div>
-    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Energy &amp; exercise</h3></summary><div class="chart-box"><canvas id="energyChart"></canvas></div></details><div data-guide="activeEnergy,exerciseMinutes"></div></div>
-    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Stand &amp; flights</h3></summary><div class="chart-box"><canvas id="standChart"></canvas></div></details><div data-guide="standHours,flightsClimbed"></div></div>
-    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Gait quality</h3></summary><div class="chart-box"><canvas id="gaitChart"></canvas></div></details><div data-guide="walkingSpeed,walkingAsymmetryPct,walkingDoubleSupportPct"></div></div>
-    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Workouts</h3></summary><div class="chart-box"><canvas id="workoutChart"></canvas></div></details><div data-guide="workoutMinutes"></div></div>
+    <div class="card">
+      <details class="vline"><summary><span class="vl-name">Steps</span><span class="vl-val" data-vl="steps"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="stepsChart"></canvas></div><div data-guide="steps"></div></div></details>
+      <details class="vline"><summary><span class="vl-name">Energy & exercise</span><span class="vl-val" data-vl="activeEnergy,exerciseMinutes"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="energyChart"></canvas></div><div data-guide="activeEnergy,exerciseMinutes"></div></div></details>
+      <details class="vline"><summary><span class="vl-name">Stand & flights</span><span class="vl-val" data-vl="standHours,flightsClimbed"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="standChart"></canvas></div><div data-guide="standHours,flightsClimbed"></div></div></details>
+      <details class="vline"><summary><span class="vl-name">Gait quality</span><span class="vl-val" data-vl="walkingSpeed,walkingAsymmetryPct"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="gaitChart"></canvas></div><div data-guide="walkingSpeed,walkingAsymmetryPct,walkingDoubleSupportPct"></div></div></details>
+      <details class="vline"><summary><span class="vl-name">Workouts</span><span class="vl-val" data-vl="workoutMinutes"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="workoutChart"></canvas></div><div data-guide="workoutMinutes"></div></div></details>
+    </div>
     <details class="more"><summary>Sessions &amp; rings</summary><div>
     <div class="card"><h3>Recent sessions</h3><div id="workoutList" class="card-sub">No sessions yet.</div></div>
     <div class="card"><h3>Activity Rings</h3><div id="activityRings" class="sub">No data yet.</div></div>
@@ -2088,9 +2102,11 @@ export function renderDashboard(): string {
     </div>
     ${reviewCard("sleep", "Sleep review")}
     <div class="card" id="sleepAnalysisCard" style="display:none"><h3>Sleep analysis</h3><div class="brief-row" id="sleepAnalysisRow"></div></div>
-    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Sleep duration</h3></summary><div class="chart-box"><canvas id="sleepChart"></canvas></div></details><div data-guide="sleepHours,sleepEfficiency"></div></div>
-    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Sleep stages</h3></summary><div class="chart-box"><canvas id="sleepStagesChart"></canvas></div></details><div data-guide="sleepDeepHours,sleepRemHours"></div></div>
-    <div class="card"><details class="chart-detail"><summary><h3 style="display:inline;cursor:pointer;">Weight</h3></summary><div class="chart-box"><canvas id="weightChart"></canvas></div></details><div data-guide="weightKg,bodyFatPct"></div></div>
+    <div class="card">
+      <details class="vline"><summary><span class="vl-name">Sleep duration</span><span class="vl-val" data-vl="sleepHours"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="sleepChart"></canvas></div><div data-guide="sleepHours,sleepEfficiency"></div></div></details>
+      <details class="vline"><summary><span class="vl-name">Sleep stages</span><span class="vl-val" data-vl="sleepDeepHours,sleepRemHours"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="sleepStagesChart"></canvas></div><div data-guide="sleepDeepHours,sleepRemHours"></div></div></details>
+      <details class="vline"><summary><span class="vl-name">Weight</span><span class="vl-val" data-vl="weightKg"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="weightChart"></canvas></div><div data-guide="weightKg,bodyFatPct"></div></div></details>
+    </div>
   </section>
 
   <!-- BIOLOGICAL AGE -->
@@ -5810,6 +5826,20 @@ function fillGuides() {
   });
 }
 
+function fillVerdictLines() {
+  document.querySelectorAll('[data-vl]').forEach(function (el) {
+    var keys = el.getAttribute('data-vl').split(',');
+    var parts = [];
+    keys.forEach(function (k) {
+      var v = recentValue(k);
+      var g = guideFor(k, v);
+      var e = METRIC_GUIDE[k];
+      if (v !== null && e) parts.push(fmtGuideValue(k, v) + (g && g.status ? ' ' + pill(g.status) : ''));
+    });
+    if (parts.length) el.innerHTML = parts.join(' · ');
+  });
+}
+
 // ---------------- metric detail sheet ----------------
 var DISCOVERIES_CACHE = null;
 var metricChartInstance = null;
@@ -7251,6 +7281,7 @@ async function boot() {
   GUIDE_VALUES = { readiness: trends.readinessScore, strain: trends.todayStrain, biologicalAge: latestAnalytics ? latestAnalytics.deltaYears : null };
   Object.keys(GUIDE_VALUES).forEach(function (k) { if (GUIDE_VALUES[k] === null || GUIDE_VALUES[k] === undefined) delete GUIDE_VALUES[k]; });
   fillGuides();
+  fillVerdictLines();
   updateSectionVerdicts();
   renderGreeting(days);
   TODAY.readiness = trends.readinessScore === undefined ? null : trends.readinessScore;
