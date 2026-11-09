@@ -47019,6 +47019,34 @@
       "walkingSpeed": 0.9924999999999999,
       "walkingStepLength": 62.24999999999999,
       "walkingDoubleSupportPct": 0.28099999999999997
+    },
+    {
+      "date": "2026-11-09",
+      "receivedAt": "2026-11-09T10:09:57.056Z",
+      "source": "ios-app",
+      "heartRateAvg": 74.51702638075108,
+      "heartRateMin": 67,
+      "heartRateMax": 95,
+      "walkingHeartRateAvg": 95,
+      "hrv": 28.28078435645068,
+      "steps": 1069,
+      "activeEnergy": 126.40400000000007,
+      "basalEnergy": 295.76099999999985,
+      "standMinutes": 29,
+      "distanceKm": 0.8276116670265994,
+      "hrZone1Min": 143.5,
+      "hrZone2Min": 0,
+      "hrZone3Min": 0,
+      "hrZone4Min": 0,
+      "hrZone5Min": 0,
+      "walkingSpeed": 1.24,
+      "walkingStepLength": 72,
+      "walkingAsymmetryPct": 0,
+      "walkingDoubleSupportPct": 0.287,
+      "activeEnergyGoal": 360,
+      "exerciseMinutesGoal": 30,
+      "standHours": 3,
+      "standHoursGoal": 6
     }
   ]
 }
