@@ -547,28 +547,51 @@ export function renderDashboard(): string {
   .subtab.active { color:var(--ink); border-bottom-color:transparent; }
   .section { transition:opacity .2s ease; }
 
+  /* ---- staggered entry animation ---- */
+  @keyframes stageIn { from { opacity:0; transform:translateY(18px) scale(.96); } to { opacity:1; transform:translateY(0) scale(1); } }
+  .stage { opacity:0; animation:stageIn .5s var(--ease-spring) both; }
+  .stage-1 { animation-delay:.05s; }
+  .stage-2 { animation-delay:.2s; }
+  .stage-3 { animation-delay:.35s; }
+  .stage-4 { animation-delay:.5s; }
+  .stage-5 { animation-delay:.65s; }
+
   /* ---- Hero visual dashboard ---- */
-  .hero-ring { position:relative; width:150px; height:150px; margin:12px auto 2px; cursor:pointer; }
+  .hero-ring { position:relative; width:150px; height:150px; margin:12px auto 2px; cursor:pointer; transition:transform .15s var(--ease-spring); }
+  .hero-ring:active { transform:scale(.95); }
   .hero-svg { display:block; filter:drop-shadow(0 0 14px var(--pulse)); transition:filter .3s; }
-  .hero-ring:hover .hero-svg { filter:drop-shadow(0 0 24px var(--pulse)); }
+  .hero-ring:hover .hero-svg { filter:drop-shadow(0 0 28px var(--pulse)); }
   @keyframes heroArc { from { stroke-dashoffset:376.99; } }
   .hero-arc { transform:rotate(-90deg); transform-origin:center; transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1); }
   .hero-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
-  .hero-num { font-family:var(--mono); font-size:38px; font-weight:900; line-height:1; }
-  .hero-word { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-top:3px; }
-  .hero-line { text-align:center; font-size:11.5px; color:var(--dim); margin:0 0 2px; max-width:260px; margin-left:auto; margin-right:auto; }
-  @keyframes heroGlow { 0%,100%{filter:drop-shadow(0 0 12px var(--pulse));} 50%{filter:drop-shadow(0 0 28px var(--pulse));} }
+  .hero-num { font-family:var(--mono); font-size:40px; font-weight:900; line-height:1; transition:color .4s; }
+  .hero-word { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-top:3px; transition:color .4s; }
+  .hero-line { text-align:center; font-size:11.5px; color:var(--dim); margin:0 0 2px; max-width:280px; margin-left:auto; margin-right:auto; }
+  @keyframes heroGlow { 0%,100%{filter:drop-shadow(0 0 12px var(--pulse));} 50%{filter:drop-shadow(0 0 32px var(--pulse));} }
   .hero-ring.pulsing .hero-svg { animation:heroGlow 2.5s ease-in-out infinite; }
 
+  /* Hero explainer card (revealed on tap) */
+  .hero-explain { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:6px 0 10px; animation:fadeSlideUp .3s var(--ease-spring) both; text-align:left; }
+  .hero-explain .he-head { display:flex; align-items:center; gap:8px; margin-bottom:8px; }
+  .hero-explain .he-pill { font-family:var(--mono); font-size:11px; font-weight:800; padding:3px 8px; border-radius:6px; text-transform:uppercase; letter-spacing:.04em; }
+  .hero-explain .he-body { font-size:12.5px; color:var(--dim); line-height:1.55; }
+  .hero-explain .he-metrics { display:flex; gap:12px; margin-top:8px; flex-wrap:wrap; }
+  .hero-explain .he-m { font-family:var(--mono); font-size:11px; font-weight:700; color:var(--ink); }
+  .hero-explain .he-m span { color:var(--dim); font-weight:500; font-family:var(--sans); }
+  .hero-explain .he-ask { display:inline-block; margin-top:8px; font-size:11px; color:var(--pulse); font-weight:700; cursor:pointer; }
+
   .dash-row { display:flex; justify-content:center; gap:20px; margin:8px 0 10px; }
-  .dash-cell { text-align:center; cursor:pointer; transition:transform .15s; position:relative; }
+  .dash-cell { text-align:center; cursor:pointer; transition:transform .15s var(--ease-spring); position:relative; }
+  .dash-cell:active { transform:scale(.9); }
   .dash-cell:hover { transform:scale(1.08); }
-  .dash-cell svg { display:block; margin:0 auto; transition:filter .3s; }
-  .dash-cell:hover svg { filter:drop-shadow(0 0 12px rgba(163,230,53,.3)); }
+  .dash-cell svg { display:block; margin:0 auto; transition:filter .3s; filter:drop-shadow(0 0 4px rgba(255,255,255,.05)); }
+  #dashRings:hover svg { filter:drop-shadow(0 0 10px rgba(247,107,77,.3)); }
+  #dashSleep:hover svg { filter:drop-shadow(0 0 10px rgba(167,139,250,.3)); }
+  #dashStrain:hover svg { filter:drop-shadow(0 0 10px rgba(251,191,36,.3)); }
   .dash-label { font-size:9px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-top:2px; }
   @keyframes dashArc { from { stroke-dashoffset:var(--arc-full); } to { stroke-dashoffset:var(--arc-target); } }
   .dash-arc { transform:rotate(-90deg); transform-origin:center; transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1); }
-  .dash-detail { background:var(--panel2); border-radius:10px; padding:10px 14px; margin-bottom:8px; }
+  .dash-detail { background:var(--panel2); border-radius:10px; padding:10px 14px; margin-bottom:8px; animation:fadeSlideUp .25s var(--ease-spring) both; }
 
   /* ---- tap-to-insight bubble ---- */
   .insight-tip { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px 14px; font-size:11.5px; color:var(--dim); line-height:1.5; text-align:center; animation:fadeSlideUp .2s var(--ease-spring) both; display:flex; align-items:center; gap:8px; justify-content:center; }
@@ -1341,15 +1364,23 @@ export function renderDashboard(): string {
 
   /* ---- daily pulse orbs ---- */
   .pulse-row { display:flex; justify-content:center; gap:10px; margin:6px 0 14px; flex-wrap:wrap; }
-  .pulse-orb { position:relative; width:48px; height:48px; cursor:pointer; -webkit-tap-highlight-color:transparent; }
+  .pulse-orb { position:relative; width:48px; height:48px; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .12s var(--ease-spring); }
+  .pulse-orb:active { transform:scale(.88); }
   .pulse-orb svg { display:block; }
   .pulse-orb .po-icon { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:18px; pointer-events:none; }
   .pulse-orb .po-ring { transition:stroke-dashoffset .6s var(--ease-spring), stroke .3s; }
   .pulse-orb .po-check { position:absolute; top:-2px; right:-2px; width:14px; height:14px; border-radius:50%; background:var(--up); display:none; align-items:center; justify-content:center; font-size:8px; color:#000; font-weight:900; }
   .pulse-orb.logged .po-check { display:flex; }
-  .pulse-orb.unlogged { animation:pulseNudge 2.5s ease-in-out infinite; }
-  @keyframes pulseNudge { 0%,100%{transform:scale(1);} 50%{transform:scale(1.06);} }
-  .pulse-orb.logged { animation:none; }
+  @keyframes orbIn { from { opacity:0; transform:scale(.5); } to { opacity:1; transform:scale(1); } }
+  @keyframes pulseNudge { 0%,100%{transform:scale(1);} 50%{transform:scale(1.08);} }
+  .pulse-row > div:nth-child(1) .pulse-orb { animation:orbIn .35s var(--ease-spring) .7s both; }
+  .pulse-row > div:nth-child(2) .pulse-orb { animation:orbIn .35s var(--ease-spring) .78s both; }
+  .pulse-row > div:nth-child(3) .pulse-orb { animation:orbIn .35s var(--ease-spring) .86s both; }
+  .pulse-row > div:nth-child(4) .pulse-orb { animation:orbIn .35s var(--ease-spring) .94s both; }
+  .pulse-row > div:nth-child(5) .pulse-orb { animation:orbIn .35s var(--ease-spring) 1.02s both; }
+  .pulse-row > div:nth-child(6) .pulse-orb { animation:orbIn .35s var(--ease-spring) 1.1s both; }
+  .pulse-orb.unlogged.entered { animation:pulseNudge 2.5s ease-in-out infinite; }
+  .pulse-orb.logged { animation:none !important; }
   .pulse-label { font-size:8.5px; color:var(--dim); text-align:center; margin-top:1px; text-transform:uppercase; letter-spacing:.04em; font-weight:600; }
   .pulse-picker { background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:10px 12px; margin:-4px 0 10px; animation:fadeSlideUp .2s var(--ease-spring) both; }
   .pulse-picker .pp-q { font-size:12px; font-weight:700; margin-bottom:8px; display:flex; align-items:center; gap:6px; }
@@ -1641,7 +1672,7 @@ export function renderDashboard(): string {
     </div>
 
     <!-- HERO: Recovery ring — THE dominant visual -->
-    <div class="hero-ring" id="verdict" onclick="toggleVerdictDetail()">
+    <div class="hero-ring stage stage-1" id="verdict" onclick="toggleHeroExplain()">
       <svg viewBox="0 0 150 150" width="150" height="150" class="hero-svg">
         <circle cx="75" cy="75" r="60" fill="none" stroke="var(--line)" stroke-width="8"/>
         <circle cx="75" cy="75" r="60" fill="none" stroke="var(--pulse)" stroke-width="8" stroke-linecap="round" stroke-dasharray="376.99" stroke-dashoffset="376.99" id="vRingFill" class="hero-arc"/>
@@ -1651,14 +1682,14 @@ export function renderDashboard(): string {
         <div class="hero-word" id="verdictWord">…</div>
       </div>
     </div>
-    <div class="hero-line" id="verdictLine"></div>
+    <div class="hero-line stage stage-2" id="verdictLine"></div>
+    <div id="heroExplain"></div>
     <div id="verdictDetail" style="display:none"></div>
-    <!-- verdictWhy/verdictStats kept as hidden render targets -->
     <div id="verdictWhy" style="display:none"></div>
     <div id="verdictStats" style="display:none"></div>
 
     <!-- Three pillars: Activity + Sleep + Strain -->
-    <div class="dash-row">
+    <div class="dash-row stage stage-3">
       <div class="dash-cell" id="dashRings" onclick="dashTap(‘dashRings’,’dashRingsDetail’)">
         <svg viewBox="0 0 88 88" width="82" height="82" id="dashRingsSvg">
           <circle cx="44" cy="44" r="37" fill="none" stroke="var(--line)" stroke-width="6"/>
@@ -1713,7 +1744,7 @@ export function renderDashboard(): string {
     </div>
 
     <!-- Daily Pulse: tap-to-log lifestyle orbs -->
-    <div class="pulse-row" id="pulseRow">
+    <div class="pulse-row stage stage-4" id="pulseRow">
       <div><div class="pulse-orb unlogged" id="po-alcohol" onclick="openPulse(‘alcohol’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">🍷</div><div class="po-check">✓</div></div><div class="pulse-label">Drinks</div></div>
       <div><div class="pulse-orb unlogged" id="po-caffeine" onclick="openPulse(‘caffeine’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">☕</div><div class="po-check">✓</div></div><div class="pulse-label">Caffeine</div></div>
       <div><div class="pulse-orb unlogged" id="po-water" onclick="openPulse(‘water’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">💧</div><div class="po-check">✓</div></div><div class="pulse-label">Water</div></div>
@@ -1730,7 +1761,7 @@ export function renderDashboard(): string {
     </div>
 
     <!-- Coach directive: one terse line, no card wrapper -->
-    <div class="coach-line" id="todayPlanCard">
+    <div class="coach-line stage stage-5" id="todayPlanCard">
       <div id="todayCoachInner"><div id="review-today" class="coach-loading"><div class="skeleton" style="width:60%"></div></div></div>
       <div id="todayFocusInner" style="display:none"><span id="oneActionText"></span></div>
       <div id="todaySessionInner" style="display:none"></div>
@@ -3357,6 +3388,10 @@ function submitPulse(key, idx, value) {
     .then(function() { showToast(key + ' logged', 'success'); })
     .catch(function() {});
 }
+
+setTimeout(function() {
+  document.querySelectorAll('.pulse-orb.unlogged').forEach(function(o) { o.classList.add('entered'); });
+}, 1500);
 
 function prefillPulseOrbs(notes) {
   if (!notes || !notes.length) return;
@@ -5492,6 +5527,32 @@ function toggleVerdictDetail() {
   html += '</div>';
   el.innerHTML = html;
   el.style.display = '';
+}
+
+function toggleHeroExplain() {
+  var el = document.getElementById('heroExplain');
+  if (!el) return;
+  if (el.innerHTML) { el.innerHTML = ''; return; }
+  var r = TODAY.readiness;
+  var today = GUIDE_DAYS.length ? GUIDE_DAYS[GUIDE_DAYS.length - 1] : null;
+  var word = document.getElementById('verdictWord').textContent;
+  var line = document.getElementById('verdictLine').textContent;
+  var pillColor = r >= 70 ? 'var(--up)' : r >= 45 ? 'var(--caution)' : r > 0 ? 'var(--down)' : 'var(--dim)';
+  var pillBg = r >= 70 ? 'rgba(52,211,153,.15)' : r >= 45 ? 'rgba(251,191,36,.15)' : 'rgba(247,107,77,.15)';
+  var html = '<div class="hero-explain">';
+  html += '<div class="he-head"><span class="he-pill" style="color:' + pillColor + ';background:' + pillBg + ';">' + (word || 'Recovery') + '</span></div>';
+  if (line) html += '<div class="he-body">' + line + '</div>';
+  html += '<div class="he-metrics">';
+  if (today) {
+    if (today.sleepHours !== null && today.sleepHours !== undefined) html += '<div class="he-m">' + today.sleepHours.toFixed(1) + 'h <span>sleep</span></div>';
+    if (today.hrv !== null && today.hrv !== undefined) html += '<div class="he-m">' + Math.round(today.hrv) + 'ms <span>HRV</span></div>';
+    if (today.restingHeartRate !== null && today.restingHeartRate !== undefined) html += '<div class="he-m">' + today.restingHeartRate + ' <span>RHR</span></div>';
+    if (today.strain !== null && today.strain !== undefined) html += '<div class="he-m">' + today.strain.toFixed(1) + ' <span>strain</span></div>';
+  }
+  html += '</div>';
+  html += '<span class="he-ask" onclick="showView(' + "'" + 'more' + "'" + ');switchTabAnimated(' + "'" + 'ai' + "'" + ');">Ask about this &rarr;</span>';
+  html += '</div>';
+  el.innerHTML = html;
 }
 
 // ---------- today: sleep brief, body state, strain budget, what moved ----------
