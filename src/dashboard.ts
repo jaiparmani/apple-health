@@ -118,12 +118,13 @@ export function renderDashboard(): string {
 
   .section { display:none; }
   .section.active { display:block; }
-  .section-header { display:flex; justify-content:space-between; align-items:center; padding:18px 0 10px; cursor:pointer; border-top:1px solid var(--line); margin-top:4px; -webkit-tap-highlight-color:transparent; }
-  .section-header-title { font-family:var(--mono); font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); }
+  .section-header { display:flex; justify-content:space-between; align-items:center; padding:18px 0 10px; cursor:pointer; border-top:1px solid var(--line); margin-top:4px; -webkit-tap-highlight-color:transparent; transition:padding .2s; }
+  .section-header-title { font-family:var(--mono); font-size:13px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
   .section-header-chev { width:18px; height:18px; color:var(--faint); transition:transform .25s var(--ease-smooth); flex-shrink:0; }
+  .section-collapsed .section-header { padding-bottom:6px; }
   .section-collapsed .section-header-chev { transform:rotate(-90deg); }
-  .section-collapsed > *:not(.section-header) { display:none !important; }
-  .sh-verdict { margin-left:6px; vertical-align:middle; }
+  .section-collapsed > *:not(.section-header):not(.hero-glance):not(.hg-duo) { display:none !important; }
+  .sh-verdict { vertical-align:middle; }
 
   /* ---- hero: big, bold, color-coded — this is the first thing you see ---- */
   .hero { display:grid; grid-template-columns:auto 1fr; gap:24px; padding:0 0 20px; margin-bottom:20px; border-bottom:1px solid var(--line); align-items:center; }
@@ -1378,6 +1379,40 @@ export function renderDashboard(): string {
   .tf-tap { font-size:11px; color:var(--faint); cursor:pointer; margin-top:4px; }
   .tf-empty { font-size:12.5px; color:var(--dim); text-align:center; padding:12px 0; }
 
+  /* ---- health hero glance cards ---- */
+  .hero-glance { display:grid; grid-template-columns:auto 1fr; gap:14px; align-items:center; padding:12px 14px; background:var(--panel2); border-radius:12px; margin-bottom:8px; }
+  .hg-ring { position:relative; width:64px; height:64px; flex-shrink:0; }
+  .hg-ring svg { display:block; width:64px; height:64px; }
+  .hg-ring .hg-val { position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-family:var(--mono); font-size:18px; font-weight:800; color:var(--ink); }
+  .hg-ring .hg-unit { font-size:10px; font-weight:600; color:var(--dim); }
+  .hg-right { min-width:0; }
+  .hg-title { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); margin-bottom:3px; }
+  .hg-verdict { font-size:14px; font-weight:700; color:var(--ink); line-height:1.4; }
+  .hg-sub { font-size:12px; color:var(--faint); line-height:1.5; margin-top:2px; }
+  .hg-sub .hg-bl { font-weight:600; }
+  .hg-sub .hg-bl.up { color:var(--up); }
+  .hg-sub .hg-bl.down { color:var(--down); }
+  .hg-sub .hg-bl.flat { color:var(--dim); }
+  .hg-pills { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .hg-chip { font-size:11px; padding:2px 8px; border-radius:10px; background:var(--panel); color:var(--dim); white-space:nowrap; }
+  .hg-duo { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:8px; }
+  .hg-duo .hero-glance { margin-bottom:0; }
+  .hg-stages { display:flex; height:8px; border-radius:4px; overflow:hidden; margin-top:6px; gap:1px; }
+  .hg-stages .hg-seg { border-radius:3px; }
+  .hg-sparkline { margin-top:6px; opacity:.7; }
+  .hero-glance { cursor:pointer; -webkit-tap-highlight-color:transparent; transition:background .15s; animation:fadeSlideUp .4s var(--ease-smooth) both; }
+  .hero-glance:active { background:var(--panel); }
+  .hg-duo .hero-glance:nth-child(2) { animation-delay:.08s; }
+  .hg-expand { display:none; grid-column:1/-1; padding:10px 0 4px; border-top:1px solid var(--line); margin-top:8px; }
+  .hero-glance.hg-open .hg-expand { display:block; }
+  .hg-expand-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .hg-expand-item { font-size:12px; color:var(--dim); line-height:1.5; }
+  .hg-expand-item .hg-ek { color:var(--faint); font-size:10.5px; text-transform:uppercase; letter-spacing:.04em; }
+  .hg-expand-item .hg-ev { font-size:14px; font-weight:700; color:var(--ink); }
+  .hg-trend-row { display:flex; gap:12px; margin-top:8px; font-size:11.5px; color:var(--faint); }
+  .hg-trend-row .up { color:var(--up); } .hg-trend-row .down { color:var(--down); }
+  @media (max-width:380px) { .hg-ring { width:52px; height:52px; } .hg-ring svg { width:52px; height:52px; } .hg-ring .hg-val { font-size:15px; } }
+
   /* ---- daily pulse orbs ---- */
   .pulse-row { display:flex; justify-content:center; gap:10px; margin:6px 0 14px; flex-wrap:wrap; }
   .pulse-orb { position:relative; width:48px; height:48px; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .12s var(--ease-spring); }
@@ -2071,6 +2106,11 @@ export function renderDashboard(): string {
 
   <!-- TRAINING -->
   <section class="section" id="tab-training">
+    <div class="hero-glance" id="hgTraining">
+      <div class="hg-ring"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--line)" stroke-width="5"/><circle id="hgStrainArc" cx="32" cy="32" r="26" fill="none" stroke="var(--down)" stroke-width="5" stroke-linecap="round" stroke-dasharray="163.4" stroke-dashoffset="163.4" class="dash-arc"/></svg><div class="hg-val"><span id="hgStrainVal">—</span></div></div>
+      <div class="hg-right"><div class="hg-title">Strain</div><div class="hg-verdict" id="hgStrainVerdict">Loading…</div><div class="hg-sub" id="hgStrainSub"></div></div>
+      <div class="hg-expand" id="hgStrainExpand"></div>
+    </div>
     ${reviewCard("training", "Training review")}
     <div id="trainingLoadStats" class="grid"></div>
     <div class="fit-grid" id="fitnessMetrics"></div>
@@ -2083,6 +2123,18 @@ export function renderDashboard(): string {
 
   <!-- HEART & RECOVERY -->
   <section class="section" id="tab-heart">
+    <div class="hg-duo" id="heartHeroDuo">
+      <div class="hero-glance" id="hgHrv">
+        <div class="hg-ring"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--line)" stroke-width="5"/><circle id="hgHrvArc" cx="32" cy="32" r="26" fill="none" stroke="var(--up)" stroke-width="5" stroke-linecap="round" stroke-dasharray="163.4" stroke-dashoffset="163.4" class="dash-arc"/></svg><div class="hg-val"><span id="hgHrvVal">—</span></div></div>
+        <div class="hg-right"><div class="hg-title">HRV</div><div class="hg-verdict" id="hgHrvVerdict">Loading…</div><div class="hg-sub" id="hgHrvSub"></div></div>
+        <div class="hg-expand" id="hgHrvExpand"></div>
+      </div>
+      <div class="hero-glance" id="hgRhr">
+        <div class="hg-ring"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--line)" stroke-width="5"/><circle id="hgRhrArc" cx="32" cy="32" r="26" fill="none" stroke="var(--up)" stroke-width="5" stroke-linecap="round" stroke-dasharray="163.4" stroke-dashoffset="163.4" class="dash-arc"/></svg><div class="hg-val"><span id="hgRhrVal">—</span></div></div>
+        <div class="hg-right"><div class="hg-title">Resting HR</div><div class="hg-verdict" id="hgRhrVerdict">Loading…</div><div class="hg-sub" id="hgRhrSub"></div></div>
+        <div class="hg-expand" id="hgRhrExpand"></div>
+      </div>
+    </div>
     ${reviewCard("recovery", "Recovery review")}
     <div class="card">
       <details class="vline"><summary><span class="vl-name">RHR & HRV</span><span class="vl-val" data-vl="restingHeartRate,hrv"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="heartChart"></canvas></div><div data-guide="restingHeartRate,hrv"></div></div></details>
@@ -2094,6 +2146,11 @@ export function renderDashboard(): string {
 
   <!-- ACTIVITY & MOBILITY -->
   <section class="section" id="tab-activity">
+    <div class="hero-glance" id="hgActivity">
+      <div class="hg-ring"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--line)" stroke-width="4"/><circle id="hgMoveArc" cx="32" cy="32" r="26" fill="none" stroke="var(--up)" stroke-width="4" stroke-linecap="round" stroke-dasharray="163.4" stroke-dashoffset="163.4" class="dash-arc"/><circle cx="32" cy="32" r="20" fill="none" stroke="var(--line)" stroke-width="4"/><circle id="hgExArc" cx="32" cy="32" r="20" fill="none" stroke="var(--pulse)" stroke-width="4" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" class="dash-arc"/></svg><div class="hg-val"><span id="hgStepsVal">—</span></div></div>
+      <div class="hg-right"><div class="hg-title">Activity</div><div class="hg-verdict" id="hgActivityVerdict">Loading…</div><div class="hg-pills" id="hgActivityPills"></div><div class="hg-sub" id="hgActivitySub"></div></div>
+      <div class="hg-expand" id="hgActivityExpand"></div>
+    </div>
     ${reviewCard("activity", "Activity review")}
     <div class="card">
       <details class="vline"><summary><span class="vl-name">Steps</span><span class="vl-val" data-vl="steps"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="stepsChart"></canvas></div><div data-guide="steps"></div></div></details>
@@ -2177,6 +2234,11 @@ export function renderDashboard(): string {
 
   <!-- SLEEP -->
   <section class="section" id="tab-sleep">
+    <div class="hero-glance" id="hgSleep">
+      <div class="hg-ring"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--line)" stroke-width="5"/><circle id="hgSleepArc" cx="32" cy="32" r="26" fill="none" stroke="var(--purple)" stroke-width="5" stroke-linecap="round" stroke-dasharray="163.4" stroke-dashoffset="163.4" class="dash-arc"/></svg><div class="hg-val"><span id="hgSleepVal">—</span><span class="hg-unit">h</span></div></div>
+      <div class="hg-right"><div class="hg-title">Last night</div><div class="hg-verdict" id="hgSleepVerdict">Loading…</div><div class="hg-stages" id="hgSleepStages"></div><div class="hg-sub" id="hgSleepSub"></div></div>
+      <div class="hg-expand" id="hgSleepExpand"></div>
+    </div>
     <div class="card" id="sleepLogCard">
       <div style="display:flex;justify-content:space-between;align-items:center;">
         <div>
@@ -6235,6 +6297,184 @@ function fillVerdictLines() {
   });
 }
 
+function fillHeroGlance() {
+  var circ = 2 * Math.PI * 26;
+  var statusColor = { good: 'var(--up)', ok: 'var(--caution)', watch: 'var(--caution)', bad: 'var(--down)' };
+  function setArc(id, pct, color) {
+    var el = document.getElementById(id);
+    if (!el) return;
+    if (color) el.setAttribute('stroke', color);
+    el.style.strokeDashoffset = String(circ * (1 - Math.min(Math.max(pct, 0), 1)));
+  }
+  function blDelta(key, val) {
+    if (!BASELINES || !BASELINES[key] || val === null) return '';
+    var pct = ((val - BASELINES[key]) / Math.abs(BASELINES[key]) * 100);
+    if (Math.abs(pct) < 1) return '<span class="hg-bl flat">= baseline</span>';
+    var def = METRIC_GUIDE[key];
+    var up = def ? def.up : true;
+    var cls = up === null ? 'flat' : (pct > 0 === up) ? 'up' : 'down';
+    return '<span class="hg-bl ' + cls + '">' + (pct > 0 ? '+' : '') + pct.toFixed(0) + '% vs baseline</span>';
+  }
+  var hrvVal = recentValue('hrv');
+  var hrvG = guideFor('hrv', hrvVal);
+  if (hrvVal !== null) {
+    document.getElementById('hgHrvVal').textContent = Math.round(hrvVal);
+    var hrvPct = Math.min(hrvVal / 120, 1);
+    setArc('hgHrvArc', hrvPct, hrvG && hrvG.status ? statusColor[hrvG.status] : 'var(--up)');
+    var el = document.getElementById('hgHrvVerdict');
+    if (el) el.innerHTML = (hrvG && hrvG.status ? pill(hrvG.status) + ' ' : '') + Math.round(hrvVal) + ' ms';
+    var sub = document.getElementById('hgHrvSub');
+    if (sub) sub.innerHTML = blDelta('hrv', hrvVal);
+  }
+  var rhrVal = recentValue('restingHeartRate');
+  var rhrG = guideFor('restingHeartRate', rhrVal);
+  if (rhrVal !== null) {
+    document.getElementById('hgRhrVal').textContent = Math.round(rhrVal);
+    var rhrPct = Math.min(Math.max((90 - rhrVal) / 40, 0), 1);
+    setArc('hgRhrArc', rhrPct, rhrG && rhrG.status ? statusColor[rhrG.status] : 'var(--up)');
+    var el2 = document.getElementById('hgRhrVerdict');
+    if (el2) el2.innerHTML = (rhrG && rhrG.status ? pill(rhrG.status) + ' ' : '') + Math.round(rhrVal) + ' bpm';
+    var sub2 = document.getElementById('hgRhrSub');
+    if (sub2) sub2.innerHTML = blDelta('restingHeartRate', rhrVal);
+  }
+  var sleepVal = recentValue('sleepHours');
+  var sleepG = guideFor('sleepHours', sleepVal);
+  if (sleepVal !== null) {
+    document.getElementById('hgSleepVal').textContent = sleepVal.toFixed(1);
+    var sleepPct = Math.min(sleepVal / 9, 1);
+    setArc('hgSleepArc', sleepPct, sleepG && sleepG.status ? statusColor[sleepG.status] : 'var(--purple)');
+    var el3 = document.getElementById('hgSleepVerdict');
+    if (el3) el3.innerHTML = (sleepG && sleepG.status ? pill(sleepG.status) + ' ' : '') + sleepVal.toFixed(1) + 'h sleep';
+    var sub3 = document.getElementById('hgSleepSub');
+    if (sub3) sub3.innerHTML = blDelta('sleepHours', sleepVal);
+    var deep = recentValue('sleepDeepHours');
+    var rem = recentValue('sleepRemHours');
+    var core = recentValue('sleepCoreHours');
+    var stages = document.getElementById('hgSleepStages');
+    if (stages && sleepVal > 0) {
+      var dPct = deep ? (deep / sleepVal * 100) : 0;
+      var rPct = rem ? (rem / sleepVal * 100) : 0;
+      var cPct = core ? (core / sleepVal * 100) : 0;
+      var lPct = Math.max(0, 100 - dPct - rPct - cPct);
+      stages.innerHTML = '<div class="hg-seg" style="width:' + dPct.toFixed(0) + '%;background:#6366f1" title="Deep ' + (deep||0).toFixed(1) + 'h"></div>' +
+        '<div class="hg-seg" style="width:' + cPct.toFixed(0) + '%;background:#818cf8" title="Core ' + (core||0).toFixed(1) + 'h"></div>' +
+        '<div class="hg-seg" style="width:' + rPct.toFixed(0) + '%;background:#a78bfa" title="REM ' + (rem||0).toFixed(1) + 'h"></div>' +
+        '<div class="hg-seg" style="width:' + lPct.toFixed(0) + '%;background:var(--line)" title="Light/awake"></div>';
+    }
+  }
+  var stepsVal = recentValue('steps');
+  var stepsG = guideFor('steps', stepsVal);
+  var exMin = recentValue('exerciseMinutes');
+  if (stepsVal !== null) {
+    var sv = document.getElementById('hgStepsVal');
+    if (sv) sv.textContent = stepsVal >= 1000 ? Math.round(stepsVal / 1000) + 'k' : Math.round(stepsVal);
+    var moveGoal = latestReading('activeEnergyGoal', 7);
+    var moveActual = latestReading('activeEnergy', 7);
+    var movePct = (moveGoal && moveActual) ? Math.min(moveActual.value / moveGoal.value, 1.3) / 1.3 : Math.min(stepsVal / 10000, 1);
+    setArc('hgMoveArc', movePct, stepsG && stepsG.status ? statusColor[stepsG.status] : 'var(--up)');
+    var exGoal = latestReading('exerciseMinutesGoal', 7);
+    var exPct = (exGoal && exMin) ? Math.min(exMin / exGoal.value, 1.3) / 1.3 : (exMin ? Math.min(exMin / 30, 1) : 0);
+    var exCirc = 2 * Math.PI * 20;
+    var exArc = document.getElementById('hgExArc');
+    if (exArc) exArc.style.strokeDashoffset = String(exCirc * (1 - Math.min(Math.max(exPct, 0), 1)));
+    var av = document.getElementById('hgActivityVerdict');
+    if (av) av.innerHTML = (stepsG && stepsG.status ? pill(stepsG.status) + ' ' : '') + Math.round(stepsVal).toLocaleString() + ' steps';
+    var ap = document.getElementById('hgActivityPills');
+    if (ap) {
+      var chips = [];
+      if (exMin) chips.push(Math.round(exMin) + ' min exercise');
+      var wk = recentValue('workoutMinutes');
+      if (wk) chips.push(Math.round(wk) + ' min workout');
+      ap.innerHTML = chips.map(function(c) { return '<span class="hg-chip">' + c + '</span>'; }).join('');
+    }
+    var asub = document.getElementById('hgActivitySub');
+    if (asub) asub.innerHTML = blDelta('steps', stepsVal);
+  }
+  // Level 2 expand content for HRV
+  var hrvExp = document.getElementById('hgHrvExpand');
+  if (hrvExp && hrvVal !== null) {
+    var vo2 = recentValue('vo2max');
+    var resp = recentValue('respiratoryRate');
+    var spo2 = recentValue('oxygenSaturation');
+    var items = [];
+    if (vo2 !== null) items.push('<div class="hg-expand-item"><div class="hg-ek">VO2max</div><div class="hg-ev">' + vo2.toFixed(1) + '</div></div>');
+    if (resp !== null) items.push('<div class="hg-expand-item"><div class="hg-ek">Resp rate</div><div class="hg-ev">' + resp.toFixed(1) + '/min</div></div>');
+    if (spo2 !== null) items.push('<div class="hg-expand-item"><div class="hg-ek">SpO2</div><div class="hg-ev">' + (spo2 * 100).toFixed(0) + '%</div></div>');
+    items.push('<div class="hg-expand-item"><div class="hg-ek">Recovery</div><div class="hg-ev">' + (TODAY.readiness !== null ? TODAY.readiness + '%' : '—') + '</div></div>');
+    hrvExp.innerHTML = '<div class="hg-expand-grid">' + items.join('') + '</div>';
+  }
+  // Level 2 expand content for RHR
+  var rhrExp = document.getElementById('hgRhrExpand');
+  if (rhrExp && rhrVal !== null) {
+    var hrAvg = recentValue('heartRateAvg');
+    var whr = recentValue('walkingHeartRateAvg');
+    var items2 = [];
+    if (hrAvg !== null) items2.push('<div class="hg-expand-item"><div class="hg-ek">Avg HR</div><div class="hg-ev">' + Math.round(hrAvg) + ' bpm</div></div>');
+    if (whr !== null) items2.push('<div class="hg-expand-item"><div class="hg-ek">Walking HR</div><div class="hg-ev">' + Math.round(whr) + ' bpm</div></div>');
+    rhrExp.innerHTML = '<div class="hg-expand-grid">' + items2.join('') + '</div>';
+  }
+  // Level 2 expand content for Sleep
+  var sleepExp = document.getElementById('hgSleepExpand');
+  if (sleepExp && sleepVal !== null) {
+    var eff = recentValue('sleepEfficiency');
+    var inBed = recentValue('sleepInBedHours');
+    var sitems = [];
+    if (deep !== null) sitems.push('<div class="hg-expand-item"><div class="hg-ek">Deep</div><div class="hg-ev">' + deep.toFixed(1) + 'h</div></div>');
+    if (rem !== null) sitems.push('<div class="hg-expand-item"><div class="hg-ek">REM</div><div class="hg-ev">' + rem.toFixed(1) + 'h</div></div>');
+    if (eff !== null) sitems.push('<div class="hg-expand-item"><div class="hg-ek">Efficiency</div><div class="hg-ev">' + (eff * 100).toFixed(0) + '%</div></div>');
+    if (inBed !== null) sitems.push('<div class="hg-expand-item"><div class="hg-ek">In bed</div><div class="hg-ev">' + inBed.toFixed(1) + 'h</div></div>');
+    sleepExp.innerHTML = '<div class="hg-expand-grid">' + sitems.join('') + '</div>';
+  }
+  // Level 2 expand content for Activity
+  var actExp = document.getElementById('hgActivityExpand');
+  if (actExp && stepsVal !== null) {
+    var dist = recentValue('distanceKm');
+    var flights = recentValue('flightsClimbed');
+    var stand = recentValue('standHours');
+    var aitems = [];
+    if (exMin !== null) aitems.push('<div class="hg-expand-item"><div class="hg-ek">Exercise</div><div class="hg-ev">' + Math.round(exMin) + ' min</div></div>');
+    if (dist !== null) aitems.push('<div class="hg-expand-item"><div class="hg-ek">Distance</div><div class="hg-ev">' + dist.toFixed(1) + ' km</div></div>');
+    if (flights !== null) aitems.push('<div class="hg-expand-item"><div class="hg-ek">Flights</div><div class="hg-ev">' + Math.round(flights) + '</div></div>');
+    if (stand !== null) aitems.push('<div class="hg-expand-item"><div class="hg-ek">Stand hours</div><div class="hg-ev">' + Math.round(stand) + 'h</div></div>');
+    actExp.innerHTML = '<div class="hg-expand-grid">' + aitems.join('') + '</div>';
+  }
+  var strainVal = recentValue('strain');
+  var strainG = guideFor('strain', strainVal);
+  if (strainVal !== null) {
+    document.getElementById('hgStrainVal').textContent = strainVal.toFixed(1);
+    var strainPct = Math.min(strainVal / 21, 1);
+    var strainColor = strainVal > 16 ? 'var(--down)' : strainVal > 12 ? 'var(--caution)' : strainVal > 6 ? 'var(--up)' : 'var(--dim)';
+    setArc('hgStrainArc', strainPct, strainColor);
+    var sv2 = document.getElementById('hgStrainVerdict');
+    if (sv2) {
+      var strainWord = strainVal > 16 ? 'Overreaching' : strainVal > 12 ? 'High strain' : strainVal > 6 ? 'Moderate' : 'Light day';
+      sv2.innerHTML = (strainG && strainG.status ? pill(strainG.status) + ' ' : '') + strainWord + ' (' + strainVal.toFixed(1) + ')';
+    }
+    var ssub = document.getElementById('hgStrainSub');
+    if (ssub) ssub.innerHTML = blDelta('strain', strainVal);
+    var strainExp = document.getElementById('hgStrainExpand');
+    if (strainExp) {
+      var recov = TODAY.readiness;
+      var wkMin = recentValue('workoutMinutes');
+      var stitems = [];
+      if (recov !== null) stitems.push('<div class="hg-expand-item"><div class="hg-ek">Recovery</div><div class="hg-ev">' + recov + '%</div></div>');
+      if (wkMin !== null) stitems.push('<div class="hg-expand-item"><div class="hg-ek">Workout</div><div class="hg-ev">' + Math.round(wkMin) + ' min</div></div>');
+      var ae = recentValue('activeEnergy');
+      if (ae !== null) stitems.push('<div class="hg-expand-item"><div class="hg-ek">Active cal</div><div class="hg-ev">' + Math.round(ae) + '</div></div>');
+      strainExp.innerHTML = '<div class="hg-expand-grid">' + stitems.join('') + '</div>';
+    }
+  }
+  // Attach tap-to-expand on hero glance cards
+  document.querySelectorAll('.hero-glance').forEach(function (card) {
+    if (card.dataset.hgBound) return;
+    card.dataset.hgBound = '1';
+    card.onclick = function (e) {
+      if (e.target.closest('a, button, input, select')) return;
+      card.classList.toggle('hg-open');
+    };
+  });
+}
+
 // ---------------- metric detail sheet ----------------
 var DISCOVERIES_CACHE = null;
 var metricChartInstance = null;
@@ -7682,6 +7922,7 @@ async function boot() {
   Object.keys(GUIDE_VALUES).forEach(function (k) { if (GUIDE_VALUES[k] === null || GUIDE_VALUES[k] === undefined) delete GUIDE_VALUES[k]; });
   fillGuides();
   fillVerdictLines();
+  fillHeroGlance();
   updateSectionVerdicts();
   renderGreeting(days);
   TODAY.readiness = trends.readinessScore === undefined ? null : trends.readinessScore;
@@ -7736,6 +7977,7 @@ async function boot() {
       w30.forEach(function (x) { map[x.metric] = x.mean; });
       BASELINES = map;
       renderBodyState(today, (function () { var m = {}; w30.forEach(function (x) { m[x.metric] = x; }); return m; })());
+      fillHeroGlance();
       renderTodayFocus();
     }
   }).catch(function () {});
