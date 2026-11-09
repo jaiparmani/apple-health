@@ -1362,6 +1362,22 @@ export function renderDashboard(): string {
   /* ---- smart check-in (legacy, hidden) ---- */
   #smartCheckInArea { display:none; }
 
+  /* ---- Today's Focus: structured AI recommendations ---- */
+  .today-focus { padding:4px 0 16px; border-top:1px solid var(--line); margin-top:8px; }
+  .tf-item { display:grid; grid-template-columns:3px 1fr; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); animation:fadeSlideUp .3s var(--ease-smooth) both; }
+  .tf-item:last-child { border-bottom:none; }
+  .tf-bar { border-radius:2px; min-height:100%; }
+  .tf-bar.high { background:var(--down); }
+  .tf-bar.medium { background:var(--caution); }
+  .tf-bar.low { background:var(--up); }
+  .tf-verdict { font-size:13.5px; font-weight:700; color:var(--ink); line-height:1.4; }
+  .tf-action { font-size:12.5px; color:var(--dim); line-height:1.5; margin-top:2px; }
+  .tf-action::before { content:"→ "; font-weight:700; color:var(--pulse); }
+  .tf-why { display:none; font-size:12px; color:var(--faint); line-height:1.5; margin-top:6px; padding-top:6px; border-top:1px solid var(--line); }
+  .tf-item.expanded .tf-why { display:block; }
+  .tf-tap { font-size:11px; color:var(--faint); cursor:pointer; margin-top:4px; }
+  .tf-empty { font-size:12.5px; color:var(--dim); text-align:center; padding:12px 0; }
+
   /* ---- daily pulse orbs ---- */
   .pulse-row { display:flex; justify-content:center; gap:10px; margin:6px 0 14px; flex-wrap:wrap; }
   .pulse-orb { position:relative; width:48px; height:48px; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .12s var(--ease-spring); }
@@ -1658,8 +1674,10 @@ export function renderDashboard(): string {
       <div class="sub" id="lastUpdated"><span class="live-dot"></span>—</div>
     </div>
     <nav class="tabs primary" id="primaryNav">
-      <button class="tab active" data-view="home" onclick="showView('home')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-4 0a1 1 0 01-1-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 01-1 1"/></svg><span>Dashboard</span></button>
-      <button class="tab" data-view="more" onclick="showView('more')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg><span>Explore</span></button>
+      <button class="tab active" data-view="today" onclick="showView('today')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Today</span></button>
+      <button class="tab" data-view="health" onclick="showView('health')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"/></svg><span>Health</span></button>
+      <button class="tab" data-view="trends" onclick="showView('trends')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg><span>Trends</span></button>
+      <button class="tab" data-view="ai" onclick="showView('ai')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"/></svg><span>AI</span></button>
     </nav>
     <nav class="subnav" id="subNav" style="display:none"></nav>
   </header>
@@ -1754,71 +1772,37 @@ export function renderDashboard(): string {
     </div>
     <div id="pulsePicker"></div>
 
-    <div id="smartCheckInArea"></div>
+    <!-- Illness alert (only visible when flagged) -->
     <div class="card illness-card" id="illnessCard" style="display:none">
       <div class="illness-head"><span class="illness-icon">⚠</span><span class="illness-title" id="illnessTitle"></span></div>
       <div class="illness-body sub" id="illnessBody"></div>
     </div>
 
-    <!-- Coach directive: one terse line, no card wrapper -->
-    <div class="coach-line stage stage-5" id="todayPlanCard">
-      <div id="todayCoachInner"><div id="review-today" class="coach-loading"><div class="skeleton" style="width:60%"></div></div></div>
-      <div id="todayFocusInner" style="display:none"><span id="oneActionText"></span></div>
-      <div id="todaySessionInner" style="display:none"></div>
+    <!-- Today's Focus: max 3 AI-driven recommendations -->
+    <div class="today-focus stage stage-5" id="todayFocus">
+      <div id="todayFocusItems">
+        <div id="review-today" class="coach-loading"><div class="skeleton" style="width:60%"></div></div>
+      </div>
     </div>
 
-    <!-- Quick glance kept as hidden render target -->
-    <div class="qg-row" id="quickGlanceRow" style="display:none"></div>
-
-    <details class="expand-card"><summary>Body & progress <span class="ec-hint" id="ecBodyHint"></span></summary><div class="ec-body">
-      <div class="body-home" id="bodyHome">
-        <div class="body-stage" id="bodyStage">
-          <div class="body-score-badge" id="bodyScoreBadge" style="cursor:pointer;" onclick="toggleBodyScoreDetail()">
-            <div class="bsb-ring">
-              <svg viewBox="0 0 80 80">
-                <defs><linearGradient id="bsbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--pulse)"/><stop offset="100%" stop-color="var(--up)"/></linearGradient></defs>
-                <circle cx="40" cy="40" r="34" class="bsb-bg"/>
-                <circle cx="40" cy="40" r="34" class="bsb-fill" id="bsbFill" stroke-dasharray="214" stroke-dashoffset="214"/>
-              </svg>
-              <div class="bsb-center">
-                <div class="bsb-num count-up" id="bsbNum" data-target="0">—</div>
-                <div class="bsb-label">Body</div>
-              </div>
-            </div>
-          </div>
-          <div class="body-stage-svg" id="bodyStageSvg"></div>
-        </div>
-        <div id="bodyScoreDetail"></div>
-        <div class="body-inline-detail" id="bodyInlineDetail" style="display:none"></div>
-      </div>
-      <div id="whatMovedCard" style="display:none;cursor:pointer;" onclick="toggleWhatMoved()">
-        <div class="wm-summary" id="wmSummary"></div>
-        <div class="wm-details" id="wmDetails"></div>
-      </div>
-      <div id="progressCard" style="display:none">
-        <div class="pg-tabs" id="pgTabs" style="margin-top:8px;">
-          <div class="pg-tab active" onclick="showProgressTab(0)">Heatmap</div>
-          <div class="pg-tab" onclick="showProgressTab(1)">Streaks</div>
-          <div class="pg-tab" onclick="showProgressTab(2)">Weekly</div>
-          <div class="pg-tab" onclick="showProgressTab(3)">Records</div>
-        </div>
-        <div class="pg-view active" id="pgHeatmap"><div class="hm-wrap" id="heatmapGrid"></div></div>
-        <div class="pg-view" id="pgStreaks"><div class="streak-grid" id="streakGrid"></div></div>
-        <div class="pg-view" id="pgWeekly"><div class="wc-grid" id="weeklyCompGrid"></div></div>
-        <div class="pg-view" id="pgRecords"><div class="pr-grid" id="prGrid"></div></div>
-      </div>
-    </div></details>
-
-    <!-- Offscreen render targets for JS functions that populate them -->
-    <div id="sleepArch" style="display:none"></div>
-    <div id="bodyOverviewStrip" style="display:none"></div>
-    <div class="compact-grid" id="allVitals" style="display:none"></div>
-    <div id="readinessCard" style="display:none"><div id="readinessGauge"></div></div>
-    <div id="sleepBrief" style="display:none"><div class="brief-n" id="bSleepH">—</div><div class="brief-n" id="bSleepQ">—</div><div class="brief-n" id="bDeepRem">—</div></div>
-    <div id="bodyState" style="display:none"><div class="brief-n" id="bHrv">—</div><div id="bHrvD"></div><div class="brief-n" id="bRhr">—</div><div id="bRhrD"></div><div class="brief-n" id="bRecov">—</div></div>
-    <div id="strainBudget" style="display:none"><div class="sb-fill" id="sbFill"></div><div id="sbTarget"></div><span id="sbUsed">0</span><span id="sbMax">21</span></div>
-    <div id="recoveryBreakdown" style="display:none"><div id="recoveryPillars"></div></div>
-    <div id="whatMoved" style="display:none"><div id="whatMovedList"></div></div>
+    <!-- Hidden render targets (needed by JS functions) -->
+    <div style="display:none">
+      <div id="smartCheckInArea"></div>
+      <div id="todayPlanCard"><div id="todayCoachInner"></div><div id="todayFocusInner"><span id="oneActionText"></span></div><div id="todaySessionInner"></div></div>
+      <div id="quickGlanceRow"></div>
+      <div id="bodyHome"><div id="bodyStage"><div id="bodyScoreBadge"><div class="bsb-ring"><svg viewBox="0 0 80 80"><defs><linearGradient id="bsbGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="var(--pulse)"/><stop offset="100%" stop-color="var(--up)"/></linearGradient></defs><circle cx="40" cy="40" r="34" class="bsb-bg"/><circle cx="40" cy="40" r="34" class="bsb-fill" id="bsbFill" stroke-dasharray="214" stroke-dashoffset="214"/></svg><div class="bsb-center"><div class="bsb-num count-up" id="bsbNum" data-target="0">—</div><div class="bsb-label">Body</div></div></div></div><div id="bodyStageSvg"></div></div><div id="bodyScoreDetail"></div><div id="bodyInlineDetail"></div></div>
+      <div id="whatMovedCard"><div id="wmSummary"></div><div id="wmDetails"></div></div>
+      <div id="progressCard"><div id="pgTabs"><div class="pg-tab active" onclick="showProgressTab(0)">Heatmap</div><div class="pg-tab" onclick="showProgressTab(1)">Streaks</div><div class="pg-tab" onclick="showProgressTab(2)">Weekly</div><div class="pg-tab" onclick="showProgressTab(3)">Records</div></div><div class="pg-view active" id="pgHeatmap"><div id="heatmapGrid"></div></div><div class="pg-view" id="pgStreaks"><div id="streakGrid"></div></div><div class="pg-view" id="pgWeekly"><div id="weeklyCompGrid"></div></div><div class="pg-view" id="pgRecords"><div id="prGrid"></div></div></div>
+      <div id="sleepArch"></div>
+      <div id="bodyOverviewStrip"></div>
+      <div id="allVitals"></div>
+      <div id="readinessCard"><div id="readinessGauge"></div></div>
+      <div id="sleepBrief"><div class="brief-n" id="bSleepH">—</div><div class="brief-n" id="bSleepQ">—</div><div class="brief-n" id="bDeepRem">—</div></div>
+      <div id="bodyState"><div class="brief-n" id="bHrv">—</div><div id="bHrvD"></div><div class="brief-n" id="bRhr">—</div><div id="bRhrD"></div><div class="brief-n" id="bRecov">—</div></div>
+      <div id="strainBudget"><div class="sb-fill" id="sbFill"></div><div id="sbTarget"></div><span id="sbUsed">0</span><span id="sbMax">21</span></div>
+      <div id="recoveryBreakdown"><div id="recoveryPillars"></div></div>
+      <div id="whatMoved"><div id="whatMovedList"></div></div>
+    </div>
   </section>
 
 
@@ -4863,15 +4847,19 @@ var TAB_REVIEWS = { overview: ['today'], plan: ['weekly'], longview: ['longterm'
 // Five top-level views, each a group of sections shown one at a time via
 // a sub-tab row. Sections keep their old ids, so every loader still works.
 var VIEWS = {
-  home: [['overview', ''], ['directive', 'Coach'], ['plan', 'Goals & activity'], ['heart', 'Heart & recovery'], ['sleep', 'Sleep'], ['training', 'Training'], ['activity', 'Activity'], ['records', 'Records'], ['story', 'Weekly story']],
-  more: [['ai', 'Ask AI'], ['discoveries', 'Discoveries'], ['workouts', 'Workouts'], ['body', 'Body analysis'], ['age', 'Bio age'], ['longview', 'Long view'], ['dayexplorer', 'Day explorer'], ['allmetrics', 'All metrics'], ['insights', 'Insights'], ['more', 'Extra'], ['settings', 'Settings']],
+  today: [['overview', '']],
+  health: [['heart', 'Heart'], ['sleep', 'Sleep'], ['activity', 'Activity'], ['training', 'Training'], ['body', 'Body'], ['workouts', 'Workouts'], ['age', 'Bio age']],
+  trends: [['plan', 'This week'], ['records', 'Records'], ['story', 'Story'], ['longview', 'Long view'], ['insights', 'Insights'], ['allmetrics', 'All metrics'], ['dayexplorer', 'Day explorer']],
+  ai: [['directive', 'Coach'], ['ai', 'Ask AI'], ['discoveries', 'Discoveries'], ['more', 'Extra'], ['settings', 'Settings']],
 };
 function viewOf(sectionId) {
   for (var v in VIEWS) if (VIEWS[v].some(function (x) { return x[0] === sectionId; })) return v;
-  return 'home';
+  return 'today';
 }
 function showView(view) {
-  if (!VIEWS[view]) view = 'home';
+  if (view === 'home') view = 'today';
+  if (view === 'more') view = 'ai';
+  if (!VIEWS[view]) view = 'today';
   document.querySelectorAll('.section').forEach(function (s) { s.classList.remove('active', 'tab-enter'); });
   var secs = VIEWS[view];
   var footer = document.querySelector('footer');
@@ -4899,6 +4887,7 @@ function showView(view) {
 }
 function showTab(id) {
   if (!document.getElementById('tab-' + id)) id = 'overview';
+  if (id === 'overview') { showView('today'); return; }
   var view = viewOf(id);
   showView(view);
   var el = document.getElementById('tab-' + id);
@@ -5670,9 +5659,58 @@ function renderOneAction() {
   if (!TODAY.fitness || !TODAY.fitness.actionItems || !TODAY.fitness.actionItems.length) return;
   var top = TODAY.fitness.actionItems[0];
   var el = document.getElementById('todayFocusInner');
+  if (el) {
+    document.getElementById('oneActionText').textContent = top.text + (top.why ? ' — ' + top.why : '');
+    el.style.display = '';
+  }
+  renderTodayFocus();
+}
+
+function renderTodayFocus() {
+  var el = document.getElementById('todayFocusItems');
   if (!el) return;
-  document.getElementById('oneActionText').textContent = top.text + (top.why ? ' — ' + top.why : '');
-  el.style.display = '';
+  var items = [];
+  var today = GUIDE_DAYS.length ? GUIDE_DAYS[GUIDE_DAYS.length - 1] : null;
+  var prev = GUIDE_DAYS.length >= 2 ? GUIDE_DAYS[GUIDE_DAYS.length - 2] : null;
+  var baselines30 = BASELINES || {};
+  if (TODAY.fitness && TODAY.fitness.actionItems) {
+    TODAY.fitness.actionItems.slice(0, 3).forEach(function(a) {
+      items.push({ priority: a.priority || 'low', verdict: a.text, action: a.why || '', evidence: a.area ? 'Based on your ' + a.area + ' data' : '' });
+    });
+  }
+  if (items.length === 0 && today) {
+    if (today.sleepHours !== null && today.sleepHours !== undefined) {
+      var sleepBase = baselines30.sleepHours || 7.5;
+      if (today.sleepHours < sleepBase - 0.5) {
+        items.push({ priority: 'medium', verdict: 'Sleep was ' + today.sleepHours.toFixed(1) + 'h — below your ' + sleepBase.toFixed(1) + 'h baseline', action: 'Prioritize an earlier bedtime tonight', evidence: 'Your 30-day sleep average is ' + sleepBase.toFixed(1) + 'h' });
+      }
+    }
+    if (today.hrv !== null && today.hrv !== undefined && baselines30.hrv) {
+      var hrvPct = ((today.hrv - baselines30.hrv) / baselines30.hrv) * 100;
+      if (hrvPct < -15) {
+        items.push({ priority: 'high', verdict: 'HRV is ' + Math.abs(Math.round(hrvPct)) + '% below your baseline', action: 'Consider an easier training day', evidence: 'Today: ' + Math.round(today.hrv) + 'ms vs 30-day avg ' + Math.round(baselines30.hrv) + 'ms' });
+      }
+    }
+    if (today.steps !== null && today.steps !== undefined && today.steps < 4000) {
+      items.push({ priority: 'low', verdict: 'Only ' + today.steps.toLocaleString() + ' steps so far', action: 'Take a 30-minute walk', evidence: '' });
+    }
+  }
+  if (items.length === 0) {
+    var line = document.getElementById('verdictLine');
+    var lineText = line ? line.textContent : '';
+    if (lineText && lineText !== '') {
+      el.innerHTML = '<div class="tf-empty">' + lineText + '</div>';
+    }
+    return;
+  }
+  el.innerHTML = items.slice(0, 3).map(function(item, i) {
+    return '<div class="tf-item" style="animation-delay:' + (i * 0.1) + 's" onclick="this.classList.toggle(\'expanded\')">' +
+      '<div class="tf-bar ' + item.priority + '"></div>' +
+      '<div><div class="tf-verdict">' + item.verdict + '</div>' +
+      '<div class="tf-action">' + item.action + '</div>' +
+      (item.evidence ? '<div class="tf-why">' + item.evidence + '</div><div class="tf-tap">Tap for details</div>' : '') +
+      '</div></div>';
+  }).join('');
 }
 
 var HIGHLIGHTS_ALL = [];
@@ -6770,22 +6808,27 @@ async function loadReview(domain, force, silent) {
     var res = await authedFetch('/api/insights?domain=' + domain + (force ? '&force=1' : ''));
     var ins = res.insights;
     var html = '<div class="ai-headline">' + ins.headline + '</div>';
-    var detail = '';
+    var verdictAction = '';
+    var evidenceBlock = '';
     if (ins.body) {
-      detail += '<p class="ai-body">' + ins.body + '</p>';
-      if (ins.concern) detail += '<p class="ai-concern">' + ins.concern + '</p>';
+      var sentences = ins.body.split(/(?<=\\.\\s)/);
+      verdictAction = sentences[0] || '';
+      if (sentences.length > 1) evidenceBlock = sentences.slice(1).join('');
+      if (ins.concern) evidenceBlock += '<p class="ai-concern">' + ins.concern + '</p>';
     } else {
       if (ins.recommendations && ins.recommendations.length) {
-        detail += '<p class="ai-body">' + ins.recommendations.join(' ') + '</p>';
+        verdictAction = ins.recommendations[0];
+        if (ins.recommendations.length > 1) evidenceBlock += '<p class="ai-body">' + ins.recommendations.slice(1).join(' ') + '</p>';
       }
       if (ins.insights && ins.insights.length) {
-        detail += '<p class="ai-body">' + ins.insights.join(' ') + '</p>';
+        evidenceBlock += '<p class="ai-body">' + ins.insights.join(' ') + '</p>';
       }
       if (ins.concerns && ins.concerns.length) {
-        detail += '<p class="ai-concern">' + ins.concerns[0] + '</p>';
+        evidenceBlock += '<p class="ai-concern">' + ins.concerns[0] + '</p>';
       }
     }
-    if (detail) html += '<details class="ai-detail"><summary>Read more</summary>' + detail + '</details>';
+    if (verdictAction) html += '<div class="ai-body" style="margin:4px 0 6px;">' + verdictAction + '</div>';
+    if (evidenceBlock) html += '<details class="ai-detail"><summary>Why? Evidence & details</summary>' + evidenceBlock + '</details>';
     // Out of date: the server is rewriting it in the background — pick up
     // the new version shortly, without a loading state.
     if (res.refreshing && !silent) setTimeout(function () { loadReview(domain, false, true); }, 45000);
@@ -7677,7 +7720,7 @@ async function boot() {
   injectSectionHeaders();
   var savedView = null;
   try { savedView = localStorage.getItem('healthView'); } catch (e) {}
-  var firstView = savedView && VIEWS[savedView] ? savedView : 'home';
+  var firstView = savedView && VIEWS[savedView] ? savedView : 'today';
   var appEl = document.getElementById('app');
   appEl.classList.add('app-revealing');
   requestAnimationFrame(function () { appEl.classList.remove('app-revealing'); });
@@ -7693,6 +7736,7 @@ async function boot() {
       w30.forEach(function (x) { map[x.metric] = x.mean; });
       BASELINES = map;
       renderBodyState(today, (function () { var m = {}; w30.forEach(function (x) { m[x.metric] = x; }); return m; })());
+      renderTodayFocus();
     }
   }).catch(function () {});
   renderWeekLog(days);
