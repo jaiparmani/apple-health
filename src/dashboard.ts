@@ -1689,6 +1689,11 @@ export function renderDashboard(): string {
   @media (max-width:560px) {
     .hero { grid-template-columns:1fr; text-align:left; }
   }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration:0.01ms !important; animation-iteration-count:1 !important; transition-duration:0.01ms !important; }
+    .dash-arc { transition:none !important; }
+    .hero-ring.pulsing .hero-svg { animation:none !important; }
+  }
 </style>
 </head>
 <body>
@@ -1888,6 +1893,18 @@ export function renderDashboard(): string {
 
   <!-- YOU: RECORDS -->
   <section class="section" id="tab-records">
+    <div class="hero-glance hg-duo" id="hgRecordsHero" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;background:none;padding:0;margin-bottom:10px;">
+      <div style="background:var(--panel2);border-radius:12px;padding:12px 14px;text-align:center;">
+        <div class="hg-title">Streak</div>
+        <div style="font-size:22px;font-weight:800;color:var(--pulse);" id="hgStreakVal">—</div>
+        <div style="font-size:11px;color:var(--faint);" id="hgStreakLabel">active days</div>
+      </div>
+      <div style="background:var(--panel2);border-radius:12px;padding:12px 14px;text-align:center;">
+        <div class="hg-title">Records</div>
+        <div style="font-size:22px;font-weight:800;color:var(--gold);" id="hgRecentPRs">—</div>
+        <div style="font-size:11px;color:var(--faint);">recent PRs</div>
+      </div>
+    </div>
     <h2 class="sec" style="margin-top:6px;">Heatmap</h2>
     <div class="card">
       <div class="hm-metric-sel">
@@ -1928,6 +1945,10 @@ export function renderDashboard(): string {
 
   <!-- COACH DIRECTIVE -->
   <section class="section" id="tab-directive">
+    <div class="hero-glance" id="hgCoach" style="cursor:default;">
+      <div class="hg-ring"><svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="26" fill="none" stroke="var(--line)" stroke-width="5"/><circle id="hgCoachArc" cx="32" cy="32" r="26" fill="none" stroke="var(--pulse)" stroke-width="5" stroke-linecap="round" stroke-dasharray="163.4" stroke-dashoffset="163.4" class="dash-arc"/></svg><div class="hg-val" style="font-size:13px;"><span id="hgCoachVal">—</span></div></div>
+      <div class="hg-right"><div class="hg-title">Today's directive</div><div class="hg-verdict" id="hgCoachVerdict" style="font-size:13.5px;">Loading…</div><div class="hg-sub" id="hgCoachSub"></div></div>
+    </div>
     <div class="card" id="coachDirectiveCard" style="display:none;">
       <div class="coach-headline" id="coachHeadline"></div>
       <div class="coach-body" id="coachBody"></div>
@@ -6464,6 +6485,18 @@ function fillHeroGlance() {
       strainExp.innerHTML = '<div class="hg-expand-grid">' + stitems.join('') + '</div>';
     }
   }
+  // Records hero: streak + recent PRs
+  var streakEl = document.getElementById('hgStreakVal');
+  if (streakEl && GUIDE_DAYS.length) {
+    var streak = 0;
+    for (var si = GUIDE_DAYS.length - 1; si >= 0; si--) {
+      var sd = GUIDE_DAYS[si];
+      if ((sd.exerciseMinutes || 0) >= 15 || (sd.workoutMinutes || 0) > 0 || (sd.steps || 0) >= 5000) streak++;
+      else break;
+    }
+    streakEl.textContent = streak;
+    document.getElementById('hgStreakLabel').textContent = streak === 1 ? 'active day' : 'active days';
+  }
   // Attach tap-to-expand on hero glance cards
   document.querySelectorAll('.hero-glance').forEach(function (card) {
     if (card.dataset.hgBound) return;
@@ -7843,6 +7876,19 @@ async function loadCoach() {
       document.getElementById('irFactors').textContent = ir.factors.map(function (f) { return f.detail; }).join(' · ');
 
       document.getElementById('coachDirectiveCard').style.display = 'block';
+      // Populate coach hero glance
+      var chv = document.getElementById('hgCoachVerdict');
+      if (chv) chv.textContent = d.headline || 'Ready to go';
+      var chs = document.getElementById('hgCoachSub');
+      if (chs) chs.textContent = zone ? zone.charAt(0).toUpperCase() + zone.slice(1) + ' day · Strain budget ' + max.toFixed(1) : '';
+      var chVal = document.getElementById('hgCoachVal');
+      if (chVal) chVal.textContent = zone ? zone.charAt(0).toUpperCase() + zone.slice(1).substring(0, 3) : '—';
+      var chArc = document.getElementById('hgCoachArc');
+      if (chArc) {
+        var chCirc = 2 * Math.PI * 26;
+        chArc.style.strokeDashoffset = String(chCirc - (max / 21) * chCirc);
+        chArc.style.stroke = zoneColors[zone] || 'var(--pulse)';
+      }
     }
 
     // Patterns card
@@ -8111,16 +8157,28 @@ async function loadDiscoveries() {
     if (reportable.length === 0) {
       html += '<div class="sub">No correlations above a meaningful threshold found yet in your data.</div>';
     } else {
-      html += '<div class="ai-section-title">Correlations (not causation)</div><ul class="ai-list">' + reportable.map(function (c) {
-        return '<li>' + c.label + ': r=' + c.r + ' (' + c.strength + ', ' + c.direction + '), n=' + c.sampleSize + ' days. ' + c.hypothesis + '</li>';
-      }).join('') + '</ul>';
+      var strengthPill = function (s) { return s === 'strong' ? pill('good', 'Strong') : s === 'moderate' ? pill('ok', 'Moderate') : pill('watch', 'Weak'); };
+      html += reportable.slice(0, 8).map(function (c) {
+        var dirIcon = c.direction === 'positive' ? '↗' : '↘';
+        return '<div class="tf-item" style="cursor:pointer;animation:none;" onclick="this.classList.toggle(\'expanded\')">' +
+          '<div class="tf-bar ' + (c.strength === 'strong' ? 'high' : 'medium') + '"></div>' +
+          '<div><div class="tf-verdict">' + dirIcon + ' ' + c.label + ' ' + strengthPill(c.strength) + '</div>' +
+          '<div class="tf-action">' + c.hypothesis + '</div>' +
+          '<div class="tf-why"><div style="font-family:var(--mono);font-size:11px;">r=' + c.r + ' · ' + c.sampleSize + ' days · ' + c.strength + ' ' + c.direction + '</div></div></div></div>';
+      }).join('');
     }
-    var anomalies = (res.anomalies || []).slice(0, 8);
+    var anomalies = (res.anomalies || []).slice(0, 5);
     if (anomalies.length > 0) {
-      html += '<div class="ai-section-title">Recent anomalies</div><ul class="ai-list concerns">' + anomalies.map(function (a) {
-        var ctx = Object.keys(a.relatedObservations).map(function (k) { return k + '=' + a.relatedObservations[k]; }).join(', ');
-        return '<li>' + a.date + ': ' + a.metric + ' was ' + a.value + ' (' + a.direction + ' baseline of ' + a.baselineMean + ' by ' + Math.abs(a.zScore).toFixed(1) + 'σ)' + (ctx ? ' — same day: ' + ctx : '') + '</li>';
-      }).join('') + '</ul>';
+      html += '<div style="margin-top:12px;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--dim);padding:6px 0;">Recent anomalies</div>';
+      html += anomalies.map(function (a) {
+        var zAbs = Math.abs(a.zScore);
+        var sev = zAbs > 3 ? 'high' : zAbs > 2 ? 'medium' : 'low';
+        return '<div class="tf-item" style="animation:none;" onclick="this.classList.toggle(\'expanded\')">' +
+          '<div class="tf-bar ' + sev + '"></div>' +
+          '<div><div class="tf-verdict">' + a.metric + ': ' + a.value + ' (' + a.direction + ' by ' + zAbs.toFixed(1) + 'σ)</div>' +
+          '<div class="tf-action">' + a.date + '</div>' +
+          '<div class="tf-why">' + Object.keys(a.relatedObservations).map(function (k) { return k + '=' + a.relatedObservations[k]; }).join(', ') + '</div></div></div>';
+      }).join('');
     }
     el.innerHTML = html || '<div class="sub">Not enough history yet to find discoveries.</div>';
     renderJournalCorrelations(res.journalCorrelations || []);
