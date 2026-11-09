@@ -548,27 +548,31 @@ export function renderDashboard(): string {
   .section { transition:opacity .2s ease; }
 
   /* ---- Hero visual dashboard ---- */
-  .hero-ring { position:relative; width:120px; height:120px; margin:8px auto 4px; cursor:pointer; }
-  .hero-svg { display:block; filter:drop-shadow(0 0 12px var(--pulse)); transition:filter .3s; }
-  .hero-ring:hover .hero-svg { filter:drop-shadow(0 0 20px var(--pulse)); }
-  @keyframes heroArc { from { stroke-dashoffset:326.7; } }
-  .hero-arc { transform:rotate(-90deg); transform-origin:center; transition:stroke-dashoffset 1s cubic-bezier(.4,0,.2,1); }
+  .hero-ring { position:relative; width:150px; height:150px; margin:12px auto 2px; cursor:pointer; }
+  .hero-svg { display:block; filter:drop-shadow(0 0 14px var(--pulse)); transition:filter .3s; }
+  .hero-ring:hover .hero-svg { filter:drop-shadow(0 0 24px var(--pulse)); }
+  @keyframes heroArc { from { stroke-dashoffset:376.99; } }
+  .hero-arc { transform:rotate(-90deg); transform-origin:center; transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1); }
   .hero-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
-  .hero-num { font-family:var(--mono); font-size:28px; font-weight:900; line-height:1; }
-  .hero-word { font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); margin-top:2px; }
-  .hero-line { text-align:center; font-size:12px; color:var(--dim); margin:0 0 4px; }
-  @keyframes heroGlow { 0%,100%{filter:drop-shadow(0 0 10px var(--pulse));} 50%{filter:drop-shadow(0 0 20px var(--pulse));} }
-  .hero-ring.pulsing .hero-svg { animation:heroGlow 2s ease-in-out infinite; }
+  .hero-num { font-family:var(--mono); font-size:38px; font-weight:900; line-height:1; }
+  .hero-word { font-size:12px; font-weight:800; text-transform:uppercase; letter-spacing:.08em; margin-top:3px; }
+  .hero-line { text-align:center; font-size:11.5px; color:var(--dim); margin:0 0 2px; max-width:260px; margin-left:auto; margin-right:auto; }
+  @keyframes heroGlow { 0%,100%{filter:drop-shadow(0 0 12px var(--pulse));} 50%{filter:drop-shadow(0 0 28px var(--pulse));} }
+  .hero-ring.pulsing .hero-svg { animation:heroGlow 2.5s ease-in-out infinite; }
 
-  .dash-row { display:flex; justify-content:center; gap:16px; margin:4px 0 12px; }
+  .dash-row { display:flex; justify-content:center; gap:20px; margin:8px 0 10px; }
   .dash-cell { text-align:center; cursor:pointer; transition:transform .15s; position:relative; }
-  .dash-cell:hover { transform:scale(1.05); }
-  .dash-cell svg { display:block; margin:0 auto; filter:drop-shadow(0 0 6px rgba(163,230,53,.15)); transition:filter .3s; }
+  .dash-cell:hover { transform:scale(1.08); }
+  .dash-cell svg { display:block; margin:0 auto; transition:filter .3s; }
   .dash-cell:hover svg { filter:drop-shadow(0 0 12px rgba(163,230,53,.3)); }
   .dash-label { font-size:9px; color:var(--dim); font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-top:2px; }
   @keyframes dashArc { from { stroke-dashoffset:var(--arc-full); } to { stroke-dashoffset:var(--arc-target); } }
   .dash-arc { transform:rotate(-90deg); transform-origin:center; transition:stroke-dashoffset .8s cubic-bezier(.4,0,.2,1); }
   .dash-detail { background:var(--panel2); border-radius:10px; padding:10px 14px; margin-bottom:8px; }
+
+  /* ---- tap-to-insight bubble ---- */
+  .insight-tip { background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:8px 14px; font-size:11.5px; color:var(--dim); line-height:1.5; text-align:center; animation:fadeSlideUp .2s var(--ease-spring) both; display:flex; align-items:center; gap:8px; justify-content:center; }
+  .insight-tip .tip-close { background:none; border:none; color:var(--faint); font-size:14px; cursor:pointer; padding:0; flex-shrink:0; }
 
   .v-stats .vs-item { text-align:center; }
   .v-stats .vs-val { font-family:var(--mono); font-size:13px; font-weight:800; line-height:1; }
@@ -1411,10 +1415,12 @@ export function renderDashboard(): string {
   .wm-details { display:none; margin-top:8px; }
   .wm-details.open { display:block; animation:fadeSlideUp .2s ease both; }
 
-  /* ---- today plan combined card ---- */
-  .tp-section { padding:10px 0; border-bottom:1px solid var(--line); }
-  .tp-section:last-child { border-bottom:none; padding-bottom:0; }
-  .tp-section:first-child { padding-top:0; }
+  /* ---- today plan / coach line ---- */
+  .coach-line { text-align:center; font-size:12px; color:var(--dim); line-height:1.5; padding:6px 0 10px; border-bottom:1px solid var(--line); margin-bottom:10px; }
+  .coach-line .coach-loading { display:flex; justify-content:center; }
+  .coach-line .coach-loading .skeleton { height:10px; }
+  .tp-section { padding:4px 0; }
+  .tp-section:empty { display:none; }
   .tp-label { font-size:10px; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:var(--dim); margin-bottom:6px; }
 
   /* ---- training readiness gauge ---- */
@@ -1634,56 +1640,59 @@ export function renderDashboard(): string {
       <div class="greet-sub" id="greetingSub">Loading your body…</div>
     </div>
 
-    <!-- HERO: Recovery ring (centered, large) -->
+    <!-- HERO: Recovery ring — THE dominant visual -->
     <div class="hero-ring" id="verdict" onclick="toggleVerdictDetail()">
-      <svg viewBox="0 0 120 120" width="120" height="120" class="hero-svg">
-        <circle cx="60" cy="60" r="52" fill="none" stroke="var(--line)" stroke-width="7"/>
-        <circle cx="60" cy="60" r="52" fill="none" stroke="var(--pulse)" stroke-width="7" stroke-linecap="round" stroke-dasharray="326.7" stroke-dashoffset="326.7" id="vRingFill" class="hero-arc"/>
+      <svg viewBox="0 0 150 150" width="150" height="150" class="hero-svg">
+        <circle cx="75" cy="75" r="60" fill="none" stroke="var(--line)" stroke-width="8"/>
+        <circle cx="75" cy="75" r="60" fill="none" stroke="var(--pulse)" stroke-width="8" stroke-linecap="round" stroke-dasharray="376.99" stroke-dashoffset="376.99" id="vRingFill" class="hero-arc"/>
       </svg>
       <div class="hero-center">
         <div class="hero-num" id="verdictNum">—</div>
         <div class="hero-word" id="verdictWord">…</div>
       </div>
     </div>
-    <div class="hero-line" id="verdictLine">Reading your recovery.</div>
+    <div class="hero-line" id="verdictLine"></div>
     <div id="verdictDetail" style="display:none"></div>
-    <div class="v-why" id="verdictWhy" style="text-align:center;font-size:10px;color:var(--dim);margin:-2px 0 8px;"></div>
-    <div class="v-stats" id="verdictStats" style="display:flex;justify-content:center;gap:16px;margin-bottom:6px;"></div>
+    <!-- verdictWhy/verdictStats kept as hidden render targets -->
+    <div id="verdictWhy" style="display:none"></div>
+    <div id="verdictStats" style="display:none"></div>
 
-    <!-- HERO ROW: Activity rings + Sleep arc + Strain gauge -->
+    <!-- Three pillars: Activity + Sleep + Strain -->
     <div class="dash-row">
-      <div class="dash-cell" id="dashRings" onclick="toggleDashDetail(‘dashRingsDetail’)">
-        <svg viewBox="0 0 80 80" width="72" height="72" id="dashRingsSvg">
-          <circle cx="40" cy="40" r="34" fill="none" stroke="var(--line)" stroke-width="6"/>
-          <circle cx="40" cy="40" r="26" fill="none" stroke="var(--line)" stroke-width="6"/>
-          <circle cx="40" cy="40" r="18" fill="none" stroke="var(--line)" stroke-width="6"/>
-          <circle id="dr0" cx="40" cy="40" r="34" fill="none" stroke="#f76b4d" stroke-width="6" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" class="dash-arc"/>
-          <circle id="dr1" cx="40" cy="40" r="26" fill="none" stroke="#34d399" stroke-width="6" stroke-linecap="round" stroke-dasharray="163.4" stroke-dashoffset="163.4" class="dash-arc"/>
-          <circle id="dr2" cx="40" cy="40" r="18" fill="none" stroke="#60a5fa" stroke-width="6" stroke-linecap="round" stroke-dasharray="113.1" stroke-dashoffset="113.1" class="dash-arc"/>
+      <div class="dash-cell" id="dashRings" onclick="dashTap(‘dashRings’,’dashRingsDetail’)">
+        <svg viewBox="0 0 88 88" width="82" height="82" id="dashRingsSvg">
+          <circle cx="44" cy="44" r="37" fill="none" stroke="var(--line)" stroke-width="6"/>
+          <circle cx="44" cy="44" r="29" fill="none" stroke="var(--line)" stroke-width="6"/>
+          <circle cx="44" cy="44" r="21" fill="none" stroke="var(--line)" stroke-width="6"/>
+          <circle id="dr0" cx="44" cy="44" r="37" fill="none" stroke="#f76b4d" stroke-width="6" stroke-linecap="round" stroke-dasharray="232.5" stroke-dashoffset="232.5" class="dash-arc"/>
+          <circle id="dr1" cx="44" cy="44" r="29" fill="none" stroke="#34d399" stroke-width="6" stroke-linecap="round" stroke-dasharray="182.2" stroke-dashoffset="182.2" class="dash-arc"/>
+          <circle id="dr2" cx="44" cy="44" r="21" fill="none" stroke="#60a5fa" stroke-width="6" stroke-linecap="round" stroke-dasharray="131.9" stroke-dashoffset="131.9" class="dash-arc"/>
         </svg>
         <div class="dash-label">Activity</div>
       </div>
 
-      <div class="dash-cell" id="dashSleep" onclick="toggleDashDetail(‘dashSleepDetail’)">
-        <svg viewBox="0 0 80 80" width="72" height="72" id="dashSleepSvg">
-          <path d="M12 60 A34 34 0 0 1 68 60" fill="none" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>
-          <path id="sleepArc" d="M12 60 A34 34 0 0 1 68 60" fill="none" stroke="#a78bfa" stroke-width="6" stroke-linecap="round" stroke-dasharray="107" stroke-dashoffset="107" class="dash-arc"/>
-          <text x="40" y="48" text-anchor="middle" fill="var(--fg)" font-family="var(--mono)" font-size="14" font-weight="900" id="sleepArcVal">—</text>
-          <text x="40" y="62" text-anchor="middle" fill="var(--dim)" font-size="8" font-weight="600">HOURS</text>
+      <div class="dash-cell" id="dashSleep" onclick="dashTap(‘dashSleep’,’dashSleepDetail’)">
+        <svg viewBox="0 0 88 88" width="82" height="82" id="dashSleepSvg">
+          <path d="M10 66 A38 38 0 0 1 78 66" fill="none" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>
+          <path id="sleepArc" d="M10 66 A38 38 0 0 1 78 66" fill="none" stroke="#a78bfa" stroke-width="6" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="119" class="dash-arc"/>
+          <text x="44" y="50" text-anchor="middle" fill="var(--ink)" font-family="var(--mono)" font-size="16" font-weight="900" id="sleepArcVal">—</text>
+          <text x="44" y="64" text-anchor="middle" fill="var(--dim)" font-size="8" font-weight="600">HOURS</text>
         </svg>
         <div class="dash-label">Sleep</div>
       </div>
 
-      <div class="dash-cell" id="dashStrain" onclick="toggleDashDetail(‘dashStrainDetail’)">
-        <svg viewBox="0 0 80 80" width="72" height="72" id="dashStrainSvg">
-          <circle cx="40" cy="40" r="30" fill="none" stroke="var(--line)" stroke-width="6"/>
-          <circle id="strainArc" cx="40" cy="40" r="30" fill="none" stroke="#fbbf24" stroke-width="6" stroke-linecap="round" stroke-dasharray="188.5" stroke-dashoffset="188.5" class="dash-arc"/>
-          <text x="40" y="38" text-anchor="middle" fill="var(--fg)" font-family="var(--mono)" font-size="14" font-weight="900" id="strainArcVal">—</text>
-          <text x="40" y="52" text-anchor="middle" fill="var(--dim)" font-size="8" font-weight="600">STRAIN</text>
+      <div class="dash-cell" id="dashStrain" onclick="dashTap(‘dashStrain’,’dashStrainDetail’)">
+        <svg viewBox="0 0 88 88" width="82" height="82" id="dashStrainSvg">
+          <circle cx="44" cy="44" r="34" fill="none" stroke="var(--line)" stroke-width="6"/>
+          <circle id="strainArc" cx="44" cy="44" r="34" fill="none" stroke="#fbbf24" stroke-width="6" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" class="dash-arc"/>
+          <text x="44" y="42" text-anchor="middle" fill="var(--ink)" font-family="var(--mono)" font-size="16" font-weight="900" id="strainArcVal">—</text>
+          <text x="44" y="56" text-anchor="middle" fill="var(--dim)" font-size="8" font-weight="600">STRAIN</text>
         </svg>
         <div class="dash-label">Strain</div>
       </div>
     </div>
+    <!-- Insight tooltip (rendered by dashTap) -->
+    <div id="dashInsight"></div>
 
     <!-- Expandable detail panels (hidden, revealed by tapping SVGs) -->
     <div class="dash-detail" id="dashRingsDetail" style="display:none">
@@ -1703,30 +1712,32 @@ export function renderDashboard(): string {
       </div>
     </div>
 
-    <!-- Sparkline metric pills (no numbers until tap) -->
-    <div class="qg-row" id="quickGlanceRow"></div>
-
-    <div id="smartCheckInArea"></div>
     <!-- Daily Pulse: tap-to-log lifestyle orbs -->
     <div class="pulse-row" id="pulseRow">
-      <div><div class="pulse-orb unlogged" id="po-alcohol" onclick="openPulse('alcohol')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">🍷</div><div class="po-check">✓</div></div><div class="pulse-label">Drinks</div></div>
-      <div><div class="pulse-orb unlogged" id="po-caffeine" onclick="openPulse('caffeine')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">☕</div><div class="po-check">✓</div></div><div class="pulse-label">Caffeine</div></div>
-      <div><div class="pulse-orb unlogged" id="po-water" onclick="openPulse('water')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">💧</div><div class="po-check">✓</div></div><div class="pulse-label">Water</div></div>
-      <div><div class="pulse-orb unlogged" id="po-energy" onclick="openPulse('energy')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">⚡</div><div class="po-check">✓</div></div><div class="pulse-label">Energy</div></div>
-      <div><div class="pulse-orb unlogged" id="po-stress" onclick="openPulse('stress')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">😤</div><div class="po-check">✓</div></div><div class="pulse-label">Stress</div></div>
-      <div><div class="pulse-orb unlogged" id="po-soreness" onclick="openPulse('soreness')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">💪</div><div class="po-check">✓</div></div><div class="pulse-label">Sore</div></div>
+      <div><div class="pulse-orb unlogged" id="po-alcohol" onclick="openPulse(‘alcohol’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">🍷</div><div class="po-check">✓</div></div><div class="pulse-label">Drinks</div></div>
+      <div><div class="pulse-orb unlogged" id="po-caffeine" onclick="openPulse(‘caffeine’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">☕</div><div class="po-check">✓</div></div><div class="pulse-label">Caffeine</div></div>
+      <div><div class="pulse-orb unlogged" id="po-water" onclick="openPulse(‘water’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">💧</div><div class="po-check">✓</div></div><div class="pulse-label">Water</div></div>
+      <div><div class="pulse-orb unlogged" id="po-energy" onclick="openPulse(‘energy’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">⚡</div><div class="po-check">✓</div></div><div class="pulse-label">Energy</div></div>
+      <div><div class="pulse-orb unlogged" id="po-stress" onclick="openPulse(‘stress’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">😤</div><div class="po-check">✓</div></div><div class="pulse-label">Stress</div></div>
+      <div><div class="pulse-orb unlogged" id="po-soreness" onclick="openPulse(‘soreness’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">💪</div><div class="po-check">✓</div></div><div class="pulse-label">Sore</div></div>
     </div>
     <div id="pulsePicker"></div>
+
+    <div id="smartCheckInArea"></div>
     <div class="card illness-card" id="illnessCard" style="display:none">
       <div class="illness-head"><span class="illness-icon">⚠</span><span class="illness-title" id="illnessTitle"></span></div>
       <div class="illness-body sub" id="illnessBody"></div>
     </div>
 
-    <div class="card" id="todayPlanCard" style="font-size:13px;">
-      <div class="tp-section" id="todayCoachInner"><div id="review-today"><div class="skeleton" style="width:70%"></div><div class="skeleton" style="width:55%"></div></div></div>
-      <div class="tp-section" id="todayFocusInner" style="display:none"><div style="font-weight:600;font-size:11.5px;color:var(--dim);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px;">Focus</div><div id="oneActionText"></div></div>
-      <div class="tp-section" id="todaySessionInner" style="display:none"></div>
+    <!-- Coach directive: one terse line, no card wrapper -->
+    <div class="coach-line" id="todayPlanCard">
+      <div id="todayCoachInner"><div id="review-today" class="coach-loading"><div class="skeleton" style="width:60%"></div></div></div>
+      <div id="todayFocusInner" style="display:none"><span id="oneActionText"></span></div>
+      <div id="todaySessionInner" style="display:none"></div>
     </div>
+
+    <!-- Quick glance kept as hidden render target -->
+    <div class="qg-row" id="quickGlanceRow" style="display:none"></div>
 
     <details class="expand-card"><summary>Body & progress <span class="ec-hint" id="ecBodyHint"></span></summary><div class="ec-body">
       <div class="body-home" id="bodyHome">
@@ -3954,6 +3965,7 @@ function renderBodyHome(todayData) {
     }
   }
 
+  window._todayData = d && d.today;
   renderDashRow(d && d.today);
   renderQuickGlance(d);
   renderHomeRings(d && d.today);
@@ -4178,9 +4190,9 @@ function renderDashRow(today) {
   if (!today) return;
   // Activity rings
   var rings = [
-    { id: 'dr0', actual: today.activeEnergy || 0, goal: today.activeEnergyGoal, circ: 213.6 },
-    { id: 'dr1', actual: today.exerciseMinutes || 0, goal: today.exerciseMinutesGoal, circ: 163.4 },
-    { id: 'dr2', actual: today.standHours || 0, goal: today.standHoursGoal, circ: 113.1 },
+    { id: 'dr0', actual: today.activeEnergy || 0, goal: today.activeEnergyGoal, circ: 232.5 },
+    { id: 'dr1', actual: today.exerciseMinutes || 0, goal: today.exerciseMinutesGoal, circ: 182.2 },
+    { id: 'dr2', actual: today.standHours || 0, goal: today.standHoursGoal, circ: 131.9 },
   ];
   rings.forEach(function(r) {
     var el = document.getElementById(r.id);
@@ -4196,7 +4208,7 @@ function renderDashRow(today) {
     var sleepVal = document.getElementById('sleepArcVal');
     if (sleepEl) {
       var pct = Math.min(sh / 9, 1);
-      var off = 107 * (1 - pct);
+      var off = 119 * (1 - pct);
       var sc = sh >= 7 ? '#a78bfa' : sh >= 6 ? '#fbbf24' : '#f76b4d';
       sleepEl.setAttribute('stroke', sc);
       requestAnimationFrame(function() { sleepEl.setAttribute('stroke-dashoffset', off.toFixed(1)); });
@@ -4210,7 +4222,7 @@ function renderDashRow(today) {
     var strainVal = document.getElementById('strainArcVal');
     if (strainEl) {
       var pct = Math.min(st / 21, 1);
-      var off = 188.5 * (1 - pct);
+      var off = 213.6 * (1 - pct);
       var sc = st > 18 ? '#f76b4d' : st > 14 ? '#fbbf24' : '#34d399';
       strainEl.setAttribute('stroke', sc);
       requestAnimationFrame(function() { strainEl.setAttribute('stroke-dashoffset', off.toFixed(1)); });
@@ -4232,6 +4244,58 @@ function toggleDashDetail(id) {
   var el = document.getElementById(id);
   if (!el) return;
   el.style.display = el.style.display === 'none' ? '' : 'none';
+}
+
+var DASH_INSIGHTS = {
+  dashRings: function() {
+    var t = window._todayData;
+    if (!t) return 'Tap to see activity breakdown.';
+    var cal = t.activeEnergy || 0, ex = t.exerciseMinutes || 0, st = t.standHours || 0;
+    var parts = [];
+    if (t.activeEnergyGoal && cal > 0) parts.push(Math.round(cal/t.activeEnergyGoal*100) + '% move goal');
+    if (t.exerciseMinutesGoal && ex > 0) parts.push(ex + '/' + t.exerciseMinutesGoal + ' min exercise');
+    if (t.standHoursGoal && st > 0) parts.push(st + '/' + t.standHoursGoal + 'h standing');
+    return parts.length ? parts.join(' · ') : 'No activity data yet today.';
+  },
+  dashSleep: function() {
+    var t = window._todayData;
+    if (!t || !t.sleepHours) return 'No sleep data recorded.';
+    var h = t.sleepHours;
+    var q = h >= 7.5 ? 'Great sleep' : h >= 7 ? 'Solid sleep' : h >= 6 ? 'Light on sleep' : 'Sleep deficit';
+    var parts = [q + ' at ' + h.toFixed(1) + 'h'];
+    if (t.sleepDeepHours) parts.push(t.sleepDeepHours.toFixed(1) + 'h deep');
+    if (t.sleepRemHours) parts.push(t.sleepRemHours.toFixed(1) + 'h REM');
+    return parts.join(' · ');
+  },
+  dashStrain: function() {
+    var t = window._todayData;
+    if (!t || t.strain === null || t.strain === undefined) return 'No strain data yet.';
+    var s = t.strain;
+    var level = s > 18 ? 'Overreaching' : s > 14 ? 'High strain' : s > 8 ? 'Moderate' : 'Light day';
+    return level + ' at ' + s.toFixed(1) + '/21. ' + (s > 14 ? 'Prioritize recovery tonight.' : 'Room for more intensity.');
+  }
+};
+
+function dashTap(cellId, detailId) {
+  var insightEl = document.getElementById('dashInsight');
+  if (insightEl && insightEl.dataset.open === cellId) {
+    insightEl.innerHTML = '';
+    insightEl.dataset.open = '';
+    toggleDashDetail(detailId);
+    return;
+  }
+  var fn = DASH_INSIGHTS[cellId];
+  var text = fn ? fn() : '';
+  if (insightEl && text) {
+    insightEl.dataset.open = cellId;
+    insightEl.innerHTML = '<div class="insight-tip" style="position:relative;left:auto;bottom:auto;transform:none;width:100%;margin-bottom:8px;"><span>' + text + '</span><button class="tip-close" onclick="closeDashInsight()">✕</button></div>';
+  }
+  toggleDashDetail(detailId);
+}
+
+function closeDashInsight() {
+  var el = document.getElementById('dashInsight');
+  if (el) { el.innerHTML = ''; el.dataset.open = ''; }
 }
 
 // ---- Home: activity rings, today's activity, today's workouts ----
@@ -5384,12 +5448,16 @@ function renderVerdict() {
   if (ringFill && ringNum) {
     var score = r !== null ? r : 0;
     ringNum.textContent = r !== null ? String(score) : '—';
-    var circ = 2 * Math.PI * 52;
+    var circ = 2 * Math.PI * 60;
     var offset = circ - (score / 100) * circ;
     requestAnimationFrame(function() { ringFill.setAttribute('stroke-dashoffset', String(offset)); });
     var ringColor = score >= 70 ? 'var(--up)' : score >= 45 ? 'var(--caution)' : score > 0 ? 'var(--down)' : 'var(--dim)';
     ringFill.setAttribute('stroke', ringColor);
     el.style.setProperty('--pulse', ringColor);
+    var wordEl = document.getElementById('verdictWord');
+    if (wordEl) wordEl.style.color = ringColor;
+    var numEl = document.getElementById('verdictNum');
+    if (numEl) numEl.style.color = ringColor;
   }
 
   var statsEl = document.getElementById('verdictStats');
