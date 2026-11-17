@@ -5787,7 +5787,7 @@ function renderTodayFocus() {
     return;
   }
   el.innerHTML = items.slice(0, 3).map(function(item, i) {
-    return '<div class="tf-item" style="animation-delay:' + (i * 0.1) + 's" onclick="this.classList.toggle(\'expanded\')">' +
+    return '<div class="tf-item" style="animation-delay:' + (i * 0.1) + 's" onclick="this.classList.toggle(\\'expanded\\')">' +
       '<div class="tf-bar ' + item.priority + '"></div>' +
       '<div><div class="tf-verdict">' + item.verdict + '</div>' +
       '<div class="tf-action">' + item.action + '</div>' +
@@ -8160,7 +8160,7 @@ async function loadDiscoveries() {
       var strengthPill = function (s) { return s === 'strong' ? pill('good', 'Strong') : s === 'moderate' ? pill('ok', 'Moderate') : pill('watch', 'Weak'); };
       html += reportable.slice(0, 8).map(function (c) {
         var dirIcon = c.direction === 'positive' ? '↗' : '↘';
-        return '<div class="tf-item" style="cursor:pointer;animation:none;" onclick="this.classList.toggle(\'expanded\')">' +
+        return '<div class="tf-item" style="cursor:pointer;animation:none;" onclick="this.classList.toggle(\\'expanded\\')">' +
           '<div class="tf-bar ' + (c.strength === 'strong' ? 'high' : 'medium') + '"></div>' +
           '<div><div class="tf-verdict">' + dirIcon + ' ' + c.label + ' ' + strengthPill(c.strength) + '</div>' +
           '<div class="tf-action">' + c.hypothesis + '</div>' +
@@ -8173,7 +8173,7 @@ async function loadDiscoveries() {
       html += anomalies.map(function (a) {
         var zAbs = Math.abs(a.zScore);
         var sev = zAbs > 3 ? 'high' : zAbs > 2 ? 'medium' : 'low';
-        return '<div class="tf-item" style="animation:none;" onclick="this.classList.toggle(\'expanded\')">' +
+        return '<div class="tf-item" style="animation:none;" onclick="this.classList.toggle(\\'expanded\\')">' +
           '<div class="tf-bar ' + sev + '"></div>' +
           '<div><div class="tf-verdict">' + a.metric + ': ' + a.value + ' (' + a.direction + ' by ' + zAbs.toFixed(1) + 'σ)</div>' +
           '<div class="tf-action">' + a.date + '</div>' +
