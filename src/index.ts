@@ -25,6 +25,8 @@ import { computeFitnessReport, dailyLoad, computeLoadSeries } from "./fitness";
 import { computeOverview } from "./overview";
 import { sanitizeManualWorkout, sanitizeTemplate, templateToWorkoutExercises, findUnloggedStrengthSessions, computePRs, computeMuscleBalance, computeWorkoutFrequency, type ManualWorkout, type WorkoutTemplate } from "./manualWorkouts";
 import { renderDashboard } from "./dashboard";
+import { buildVerdictSnapshot, generateDayVerdict, ruleVerdict, verdictSignature, type VerdictCacheEntry } from "./verdict";
+import { analyzeWorkout, buildWorkoutContext, workoutSignature, type WorkoutAnalysis } from "./workoutAnalysis";
 import { generateAlerts } from "./alerts";
 import { discoverPatterns, buildCoachDirective, computeStrainBudget, computeWeeklyReportCard, computePerformancePredictions } from "./patterns";
 import { computeExercise1RMs, computeMuscleRecovery, prescribeSession, analyzePeriodization, detectMomentumAlerts } from "./progression";
@@ -361,6 +363,7 @@ async function warmAllReviews(env: Env): Promise<{ written: string[]; skipped: s
     );
   }
   await loadPlan(env).catch(() => null);
+  await warmVerdicts(env, 3).catch(() => 0);
   return out;
 }
 
@@ -397,6 +400,136 @@ async function handleGetInsights(req: Request, env: Env, ctx: ExecutionContext):
   const result = await getReview(env, domain, { force, ctx });
   if ("error" in result) return json({ error: result.error }, result.status);
   return json(result);
+}
+
+// ---------------- day verdicts ----------------
+// One AI verdict per day ("how was it, rest or train?"), for today and any
+// past day. Cached per date in KV with a signature of that day's inputs, so
+// a past day is written once and only rewritten if its data changes.
+
+const VERDICT_KEEP_SECONDS = 120 * 24 * 60 * 60;
+const VERDICT_TODAY_MAX_AGE_SECONDS = 3 * 60 * 60;
+const VERDICT_RULES_RETRY_SECONDS = 60 * 60;
+const verdictKey = (date: string) => `verdict:v1:${date}`;
+
+interface VerdictInputs {
+  days: DailyMetrics[];
+  age: number | null;
+  workouts: ManualWorkout[];
+  today: string;
+}
+
+async function loadVerdictInputs(env: Env): Promise<VerdictInputs> {
+  const [{ data: seriesData }, { data: profile }, { data: workoutData }] = await Promise.all([
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+    getJson<UserProfile>(env, PROFILE_PATH),
+    getJson<{ workouts: ManualWorkout[] }>(env, WORKOUTS_PATH),
+  ]);
+  const days = seriesData?.days ?? [];
+  const today = localToday(env);
+  return { days, age: profile ? chronologicalAge(profile.birthDate, today) : null, workouts: workoutData?.workouts ?? [], today };
+}
+
+function workoutsOn(inputs: VerdictInputs, date: string) {
+  return inputs.workouts
+    .filter((w) => w.date === date)
+    .map((w) => ({
+      type: w.type,
+      durationMin: w.durationMin ?? null,
+      exercises: w.exercises.filter((e) => e.sets.length > 0).map((e) => `${e.name} ×${e.sets.length}`),
+    }));
+}
+
+type VerdictResult = VerdictCacheEntry & { cached: boolean; pending?: boolean };
+
+function verdictIsFresh(env: Env, entry: VerdictCacheEntry, sig: string, isToday: boolean): boolean {
+  if (entry.sig !== sig) return false;
+  const age = (Date.now() - Date.parse(entry.generatedAt)) / 1000;
+  if (isToday && age > VERDICT_TODAY_MAX_AGE_SECONDS) return false;
+  const aiOn = !!env.LLM_GATEWAY_URL && !!env.LLM_GATEWAY_TOKEN;
+  if (aiOn && entry.verdict.source === "rules" && age > VERDICT_RULES_RETRY_SECONDS) return false;
+  return true;
+}
+
+/** Cached verdict if still valid; otherwise written now (or, with `noWrite`, a rule-based stand-in). */
+async function verdictFor(env: Env, inputs: VerdictInputs, date: string, opts: { force?: boolean; noWrite?: boolean } = {}): Promise<VerdictResult | null> {
+  const isToday = date === inputs.today;
+  const logged = workoutsOn(inputs, date);
+  const snapshot = buildVerdictSnapshot(inputs.days, date, isToday, inputs.age, logged);
+  if (!snapshot) return null;
+  const sig = verdictSignature(inputs.days, date, logged);
+  const cached = await env.INSIGHTS_CACHE.get<VerdictCacheEntry>(verdictKey(date), "json");
+  if (cached && !opts.force && verdictIsFresh(env, cached, sig, isToday)) return { ...cached, cached: true };
+  if (opts.noWrite) {
+    const stand = cached ?? { sig, generatedAt: new Date().toISOString(), verdict: ruleVerdict(snapshot) };
+    return { ...stand, cached: !!cached, pending: true };
+  }
+  const verdict = await generateDayVerdict(env, snapshot);
+  const entry: VerdictCacheEntry = { sig, generatedAt: new Date().toISOString(), verdict };
+  await env.INSIGHTS_CACHE.put(verdictKey(date), JSON.stringify(entry), { expirationTtl: VERDICT_KEEP_SECONDS });
+  return { ...entry, cached: false };
+}
+
+/** Writes any missing/out-of-date verdicts for the last `n` data days, 3 at a time. */
+async function warmVerdicts(env: Env, n: number, inputs?: VerdictInputs): Promise<number> {
+  const inp = inputs ?? (await loadVerdictInputs(env));
+  const dates = inp.days.slice(-n).map((d) => d.date).reverse();
+  let written = 0;
+  for (let i = 0; i < dates.length; i += 3) {
+    const res = await Promise.all(dates.slice(i, i + 3).map((d) => verdictFor(env, inp, d).catch(() => null)));
+    written += res.filter((x) => x && !x.cached).length;
+  }
+  return written;
+}
+
+async function handleGetVerdict(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const url = new URL(req.url);
+  const inputs = await loadVerdictInputs(env);
+  if (inputs.days.length === 0) return json({ error: "no data yet" }, 400);
+  const param = url.searchParams.get("date") || "latest";
+  const date = param === "latest" ? inputs.days[inputs.days.length - 1].date : param;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json({ error: "date must be YYYY-MM-DD" }, 400);
+  const result = await verdictFor(env, inputs, date, { force: url.searchParams.get("force") === "1" });
+  if (!result) return json({ error: `no data for ${date}` }, 404);
+  return json({ ...result, isToday: date === inputs.today, latestDataDate: inputs.days[inputs.days.length - 1].date });
+}
+
+/** Last N days' verdicts, instantly: cached ones as-is, missing ones as rule-based stand-ins written in the background. */
+async function handleGetVerdicts(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const url = new URL(req.url);
+  const n = Math.min(60, Math.max(1, Number(url.searchParams.get("days")) || 14));
+  const inputs = await loadVerdictInputs(env);
+  const dates = inputs.days.slice(-n).map((d) => d.date).reverse();
+  const results = await Promise.all(dates.map((d) => verdictFor(env, inputs, d, { noWrite: true })));
+  const verdicts = results.filter((x): x is VerdictResult => !!x).map((x) => ({ ...x.verdict, pending: !!x.pending, generatedAt: x.generatedAt }));
+  const pending = verdicts.some((v) => v.pending);
+  if (pending) ctx.waitUntil(warmVerdicts(env, n, inputs).catch(() => 0));
+  return json({ today: inputs.today, verdicts, pending });
+}
+
+// ---------------- per-workout analysis ----------------
+
+async function handleGetWorkoutAnalysis(req: Request, env: Env): Promise<Response> {
+  if (!isAuthed(req, env)) return unauthorized();
+  const url = new URL(req.url);
+  const date = url.searchParams.get("date") || "";
+  const id = url.searchParams.get("id") || null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return json({ error: "date must be YYYY-MM-DD" }, 400);
+  const inputs = await loadVerdictInputs(env);
+  const c = buildWorkoutContext(inputs.days, inputs.workouts, date, id, inputs.age);
+  if (!c) return json({ error: `no workout on ${date}` }, 404);
+  const key = `workout:v1:${date}:${id ?? "watch"}`;
+  const sig = workoutSignature(c);
+  const cached = await env.INSIGHTS_CACHE.get<{ sig: string; generatedAt: string; analysis: WorkoutAnalysis }>(key, "json");
+  const force = url.searchParams.get("force") === "1";
+  const rulesStale = cached?.analysis.source === "rules" && Date.now() - Date.parse(cached.generatedAt) > VERDICT_RULES_RETRY_SECONDS * 1000;
+  if (cached && cached.sig === sig && !force && !rulesStale) return json({ ...cached, cached: true });
+  const analysis = await analyzeWorkout(env, c, id);
+  const entry = { sig, generatedAt: new Date().toISOString(), analysis };
+  await env.INSIGHTS_CACHE.put(key, JSON.stringify(entry), { expirationTtl: VERDICT_KEEP_SECONDS });
+  return json({ ...entry, cached: false });
 }
 
 // ---------------- goals ----------------
@@ -1514,6 +1647,9 @@ export default {
       if (req.method === "GET" && url.pathname === "/api/analytics") return await handleGetAnalytics(req, env);
       if (req.method === "GET" && url.pathname === "/api/trends") return await handleGetTrends(req, env);
       if (req.method === "GET" && url.pathname === "/api/insights") return await handleGetInsights(req, env, ctx);
+      if (req.method === "GET" && url.pathname === "/api/verdict") return await handleGetVerdict(req, env);
+      if (req.method === "GET" && url.pathname === "/api/verdicts") return await handleGetVerdicts(req, env, ctx);
+      if (req.method === "GET" && url.pathname === "/api/workout-analysis") return await handleGetWorkoutAnalysis(req, env);
       if (req.method === "POST" && url.pathname === "/telegram/brief") return await handleTelegramBrief(req, env, ctx);
       if (req.method === "GET" && url.pathname === "/api/goals") return await handleGetGoals(req, env);
       if (req.method === "POST" && url.pathname === "/api/goals") return await handlePostGoal(req, env);

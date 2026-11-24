@@ -1363,6 +1363,27 @@ export function renderDashboard(): string {
   /* ---- smart check-in (legacy, hidden) ---- */
   #smartCheckInArea { display:none; }
 
+  /* ---- AI day verdict (today + past days) ---- */
+  .dv-card { margin:10px 0 6px; padding:12px 14px; background:var(--panel); border:1px solid var(--line); border-left:4px solid var(--dv-c, var(--line)); border-radius:12px; cursor:pointer; animation:fadeSlideUp .3s var(--ease-smooth) both; }
+  .dv-top { display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  .dv-call { font-family:var(--mono); font-size:11px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; padding:3px 8px; border-radius:6px; color:var(--void); background:var(--dv-c, var(--dim)); }
+  .dv-date { font-size:11.5px; color:var(--faint); margin-left:auto; }
+  .dv-head { font-size:15px; font-weight:700; color:var(--ink); line-height:1.35; margin-top:6px; }
+  .dv-next { font-size:12.5px; color:var(--dim); line-height:1.5; margin-top:3px; }
+  .dv-more { display:none; margin-top:8px; padding-top:8px; border-top:1px solid var(--line); font-size:12.5px; color:var(--dim); line-height:1.55; }
+  .dv-card.open .dv-more { display:block; }
+  .dv-why { display:flex; flex-wrap:wrap; gap:6px; margin-top:6px; }
+  .dv-why span { font-size:11px; background:var(--panel2); border-radius:6px; padding:3px 7px; color:var(--dim); }
+  .dv-meta { font-size:10.5px; color:var(--faint); margin-top:6px; }
+  .dv-strip { display:flex; gap:6px; overflow-x:auto; padding:2px 0 8px; scrollbar-width:none; }
+  .dv-strip::-webkit-scrollbar { display:none; }
+  .dv-chip { flex:0 0 auto; min-width:44px; text-align:center; background:var(--panel); border:1px solid var(--line); border-radius:10px; padding:5px 6px; cursor:pointer; font-family:inherit; color:var(--dim); }
+  .dv-chip.sel { border-color:var(--ink); }
+  .dv-chip .dvc-d { font-size:10px; color:var(--faint); }
+  .dv-chip .dvc-dot { width:10px; height:10px; border-radius:50%; margin:4px auto 2px; background:var(--dv-c, var(--line)); }
+  .dv-chip .dvc-c { font-size:9.5px; font-weight:700; text-transform:uppercase; letter-spacing:.04em; }
+  .dv-chip.pending .dvc-dot { opacity:.45; }
+
   /* ---- Today's Focus: structured AI recommendations ---- */
   .today-focus { padding:4px 0 16px; border-top:1px solid var(--line); margin-top:8px; }
   .tf-item { display:grid; grid-template-columns:3px 1fr; gap:12px; padding:10px 0; border-bottom:1px solid var(--line); animation:fadeSlideUp .3s var(--ease-smooth) both; }
@@ -1741,6 +1762,8 @@ export function renderDashboard(): string {
       </div>
     </div>
     <div class="hero-line stage stage-2" id="verdictLine"></div>
+    <div id="dayVerdict"></div>
+    <div class="dv-strip" id="dayVerdictStrip"></div>
     <div id="heroExplain"></div>
     <div id="verdictDetail" style="display:none"></div>
     <div id="verdictWhy" style="display:none"></div>
@@ -1888,6 +1911,7 @@ export function renderDashboard(): string {
       <button onclick="deNav(1)">Next &rarr;</button>
       <button onclick="deToday()">Today</button>
     </div>
+    <div id="deVerdict"></div>
     <div class="de-grid" id="deGrid"></div>
   </section>
 
@@ -2181,7 +2205,7 @@ export function renderDashboard(): string {
       <details class="vline"><summary><span class="vl-name">Workouts</span><span class="vl-val" data-vl="workoutMinutes"></span></summary><div class="vl-body"><div class="chart-box"><canvas id="workoutChart"></canvas></div><div data-guide="workoutMinutes"></div></div></details>
     </div>
     <details class="more"><summary>Sessions &amp; rings</summary><div>
-    <div class="card"><h3>Recent sessions</h3><div id="workoutList" class="card-sub">No sessions yet.</div></div>
+    <div class="card"><h3>Recent sessions</h3><div class="card-sub" style="margin-bottom:6px;">Tap a session for an AI breakdown and how to improve.</div><div id="wkAnalysis"></div><div id="workoutList" class="card-sub">No sessions yet.</div></div>
     <div class="card"><h3>Activity Rings</h3><div id="activityRings" class="sub">No data yet.</div></div>
     </div></details>
   </section>
@@ -2704,9 +2728,40 @@ function showWorkoutDetail(id) {
     html += '</div></div>';
   });
   if (w.linkedSession) html += '<div class="wl-hc-linked" style="margin-top:8px"><span>\\u2713</span> Linked: ' + w.linkedSession.type + '</div>';
+  html += '<div id="wlAnalysis" style="margin-top:10px"></div>';
   html += '<div class="wl-detail-actions"><button class="wl-edit" onclick="editWorkout(\\''+id+'\\')">Edit</button><button class="wl-del" onclick="deleteWorkout(\\''+id+'\\')">Delete</button><button style="background:var(--void);color:var(--dim);border:1px solid var(--line);padding:6px 14px;border-radius:6px;font-size:13px;cursor:pointer;font-weight:600" onclick="renderWorkoutHistory()">Back</button></div>';
   html += '</div>';
   el.innerHTML = html;
+  loadWorkoutAnalysis(w.date, id, 'wlAnalysis');
+}
+
+// ---------------- AI analysis of one workout ----------------
+var WA_COLORS = { strong: 'var(--up)', solid: 'var(--pulse)', light: 'var(--caution)', overdid: 'var(--down)' };
+var WA_LABELS = { strong: 'Strong', solid: 'Solid', light: 'Light', overdid: 'Overdid it' };
+
+async function loadWorkoutAnalysis(date, id, targetId, force) {
+  var el = document.getElementById(targetId);
+  if (!el) return;
+  el.innerHTML = '<div class="dv-card"><div class="skeleton" style="width:45%"></div><div class="skeleton" style="width:85%"></div><div class="skeleton" style="width:65%"></div></div>';
+  if (targetId === 'wkAnalysis' && el.scrollIntoView) el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  try {
+    var res = await authedFetch('/api/workout-analysis?date=' + encodeURIComponent(date) + (id ? '&id=' + encodeURIComponent(id) : '') + (force ? '&force=1' : ''));
+    var a = res.analysis;
+    var list = function (items, cls) { return items && items.length ? '<ul style="margin:4px 0 0 16px;padding:0;' + (cls || '') + '">' + items.map(function (x) { return '<li>' + dvEsc(x) + '</li>'; }).join('') + '</ul>' : ''; };
+    el.innerHTML = '<div class="dv-card open" style="--dv-c:' + (WA_COLORS[a.rating] || 'var(--dim)') + ';cursor:default">' +
+      '<div class="dv-top"><span class="dv-call">' + (WA_LABELS[a.rating] || a.rating) + '</span><span class="sub" style="font-size:12px;">' + dvEsc(a.title) + '</span><span class="dv-date">' + niceDate(a.date) + '</span></div>' +
+      '<div class="dv-head">' + dvEsc(a.headline) + '</div>' +
+      '<div class="dv-next"><strong>Next time:</strong> ' + dvEsc(a.nextTime) + '</div>' +
+      '<div class="dv-more">' +
+        (a.summary ? '<div>' + dvEsc(a.summary) + '</div>' : '') +
+        (a.wentWell && a.wentWell.length ? '<div style="margin-top:8px;font-weight:600;color:var(--ink)">Went well</div>' + list(a.wentWell) : '') +
+        '<div style="margin-top:8px;font-weight:600;color:var(--ink)">How to get better</div>' + list(a.improve) +
+        '<div class="dv-meta">' + (a.source === 'rules' ? 'Rule-based read (AI unavailable)' : 'AI analysis · ' + timeAgo(res.generatedAt)) +
+        ' · <a href="#" onclick="event.preventDefault();loadWorkoutAnalysis(\\'' + date + '\\', ' + (id ? '\\'' + id + '\\'' : 'null') + ', \\'' + targetId + '\\', true)">Re-analyze</a></div>' +
+      '</div></div>';
+  } catch (err) {
+    el.innerHTML = '<p class="sub">Couldn\\'t analyze this workout (' + dvEsc(err.message) + ').</p>';
+  }
 }
 
 function openWorkoutLogger(editId) {
@@ -7229,7 +7284,7 @@ function buildCharts(days, history) {
       if (d.workoutEnergy) meta.push(Math.round(d.workoutEnergy) + ' kcal');
       if (d.workoutDistanceKm) meta.push(d.workoutDistanceKm.toFixed(1) + ' km');
       var pct = Math.round((d.workoutMinutes || 0) / maxMin * 100);
-      return '<div class="wk-card" style="border-left-color:' + color + '"><div class="wk-icon" style="background:linear-gradient(135deg,' + color + '26,' + color + '12)">' + icon + '</div><div class="wk-info"><div class="wk-name">' + name + '</div><div class="wk-meta">' + meta.join(' \\u00B7 ') + '</div><div class="wk-dur-bar"><div class="wk-dur-fill" style="width:' + pct + '%;background:linear-gradient(90deg,' + color + ',' + color + 'cc)"></div></div></div><div class="wk-date">' + niceDate(d.date) + '</div></div>';
+      return '<div class="wk-card" style="border-left-color:' + color + ';cursor:pointer" onclick="loadWorkoutAnalysis(\\'' + d.date + '\\', null, \\'wkAnalysis\\')"><div class="wk-icon" style="background:linear-gradient(135deg,' + color + '26,' + color + '12)">' + icon + '</div><div class="wk-info"><div class="wk-name">' + name + '</div><div class="wk-meta">' + meta.join(' \\u00B7 ') + '</div><div class="wk-dur-bar"><div class="wk-dur-fill" style="width:' + pct + '%;background:linear-gradient(90deg,' + color + ',' + color + 'cc)"></div></div></div><div class="wk-date">' + niceDate(d.date) + '</div></div>';
     }).join('') + '</div>';
   }
 
@@ -7376,7 +7431,12 @@ function renderDayExplorer(dateStr) {
   for (var i = 0; i < GUIDE_DAYS.length; i++) {
     if (GUIDE_DAYS[i].date === dateStr) { day = GUIDE_DAYS[i]; break; }
   }
-  if (!day) { el.innerHTML = '<div class="sub">No data for ' + niceDate(dateStr) + '.</div>'; return; }
+  if (!day) {
+    el.innerHTML = '<div class="sub">No data for ' + niceDate(dateStr) + '.</div>';
+    var dv0 = document.getElementById('deVerdict'); if (dv0) dv0.innerHTML = '';
+    return;
+  }
+  loadDayVerdict(dateStr, 'deVerdict');
 
   var items = [];
   var keys = Object.keys(day).filter(function (k) { return k !== 'date' && k !== 'workouts' && typeof day[k] === 'number'; });
@@ -7403,6 +7463,116 @@ function deNav(dir) {
 
 function deToday() {
   if (GUIDE_DAYS.length) renderDayExplorer(GUIDE_DAYS[GUIDE_DAYS.length - 1].date);
+}
+
+// ---------------- AI day verdict: how was the day, rest or train? ----------------
+var DV_CACHE = {};
+var DV_INFLIGHT = {};
+var DV_SELECTED = null;
+var DV_COLORS = { rest: 'var(--down)', easy: 'var(--caution)', train: 'var(--up)', push: 'var(--pulse)' };
+var DV_LABELS = { rest: 'Rest', easy: 'Go easy', train: 'Train', push: 'Push' };
+var DV_RATING = { great: 'Great day', good: 'Good day', okay: 'Okay day', rough: 'Rough day' };
+var DV_WEEKDAY = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+
+function dvEsc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; });
+}
+
+function dvDayLabel(date, today) {
+  if (date === today) return 'Today';
+  var t = new Date(today + 'T12:00:00'); t.setDate(t.getDate() - 1);
+  if (t.toISOString().slice(0, 10) === date) return 'Yesterday';
+  return DV_WEEKDAY[new Date(date + 'T12:00:00').getDay()] + ' ' + niceDate(date);
+}
+
+function dvLocalToday() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function dvCardHtml(v, opts) {
+  var today = (opts && opts.today) || dvLocalToday();
+  var isToday = v.date === today;
+  var color = DV_COLORS[v.call] || 'var(--dim)';
+  var why = (v.why || []).map(function (w) { return '<span>' + dvEsc(w) + '</span>'; }).join('');
+  var nextLabel = isToday ? 'Rest of today' : 'The day after should have been';
+  var meta = v.source === 'rules' ? 'Rule-based read; AI verdict is being written' : (v.generatedAt ? 'AI verdict · ' + timeAgo(v.generatedAt) : 'AI verdict');
+  return '<div class="dv-card" style="--dv-c:' + color + '" onclick="this.classList.toggle(\\'open\\')">' +
+    '<div class="dv-top"><span class="dv-call">' + (DV_LABELS[v.call] || v.call) + '</span>' +
+    '<span class="sub" style="font-size:12px;">' + (DV_RATING[v.rating] || '') + '</span>' +
+    '<span class="dv-date">' + dvDayLabel(v.date, today) + '</span></div>' +
+    '<div class="dv-head">' + dvEsc(v.headline) + '</div>' +
+    '<div class="dv-next">' + dvEsc(v.next) + '</div>' +
+    '<div class="dv-more">' +
+      '<div>' + dvEsc(v.summary) + '</div>' +
+      (why ? '<div class="dv-why">' + why + '</div>' : '') +
+      '<div class="dv-meta">' + nextLabel + ': ' + (DV_LABELS[v.call] || v.call).toLowerCase() + ' · ' + meta + '</div>' +
+    '</div>' +
+  '</div>';
+}
+
+async function loadDayVerdict(date, targetId, force) {
+  var el = document.getElementById(targetId);
+  if (!el) return;
+  var cached = DV_CACHE[date];
+  if (cached && !force && cached.source === 'ai') { el.innerHTML = dvCardHtml(cached); return; }
+  if (cached) el.innerHTML = dvCardHtml(cached);
+  else el.innerHTML = '<div class="dv-card"><div class="skeleton" style="width:40%"></div><div class="skeleton" style="width:80%"></div></div>';
+  try {
+    var key = date + (force ? ':f' : '');
+    if (!DV_INFLIGHT[key]) {
+      DV_INFLIGHT[key] = authedFetch('/api/verdict?date=' + encodeURIComponent(date) + (force ? '&force=1' : ''));
+      DV_INFLIGHT[key].then(function () { delete DV_INFLIGHT[key]; }, function () { delete DV_INFLIGHT[key]; });
+    }
+    var res = await DV_INFLIGHT[key];
+    var v = Object.assign({}, res.verdict, { generatedAt: res.generatedAt });
+    DV_CACHE[date] = v;
+    el.innerHTML = dvCardHtml(v);
+    if (targetId === 'dayVerdict') renderVerdictStrip();
+  } catch (err) {
+    el.innerHTML = cached ? dvCardHtml(cached) : '<p class="sub">Couldn\\'t load the verdict for ' + niceDate(date) + ' (' + dvEsc(err.message) + ').</p>';
+  }
+}
+
+var DV_STRIP = [];
+var DV_STRIP_TODAY = null;
+function renderVerdictStrip() {
+  var el = document.getElementById('dayVerdictStrip');
+  if (!el) return;
+  el.innerHTML = DV_STRIP.map(function (s) {
+    var v = DV_CACHE[s.date] || s;
+    var d = new Date(v.date + 'T12:00:00');
+    var label = v.date === DV_STRIP_TODAY ? 'Today' : DV_WEEKDAY[d.getDay()] + ' ' + d.getDate();
+    return '<button class="dv-chip' + (v.date === DV_SELECTED ? ' sel' : '') + (v.source === 'rules' ? ' pending' : '') + '" style="--dv-c:' + (DV_COLORS[v.call] || 'var(--line)') + '" onclick="selectVerdictDay(\\'' + v.date + '\\')" aria-label="' + dvEsc(label + ': ' + (DV_LABELS[v.call] || '')) + '">' +
+      '<div class="dvc-d">' + label + '</div><div class="dvc-dot"></div><div class="dvc-c">' + (DV_LABELS[v.call] || '') + '</div></button>';
+  }).join('');
+}
+
+function selectVerdictDay(date) {
+  DV_SELECTED = date;
+  renderVerdictStrip();
+  loadDayVerdict(date, 'dayVerdict');
+}
+
+async function loadVerdicts(retry) {
+  try {
+    var res = await authedFetch('/api/verdicts?days=14');
+    DV_STRIP_TODAY = res.today;
+    DV_STRIP = res.verdicts || [];
+    DV_STRIP.forEach(function (v) { if (!DV_CACHE[v.date] || DV_CACHE[v.date].source !== 'ai') DV_CACHE[v.date] = v; });
+    if (!DV_SELECTED && DV_STRIP.length) DV_SELECTED = DV_STRIP[0].date;
+    renderVerdictStrip();
+    var sel = DV_CACHE[DV_SELECTED];
+    var main = document.getElementById('dayVerdict');
+    if (sel && main) main.innerHTML = dvCardHtml(sel, { today: res.today });
+    // The newest day should always get a real AI verdict, not the stand-in.
+    if (sel && sel.source !== 'ai') loadDayVerdict(DV_SELECTED, 'dayVerdict');
+    // Missing past days are being written server-side; pick them up shortly.
+    if (res.pending && !retry) setTimeout(function () { loadVerdicts(true); }, 40000);
+  } catch (err) {
+    var el = document.getElementById('dayVerdict');
+    if (el && !el.innerHTML) el.innerHTML = '<p class="sub">Couldn\\'t load day verdicts (' + dvEsc(err.message) + ').</p>';
+  }
 }
 
 // ---------------- weekly story cards & year in review ----------------
@@ -7998,6 +8168,7 @@ async function boot() {
   renderStrainRecovery();
   renderWorkoutTypes();
   renderSeasonalPatterns();
+  loadVerdicts();
   renderDayExplorer();
   var deInput = document.getElementById('deDate');
   if (deInput) deInput.addEventListener('change', function () { renderDayExplorer(deInput.value); });

@@ -85,6 +85,30 @@ final class HealthKitManager: @unchecked Sendable {
         try await store.requestAuthorization(toShare: [], read: readTypes)
     }
 
+    /// Whether iOS will still show the permission sheet. Once the sheet has been shown,
+    /// `requestAuthorization` returns silently forever after — even if every switch was
+    /// left off — so the app must send the user to Settings instead of re-asking.
+    func needsAuthorizationRequest() async -> Bool {
+        guard isAvailable else { return false }
+        let status = try? await store.statusForAuthorizationRequest(toShare: [], read: readTypes)
+        return status == .shouldRequest || status == .unknown || status == nil
+    }
+
+    /// HealthKit never reveals whether *read* access was denied; a denied type just looks
+    /// empty. Every iPhone records steps, so "no steps in 30 days" means access is off.
+    func canReadData() async -> Bool {
+        guard isAvailable else { return false }
+        let start = Calendar.current.date(byAdding: .day, value: -30, to: Date()) ?? Date()
+        let descriptor = HKSampleQueryDescriptor(
+            predicates: [.quantitySample(type: HKQuantityType(.stepCount),
+                                         predicate: HKQuery.predicateForSamples(withStart: start, end: nil))],
+            sortDescriptors: [SortDescriptor(\.endDate, order: .reverse)],
+            limit: 1
+        )
+        let samples = (try? await descriptor.result(for: store)) ?? []
+        return !samples.isEmpty
+    }
+
     // MARK: - Background delivery
 
     private let observerLock = NSLock()

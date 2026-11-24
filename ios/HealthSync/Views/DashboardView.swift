@@ -12,6 +12,10 @@ struct DashboardView: View {
                         configBanner
                     }
 
+                    if syncManager.healthAccess == .denied || syncManager.healthAccess == .needsRequest {
+                        healthAccessBanner
+                    }
+
                     TodaySummaryCard(snapshot: syncManager.snapshot)
 
                     BriefCard(brief: syncManager.brief, isLoading: syncManager.isGeneratingBrief) {
@@ -52,6 +56,9 @@ struct DashboardView: View {
                 }
             }
             .task { await loadMetrics() }
+            .onChange(of: syncManager.healthAccess) {
+                Task { await loadMetrics() }
+            }
         }
     }
 
@@ -78,6 +85,36 @@ struct DashboardView: View {
             RoundedRectangle(cornerRadius: 14)
                 .strokeBorder(.orange.opacity(0.2), lineWidth: 1)
         )
+    }
+
+    private var healthAccessBanner: some View {
+        let denied = syncManager.healthAccess == .denied
+        return Button {
+            if denied { syncManager.openHealthSettings() }
+            else { Task { await syncManager.requestHealthKitAccess() } }
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: "heart.slash.fill")
+                    .font(.title3)
+                    .foregroundStyle(.pink)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(denied ? "Health access is off" : "Allow Health access")
+                        .font(.subheadline.weight(.semibold))
+                    Text(denied ? "Tap to open Settings → Health → Data Access and turn on all categories"
+                                : "Tap to choose what HealthSync can read")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(.tertiary)
+            }
+            .padding()
+            .background(.pink.opacity(0.08), in: RoundedRectangle(cornerRadius: 14))
+        }
+        .buttonStyle(.plain)
     }
 
     private var emptyState: some View {

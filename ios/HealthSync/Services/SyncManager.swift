@@ -19,7 +19,9 @@ final class SyncManager: ObservableObject {
     @Published var lastError: String?
     @Published var todayMetrics: HealthMetrics?
     @Published var syncHistory: [SyncRecord] = []
-    @Published var healthKitAuthorized = false
+    @Published var healthAccess: HealthAccess = .unknown
+    @Published var isRequestingAccess = false
+    var healthKitAuthorized: Bool { healthAccess == .granted }
     @Published var lastSyncDate: Date?
     @Published var snapshot: HealthSnapshot?
     @Published var prediction: RecoveryPrediction?
@@ -43,17 +45,59 @@ final class SyncManager: ObservableObject {
         URL(string: AppConfig.serverURL)
     }
 
+    enum HealthAccess: Equatable {
+        case unknown
+        case unavailable
+        /// iOS will show the permission sheet.
+        case needsRequest
+        /// The sheet was already shown but nothing is readable — iOS won't show it again,
+        /// so the user must turn access on in Settings.
+        case denied
+        case granted
+    }
+
+    /// Works out the real access state without prompting.
+    func refreshHealthAccess() async {
+        let hk = HealthKitManager.shared
+        guard hk.isAvailable else { healthAccess = .unavailable; return }
+        if await hk.needsAuthorizationRequest() {
+            healthAccess = .needsRequest
+        } else {
+            healthAccess = await hk.canReadData() ? .granted : .denied
+        }
+    }
+
+    /// Shows the HealthKit sheet when iOS still allows it; otherwise opens Settings,
+    /// since a second `requestAuthorization` silently does nothing.
     func requestHealthKitAccess() async {
-        guard HealthKitManager.shared.isAvailable else {
-            lastError = "HealthKit not available on this device"
+        guard !isRequestingAccess else { return }
+        let hk = HealthKitManager.shared
+        guard hk.isAvailable else {
+            healthAccess = .unavailable
+            lastError = HealthError.notAvailable.localizedDescription
             return
         }
-        do {
-            try await HealthKitManager.shared.requestAuthorization()
-            healthKitAuthorized = true
+        isRequestingAccess = true
+        defer { isRequestingAccess = false }
+
+        if await hk.needsAuthorizationRequest() {
+            do {
+                try await hk.requestAuthorization()
+            } catch {
+                lastError = "Couldn't ask for Health access: \(error.localizedDescription)"
+            }
+        }
+        await refreshHealthAccess()
+        if healthAccess == .granted {
+            lastError = nil
             await engine.startObserving()
-        } catch {
-            lastError = error.localizedDescription
+        }
+    }
+
+    /// The app's page in Settings, which has the Health → Data Access switches.
+    func openHealthSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url)
         }
     }
 
@@ -91,6 +135,10 @@ final class SyncManager: ObservableObject {
     /// Called whenever the app becomes active: catch up, then make sure today's brief exists.
     func onForeground() async {
         reloadFromStore()
+        // Coming back from Settings may have flipped access on.
+        let wasGranted = healthKitAuthorized
+        await refreshHealthAccess()
+        if healthKitAuthorized && !wasGranted { await engine.startObserving() }
         guard isConfigured else { return }
         let outcome = await engine.syncRecent(trigger: .foreground)
         apply(outcome)
