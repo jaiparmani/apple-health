@@ -41373,6 +41373,38 @@
           "weight": 0.15
         }
       ]
+    },
+    {
+      "date": "2026-11-26",
+      "chronologicalAge": 26,
+      "biologicalAge": 41,
+      "deltaYears": 15,
+      "markers": [
+        {
+          "marker": "VO2max (cardio fitness)",
+          "value": 41,
+          "markerAge": 30,
+          "weight": 0.3
+        },
+        {
+          "marker": "Walking speed (gait)",
+          "value": 1.1365758547008546,
+          "markerAge": 65.5616096866097,
+          "weight": 0.2
+        },
+        {
+          "marker": "Heart rate variability",
+          "value": 28.774128023324792,
+          "markerAge": 57.04311996112535,
+          "weight": 0.2
+        },
+        {
+          "marker": "Resting heart rate",
+          "value": 74,
+          "markerAge": 70,
+          "weight": 0.15
+        }
+      ]
     }
   ]
 }
