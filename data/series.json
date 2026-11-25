@@ -47112,6 +47112,69 @@
       "standHoursGoal": 6
     },
     {
+      "date": "2026-11-25",
+      "receivedAt": "2026-11-25T19:09:32.685Z",
+      "source": "ios-app",
+      "restingHeartRate": 68,
+      "heartRateAvg": 89.8745961130277,
+      "heartRateMin": 61.99999999999999,
+      "heartRateMax": 142,
+      "walkingHeartRateAvg": 113,
+      "hrv": 32.296515878895484,
+      "steps": 9030,
+      "activeEnergy": 715.5619999999994,
+      "basalEnergy": 2182.8589999999836,
+      "exerciseMinutes": 53,
+      "standMinutes": 149,
+      "flightsClimbed": 4,
+      "distanceKm": 7.087721634376678,
+      "daylightMinutes": 76,
+      "hrZone1Min": 713.9,
+      "hrZone2Min": 18.7,
+      "hrZone3Min": 3.8,
+      "hrZone4Min": 0,
+      "hrZone5Min": 0,
+      "walkingSpeed": 1.2026666666666666,
+      "walkingStepLength": 69.73333333333332,
+      "walkingAsymmetryPct": 0.0042105263157894745,
+      "walkingDoubleSupportPct": 0.28936,
+      "workoutCount": 4,
+      "workoutMinutes": 43.40758004983267,
+      "workoutEnergy": 274.9458579511251,
+      "workoutDistanceKm": 1.2081203022003173,
+      "activeEnergyGoal": 360,
+      "exerciseMinutesGoal": 30,
+      "standHours": 13,
+      "standHoursGoal": 6,
+      "workoutType": "Walking,Elliptical,Cycling,CoreTraining",
+      "workoutStrains": [
+        {
+          "type": "Walking",
+          "strain": 2.4,
+          "minutes": 15.3,
+          "avgHR": 112
+        },
+        {
+          "type": "Cycling",
+          "strain": 1.5,
+          "minutes": 10.1,
+          "avgHR": 108
+        },
+        {
+          "type": "Elliptical",
+          "strain": 2.7,
+          "minutes": 12.4,
+          "avgHR": 130
+        },
+        {
+          "type": "CoreTraining",
+          "strain": 0.9,
+          "minutes": 5.6,
+          "avgHR": 109
+        }
+      ]
+    },
+    {
       "date": "2026-11-26",
       "receivedAt": "2026-11-25T19:04:04.635Z",
       "source": "shortcut",
