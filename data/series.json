@@ -47176,7 +47176,7 @@
     },
     {
       "date": "2026-11-26",
-      "receivedAt": "2026-11-25T19:38:21.540Z",
+      "receivedAt": "2026-11-25T19:39:01.408Z",
       "source": "ios-app",
       "vo2max": 41,
       "hrv": 51.52017285867258,
@@ -47194,12 +47194,20 @@
         "sleepHeartRateMin": 61.99999999999999,
         "sleepStartMin": -198.36346812049547
       },
-      "activeEnergy": 0.37,
-      "basalEnergy": 65.476,
+      "activeEnergy": 0.43,
+      "basalEnergy": 89.639,
       "activeEnergyGoal": 360,
       "exerciseMinutesGoal": 30,
       "standHours": 0,
-      "standHoursGoal": 6
+      "standHoursGoal": 6,
+      "heartRateAvg": 48,
+      "heartRateMin": 48,
+      "heartRateMax": 48,
+      "hrZone1Min": 1,
+      "hrZone2Min": 0,
+      "hrZone3Min": 0,
+      "hrZone4Min": 0,
+      "hrZone5Min": 0
     }
   ]
 }
