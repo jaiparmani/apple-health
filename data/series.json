@@ -47176,7 +47176,7 @@
     },
     {
       "date": "2026-11-26",
-      "receivedAt": "2026-11-25T19:09:57.498Z",
+      "receivedAt": "2026-11-25T19:38:21.540Z",
       "source": "ios-app",
       "vo2max": 41,
       "hrv": 51.52017285867258,
@@ -47193,7 +47193,13 @@
         "sleepHeartRateAvg": 70.50487166184645,
         "sleepHeartRateMin": 61.99999999999999,
         "sleepStartMin": -198.36346812049547
-      }
+      },
+      "activeEnergy": 0.37,
+      "basalEnergy": 65.476,
+      "activeEnergyGoal": 360,
+      "exerciseMinutesGoal": 30,
+      "standHours": 0,
+      "standHoursGoal": 6
     }
   ]
 }
