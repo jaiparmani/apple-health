@@ -47176,9 +47176,24 @@
     },
     {
       "date": "2026-11-26",
-      "receivedAt": "2026-11-25T19:04:04.635Z",
-      "source": "shortcut",
-      "vo2max": 41
+      "receivedAt": "2026-11-25T19:09:48.948Z",
+      "source": "ios-app",
+      "vo2max": 41,
+      "hrv": 51.52017285867258,
+      "sleepHours": 1.905808921787474,
+      "sleepEfficiency": 0.9421512499908665,
+      "sleepCoreHours": 0,
+      "sleepDeepHours": 0,
+      "sleepRemHours": 0,
+      "sleepAwakeHours": 0.11701800945732328,
+      "sleepInBedHours": 2.022826931244797,
+      "extra": {
+        "hrvSleep": 51.52017285867258,
+        "sleepEndMin": -76.99385224580764,
+        "sleepHeartRateAvg": 70.50487166184645,
+        "sleepHeartRateMin": 61.99999999999999,
+        "sleepStartMin": -198.36346812049547
+      }
     }
   ]
 }
