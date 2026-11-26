@@ -47176,8 +47176,8 @@
     },
     {
       "date": "2026-11-26",
-      "receivedAt": "2026-11-25T19:39:01.408Z",
-      "source": "ios-app",
+      "receivedAt": "2026-11-26T13:37:11.821Z",
+      "source": "shortcut",
       "vo2max": 41,
       "hrv": 51.52017285867258,
       "sleepHours": 1.905808921787474,
