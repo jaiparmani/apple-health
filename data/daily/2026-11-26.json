@@ -1,10 +1,10 @@
 {
   "date": "2026-11-26",
-  "receivedAt": "2026-11-26T13:38:19.122Z",
+  "receivedAt": "2026-11-26T13:39:07.829Z",
   "source": "shortcut",
-  "vo2max": 41,
+  "vo2max": 41.62,
   "hrv": 51.52017285867258,
-  "sleepHours": 1.905808921787474,
+  "sleepHours": 0,
   "sleepEfficiency": 0.9421512499908665,
   "sleepCoreHours": 0,
   "sleepDeepHours": 0,
@@ -18,7 +18,7 @@
     "sleepHeartRateMin": 61.99999999999999,
     "sleepStartMin": -198.36346812049547
   },
-  "activeEnergy": 0.43,
+  "activeEnergy": 0,
   "basalEnergy": 89.639,
   "activeEnergyGoal": 360,
   "exerciseMinutesGoal": 30,
@@ -31,5 +31,8 @@
   "hrZone2Min": 0,
   "hrZone3Min": 0,
   "hrZone4Min": 0,
-  "hrZone5Min": 0
+  "hrZone5Min": 0,
+  "steps": 0,
+  "exerciseMinutes": 0,
+  "weightKg": 94
 }
