@@ -1,7 +1,7 @@
 import type { BiologicalAgeResult, DailyMetrics, Env, KnowledgeNote, UserKnowledge, UserProfile, AlertPayload } from "./types";
 import { bulkCommit, getJson, putJson, type BulkFile } from "./github";
 import { mergeDaily, normalizePayload } from "./normalize";
-import { aggregateDay, deletedUuids, isHealthPipePayload, rowToSample, toRows, type HpPayload, type SampleRow, type StoredSample } from "./healthpipe";
+import { aggregateDay, coveredDays, deletedUuids, isHealthPipePayload, rowToSample, toRows, type HpPayload, type SampleRow, type StoredSample } from "./healthpipe";
 import { chronologicalAge, computeStrain, estimateBiologicalAge } from "./analytics";
 import { computeTrends } from "./trends";
 import { computeBaselines } from "./baselines";
@@ -208,6 +208,9 @@ async function hpRecomputeDays(env: Env, days: string[]): Promise<DailyMetrics[]
   const tz = env.TIMEZONE || "Asia/Kolkata";
   const { data: profile } = await getJson<UserProfile>(env, PROFILE_PATH);
   const age = profile ? chronologicalAge(profile.birthDate, localToday(env)) : null;
+  const { results: cov } = await env.DB.prepare("SELECT day FROM hp_coverage WHERE day IN (SELECT value FROM json_each(?1))")
+    .bind(JSON.stringify(days)).all<{ day: string }>();
+  const complete = new Set(cov.map((r) => r.day));
   let lastErr: unknown;
   for (let attempt = 0; attempt < 6; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, 400 * attempt + Math.random() * 600));
@@ -218,7 +221,11 @@ async function hpRecomputeDays(env: Env, days: string[]): Promise<DailyMetrics[]
       const updated: DailyMetrics[] = [];
       for (const date of days) {
         const [cur, prev] = await Promise.all([hpDaySamples(env, date), hpDaySamples(env, prevDate(date))]);
-        const merged = mergeDaily(byDate.get(date) ?? null, aggregateDay(date, cur, prev, { age, tz }));
+        const agg = aggregateDay(date, cur, prev, { age, tz });
+        const existing = byDate.get(date) ?? null;
+        // A complete day's aggregate wins; a partially-seen day may only fill
+        // fields that are missing, never overwrite (e.g. HealthSync's totals).
+        const merged = complete.has(date) || !existing ? mergeDaily(existing, agg) : { ...mergeDaily(agg, existing), receivedAt: agg.receivedAt };
         byDate.set(date, merged);
         updated.push(merged);
         files.push({ path: dayPath(date), content: JSON.stringify(merged, null, 2) });
@@ -245,29 +252,37 @@ async function hpRecomputeDays(env: Env, days: string[]): Promise<DailyMetrics[]
 async function handleHealthPipe(payload: HpPayload, env: Env): Promise<Response> {
   const tz = env.TIMEZONE || "Asia/Kolkata";
   const rows = toRows(payload, tz);
-  const changed = new Set<string>();
-  let added = 0;
   const stmts: D1PreparedStatement[] = [];
+  const kinds: ("upsert" | "delete" | "coverage")[] = [];
   for (let i = 0; i < rows.length; i += HP_CHUNK) {
     stmts.push(env.DB.prepare(HP_UPSERT_SQL).bind(JSON.stringify(rows.slice(i, i + HP_CHUNK))));
+    kinds.push("upsert");
   }
   const gone = deletedUuids(payload.deleted);
   if (gone.length) {
     stmts.push(env.DB.prepare("DELETE FROM hp_samples WHERE uuid IN (SELECT value FROM json_each(?1)) RETURNING day").bind(JSON.stringify(gone)));
+    kinds.push("delete");
   }
-  let deleted = 0;
+  const covered = coveredDays(payload, tz);
+  if (covered.length) {
+    stmts.push(env.DB.prepare("INSERT OR IGNORE INTO hp_coverage (day, covered_at) SELECT value, ?2 FROM json_each(?1)")
+      .bind(JSON.stringify(covered), new Date().toISOString()));
+    kinds.push("coverage");
+  }
+  const changed = new Set<string>();
+  let added = 0, deleted = 0;
   if (stmts.length) {
     const results = await env.DB.batch<{ day: string }>(stmts);
     results.forEach((res, i) => {
-      const isDelete = gone.length > 0 && i === results.length - 1;
+      if (kinds[i] === "coverage") return;
       for (const r of res.results) changed.add(r.day);
-      if (isDelete) deleted += res.results.length;
+      if (kinds[i] === "delete") deleted += res.results.length;
       else added += res.results.length;
     });
   }
   const changedDays = [...changed].sort();
   const summary = { records: payload.records?.length ?? 0, added, duplicates: rows.length - added, deleted, changedDays };
-  console.log("healthpipe ingest", { ...summary, range: payload.range });
+  console.log("healthpipe ingest", { ...summary, covered, range: payload.range });
   if (changedDays.length === 0) {
     return new Response(JSON.stringify({ ok: true, changed: false, ...summary }), {
       headers: { "Content-Type": "application/json", "X-Data-Changed": "0" },

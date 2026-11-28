@@ -593,3 +593,23 @@ export function rowToSample(r: Omit<SampleRow, "uuid" | "day">): StoredSample {
   if (r.d) { try { x.d = JSON.parse(r.d); } catch { /* ignore malformed */ } }
   return x;
 }
+
+/**
+ * Days a payload covers from local midnight onward: the range must start at
+ * or before the day's start. Only these can be trusted as complete.
+ */
+export function coveredDays(payload: HpPayload, tz: string): string[] {
+  const rs = Date.parse(payload.range?.start ?? "");
+  const re = Date.parse(payload.range?.end ?? "");
+  if (!Number.isFinite(rs) || !Number.isFinite(re) || re < rs || re - rs > 400 * 86400_000) return [];
+  const out: string[] = [];
+  for (let t = rs; t <= re + 86400_000; t += 86400_000) {
+    const day = localDate(t, tz);
+    const start = localDayStart(day, tz);
+    if (start >= rs && start <= re && !out.includes(day)) out.push(day);
+  }
+  // The range's own start day counts only if it began exactly at midnight.
+  const first = localDate(rs, tz);
+  if (localDayStart(first, tz) === rs && !out.includes(first)) out.unshift(first);
+  return out.sort();
+}

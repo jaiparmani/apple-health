@@ -97,3 +97,19 @@ describe("HealthPipe ingest", () => {
     expect(days).toContain("2026-11-28");
   });
 });
+
+import { coveredDays } from "../src/healthpipe";
+describe("coveredDays", () => {
+  it("counts only days the range covers from local midnight", () => {
+    const p = { range: { start: "2026-11-26T20:46:00+05:30", end: "2026-11-28T20:46:00+05:30" } };
+    expect(coveredDays(p, TZ)).toEqual(["2026-11-27", "2026-11-28"]);
+  });
+  it("includes the start day when the range starts exactly at midnight", () => {
+    const p = { range: { start: "2026-11-28T00:00:00.000+05:30", end: "2026-11-28T20:20:11.000+05:30" } };
+    expect(coveredDays(p, TZ)).toEqual(["2026-11-28"]);
+  });
+  it("covers nothing when the range starts mid-day and ends the same day", () => {
+    const p = { range: { start: "2026-11-28T10:00:00+05:30", end: "2026-11-28T20:00:00+05:30" } };
+    expect(coveredDays(p, TZ)).toEqual([]);
+  });
+});
