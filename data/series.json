@@ -47258,11 +47258,19 @@
     },
     {
       "date": "2026-11-28",
-      "receivedAt": "2026-11-28T15:16:42.382Z",
+      "receivedAt": "2026-11-28T15:21:22.097Z",
       "source": "healthpipe",
-      "steps": 3159,
-      "activeEnergy": 483.78,
-      "distanceKm": 2.54
+      "steps": 2,
+      "activeEnergy": 617.9579999999993,
+      "distanceKm": 0,
+      "exerciseMinutes": 73,
+      "standHours": 5,
+      "activeEnergyGoal": 360,
+      "exerciseMinutesGoal": 30,
+      "standHoursGoal": 6,
+      "extra": {
+        "HeadphoneAudioExposure": 42.074
+      }
     }
   ]
 }
