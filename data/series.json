@@ -47144,7 +47144,7 @@
     },
     {
       "date": "2026-11-24",
-      "receivedAt": "2026-11-28T15:30:58.765Z",
+      "receivedAt": "2026-11-28T15:31:14.865Z",
       "source": "healthpipe",
       "steps": 10337,
       "activeEnergy": 372.75,
@@ -47157,9 +47157,10 @@
     },
     {
       "date": "2026-11-25",
-      "receivedAt": "2026-11-28T15:30:20.311Z",
+      "receivedAt": "2026-11-28T15:31:15.041Z",
       "source": "healthpipe",
       "steps": 9030,
+      "activeEnergy": 715.5619999999994,
       "distanceKm": 7.087721634376678,
       "walkingHeartRateAvg": 113,
       "restingHeartRate": 68,
@@ -47167,7 +47168,6 @@
       "heartRateMin": 61.99999999999999,
       "heartRateMax": 142,
       "hrv": 32.296515878895484,
-      "activeEnergy": 715.5619999999994,
       "basalEnergy": 2182.8589999999836,
       "exerciseMinutes": 53,
       "standMinutes": 149,
