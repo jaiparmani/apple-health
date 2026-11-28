@@ -1,6 +1,6 @@
 {
   "date": "2026-11-25",
-  "receivedAt": "2026-11-28T15:32:33.187Z",
+  "receivedAt": "2026-11-28T15:32:47.047Z",
   "source": "healthpipe",
   "steps": 9030,
   "activeEnergy": 715.5619999999994,
@@ -8,22 +8,22 @@
   "exerciseMinutes": 53,
   "distanceKm": 7.087721634376678,
   "walkingHeartRateAvg": 113,
-  "extra": {
-    "PhysicalEffort": 1.98
-  },
-  "restingHeartRate": 68,
   "heartRateAvg": 89.8745961130277,
   "heartRateMin": 61.99999999999999,
   "heartRateMax": 142,
-  "hrv": 32.296515878895484,
-  "standMinutes": 149,
-  "flightsClimbed": 4,
-  "daylightMinutes": 76,
   "hrZone1Min": 713.9,
   "hrZone2Min": 18.7,
   "hrZone3Min": 3.8,
   "hrZone4Min": 0,
   "hrZone5Min": 0,
+  "extra": {
+    "PhysicalEffort": 1.98
+  },
+  "restingHeartRate": 68,
+  "hrv": 32.296515878895484,
+  "standMinutes": 149,
+  "flightsClimbed": 4,
+  "daylightMinutes": 76,
   "walkingSpeed": 1.2026666666666666,
   "walkingStepLength": 69.73333333333332,
   "walkingAsymmetryPct": 0.0042105263157894745,
