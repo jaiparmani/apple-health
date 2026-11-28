@@ -13,6 +13,11 @@ GITHUB_DATA_BRANCH = "main"
 LLM_GATEWAY_URL = "https://llm-gateway.brain-store.workers.dev"
 TIMEZONE = "Asia/Kolkata"
 PUBLIC_URL = "https://apple-health.brain-store.workers.dev"
+# First local day whose HealthPipe samples are all in D1. HealthPipe sends
+# each sample only once, and earlier deliveries never reached D1, so a
+# payload's range can't prove an earlier day complete: those days' existing
+# values (e.g. from HealthSync) may only be gap-filled, never overwritten.
+HEALTHPIPE_SINCE = "2026-11-28"
 
 [[kv_namespaces]]
 binding = "INSIGHTS_CACHE"

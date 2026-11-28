@@ -11,7 +11,8 @@ export interface Env {
   DB: D1Database; // HealthPipe raw samples (hp_samples)
   TIMEZONE?: string; // IANA zone the user lives in, e.g. "Asia/Kolkata"
   PUBLIC_URL?: string; // dashboard link for the morning brief
-  BRIEF_TOKEN?: string; // bearer token brain-chat / telegram-router use for POST /telegram/brief
+  BRIEF_TOKEN?: string;
+  HEALTHPIPE_SINCE?: string; // YYYY-MM-DD: first day D1 holds every HealthPipe sample for // bearer token brain-chat / telegram-router use for POST /telegram/brief
 }
 
 export interface DailyMetrics {

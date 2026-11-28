@@ -271,12 +271,13 @@ async function handleHealthPipe(payload: HpPayload, env: Env): Promise<Response>
     stmts.push(env.DB.prepare("DELETE FROM hp_samples WHERE uuid IN (SELECT value FROM json_each(?1)) RETURNING day").bind(JSON.stringify(gone)));
     kinds.push("delete");
   }
-  const covered = coveredDays(payload, tz);
+  const since = env.HEALTHPIPE_SINCE || "9999-12-31";
+  const covered = coveredDays(payload, tz).filter((d) => d >= since);
   const types = payloadTypes(payload);
   if (covered.length && types.length) {
     const pairs = covered.flatMap((day) => types.map((t) => ({ day, t })));
     stmts.push(env.DB.prepare(
-      "INSERT OR IGNORE INTO hp_coverage_types (day, t, covered_at) SELECT json_extract(value, '$.day'), json_extract(value, '$.t'), ?2 FROM json_each(?1)"
+      "INSERT OR IGNORE INTO hp_coverage_types (day, t, covered_at) SELECT json_extract(value, '$.day'), json_extract(value, '$.t'), ?2 FROM json_each(?1) WHERE true RETURNING day"
     ).bind(JSON.stringify(pairs), new Date().toISOString()));
     kinds.push("coverage");
   }
@@ -285,7 +286,9 @@ async function handleHealthPipe(payload: HpPayload, env: Env): Promise<Response>
   if (stmts.length) {
     const results = await env.DB.batch<{ day: string }>(stmts);
     results.forEach((res, i) => {
-      if (kinds[i] === "coverage") return;
+      // A day that just became complete for some type needs recomputing
+      // even if no new sample arrived with it.
+      if (kinds[i] === "coverage") { for (const r of res.results) changed.add(r.day); return; }
       for (const r of res.results) changed.add(r.day);
       if (kinds[i] === "delete") deleted += res.results.length;
       else added += res.results.length;
