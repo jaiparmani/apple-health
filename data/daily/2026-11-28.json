@@ -1,16 +1,57 @@
 {
   "date": "2026-11-28",
-  "receivedAt": "2026-11-28T15:21:22.097Z",
+  "receivedAt": "2026-11-28T15:30:05.531Z",
   "source": "healthpipe",
-  "steps": 2,
+  "steps": 3161,
   "activeEnergy": 617.9579999999993,
-  "distanceKm": 0,
+  "basalEnergy": 1401.93,
   "exerciseMinutes": 73,
+  "standMinutes": 77,
+  "flightsClimbed": 2,
+  "distanceKm": 2.55,
+  "daylightMinutes": 54,
+  "restingHeartRate": 79,
+  "hrv": 22.41605,
+  "walkingSpeed": 1.0881818181818181,
+  "walkingStepLength": 64.36363636363636,
+  "walkingAsymmetryPct": 0.004,
+  "walkingDoubleSupportPct": 0.3010909090909091,
+  "heartRateAvg": 112.53821854493582,
+  "heartRateMin": 72,
+  "heartRateMax": 135,
+  "hrZone1Min": 216.8,
+  "hrZone2Min": 37.7,
+  "hrZone3Min": 0.3,
+  "hrZone4Min": 0,
+  "hrZone5Min": 0,
   "standHours": 5,
+  "workoutCount": 2,
+  "workoutMinutes": 63.9,
+  "workoutEnergy": 435.8,
+  "workoutType": "TraditionalStrengthTraining,Cycling",
+  "workoutStrains": [
+    {
+      "type": "Cycling",
+      "strain": 1.9,
+      "minutes": 10.2,
+      "avgHR": 125.8
+    },
+    {
+      "type": "TraditionalStrengthTraining",
+      "strain": 6.1,
+      "minutes": 53.6,
+      "avgHR": 111.5
+    }
+  ],
   "activeEnergyGoal": 360,
   "exerciseMinutesGoal": 30,
   "standHoursGoal": 6,
   "extra": {
-    "HeadphoneAudioExposure": 42.074
+    "HeadphoneAudioExposure": 42.074,
+    "PhysicalEffort": 3.619,
+    "EstimatedWorkoutEffortScore": 2,
+    "StairAscentSpeed": 0.271,
+    "StairDescentSpeed": 0.22,
+    "HKDataTypeIdentifierHeartbeatSeries": 79
   }
 }
