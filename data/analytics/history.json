@@ -41388,8 +41388,8 @@
         },
         {
           "marker": "Walking speed (gait)",
-          "value": 1.1534305555555555,
-          "markerAge": 64.43796296296297,
+          "value": 1.1616434837092733,
+          "markerAge": 63.89043441938178,
           "weight": 0.2
         },
         {
@@ -41400,8 +41400,8 @@
         },
         {
           "marker": "Resting heart rate",
-          "value": 73.8,
-          "markerAge": 69.33333333333333,
+          "value": 74.66666666666667,
+          "markerAge": 72.22222222222224,
           "weight": 0.15
         }
       ]
