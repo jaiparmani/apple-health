@@ -585,6 +585,10 @@ export function renderDashboard(): string {
   .sync-btn { background:none; border:0; padding:4px 0; font:inherit; color:var(--dim); cursor:pointer; display:inline-flex; align-items:center; }
   .sync-btn:hover { color:var(--ink); }
   .sync-btn[disabled] { opacity:.6; cursor:default; }
+  .day-showing { font-size:12px; color:var(--dim); margin:0 0 6px; display:flex; justify-content:space-between; align-items:center; }
+  .day-showing:empty { display:none; }
+  .day-showing b { color:var(--ink); }
+  .day-showing button { background:none; border:0; color:var(--pulse); font:inherit; font-weight:700; cursor:pointer; padding:0; }
   .today-strip { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; margin:0 0 10px; }
   .ts-item { background:var(--panel2); border-radius:10px; padding:8px 10px; text-align:center; min-width:0; }
   .ts-val { font-family:var(--mono); font-size:17px; font-weight:800; color:var(--ink); }
@@ -1823,6 +1827,7 @@ export function renderDashboard(): string {
       </div>
     </div>
     <!-- Always-visible numbers for today: steps, calories, exercise, workouts -->
+    <div class="day-showing" id="dayShowing"></div>
     <div class="today-strip" id="todayStrip"></div>
     <div id="hrvNote"></div>
     <!-- Insight tooltip (rendered by dashTap) -->
@@ -4192,6 +4197,7 @@ function lightUpHomeBody() {
 function renderHomeStrainBudget(d) {
   var card = document.getElementById('strainBudgetCard');
   if (!card) return;
+  card.style.display = 'none';
   var strain = d && d.today && d.today.strain !== undefined ? d.today.strain : null;
   var recov = d && d.recoveryScore !== undefined ? d.recoveryScore : null;
   if (strain === null) return;
@@ -4367,6 +4373,24 @@ function renderQuickGlance(d) {
 
 // ---- Dashboard hero row SVGs ----
 
+// Today's numbers can show any day: the verdict strip's selected day.
+var DAY_STRAIN = {};   // date -> strain (server-computed, last 30 days)
+var LATEST_DAY = null; // newest date with data
+var LATEST_RECOVERY = null;
+function showDayStats(date) {
+  var day = null;
+  for (var i = GUIDE_DAYS.length - 1; i >= 0; i--) { if (GUIDE_DAYS[i].date === date) { day = GUIDE_DAYS[i]; break; } }
+  var isLatest = !date || date === LATEST_DAY;
+  var label = document.getElementById('dayShowing');
+  if (label) {
+    label.innerHTML = isLatest ? '' :
+      '<span>Showing <b>' + dvDayLabel(date, dvLocalToday()) + '</b>' + (day ? '' : ': no data for this day') + '</span>' +
+      '<button type="button" onclick="selectVerdictDay(\\'' + (DV_STRIP[0] ? DV_STRIP[0].date : LATEST_DAY) + '\\')">Back to today</button>';
+  }
+  var rec = day ? Object.assign({}, day, { strain: day.strain != null ? day.strain : DAY_STRAIN[day.date] }) : { date: date };
+  renderBodyHome({ today: rec, recoveryScore: isLatest ? LATEST_RECOVERY : undefined });
+}
+
 // Tapping "Synced …" re-fetches everything from the server.
 var refreshing = false;
 async function refreshNow() {
@@ -4456,8 +4480,11 @@ function renderHrvNote(today, days) {
     '</div></div>';
 }
 
+var DASH_GEN = 0;
 function renderDashRow(today) {
   if (!today) return;
+  // Arc animations run next frame; drop any from an older render (fast day switching).
+  var gen = ++DASH_GEN;
   // Activity rings
   var rings = [
     { id: 'dr0', actual: today.activeEnergy || 0, goal: today.activeEnergyGoal, circ: 232.5 },
@@ -4466,13 +4493,22 @@ function renderDashRow(today) {
   ];
   rings.forEach(function(r) {
     var el = document.getElementById(r.id);
-    if (!el || !r.goal) return;
+    if (!el) return;
+    if (!r.goal) { el.setAttribute('stroke-dashoffset', String(r.circ)); return; }
     var pct = Math.min(r.actual / r.goal, 1);
     var off = r.circ * (1 - pct);
-    requestAnimationFrame(function() { el.setAttribute('stroke-dashoffset', off.toFixed(1)); });
+    requestAnimationFrame(function() { if (gen !== DASH_GEN) return; el.setAttribute('stroke-dashoffset', off.toFixed(1)); });
   });
-  // Sleep arc
+  // Sleep arc (reset first so a day without sleep doesn't keep the last day's)
   var sh = today.sleepHours;
+  var sleepElR = document.getElementById('sleepArc'), sleepValR = document.getElementById('sleepArcVal');
+  if (sleepElR) sleepElR.setAttribute('stroke-dashoffset', '119');
+  if (sleepValR) sleepValR.textContent = '—';
+  var strainElR = document.getElementById('strainArc'), strainValR = document.getElementById('strainArcVal');
+  if (strainElR) strainElR.setAttribute('stroke-dashoffset', '213.6');
+  if (strainValR) strainValR.textContent = '—';
+  var sdR = document.getElementById('dashSleepDetail');
+  if (sdR) sdR.innerHTML = '';
   if (sh !== null && sh !== undefined) {
     var sleepEl = document.getElementById('sleepArc');
     var sleepVal = document.getElementById('sleepArcVal');
@@ -4481,7 +4517,7 @@ function renderDashRow(today) {
       var off = 119 * (1 - pct);
       var sc = sh >= 7 ? '#a78bfa' : sh >= 6 ? '#fbbf24' : '#f76b4d';
       sleepEl.setAttribute('stroke', sc);
-      requestAnimationFrame(function() { sleepEl.setAttribute('stroke-dashoffset', off.toFixed(1)); });
+      requestAnimationFrame(function() { if (gen !== DASH_GEN) return; sleepEl.setAttribute('stroke-dashoffset', off.toFixed(1)); });
     }
     if (sleepVal) sleepVal.textContent = sh.toFixed(1);
   }
@@ -4495,7 +4531,7 @@ function renderDashRow(today) {
       var off = 213.6 * (1 - pct);
       var sc = st > 18 ? '#f76b4d' : st > 14 ? '#fbbf24' : '#34d399';
       strainEl.setAttribute('stroke', sc);
-      requestAnimationFrame(function() { strainEl.setAttribute('stroke-dashoffset', off.toFixed(1)); });
+      requestAnimationFrame(function() { if (gen !== DASH_GEN) return; strainEl.setAttribute('stroke-dashoffset', off.toFixed(1)); });
     }
     if (strainVal) strainVal.textContent = st.toFixed(1);
   }
@@ -4574,6 +4610,7 @@ function renderHomeRings(today) {
   var card = document.getElementById('homeRingsCard');
   var el = document.getElementById('homeRings');
   var statusEl = document.getElementById('homeRingsStatus');
+  if (card) card.style.display = 'none';
   if (!card || !el || !today) return;
   if (today.activeEnergyGoal === undefined && today.exerciseMinutesGoal === undefined && today.standHoursGoal === undefined) return;
   card.style.display = '';
@@ -4617,6 +4654,7 @@ function renderHomeRings(today) {
 function renderTodayActivity(today) {
   var card = document.getElementById('todayActivityCard');
   var grid = document.getElementById('todayActivityGrid');
+  if (card) card.style.display = 'none';
   if (!card || !grid || !today) return;
   var items = [];
   if (today.steps !== undefined && today.steps !== null) {
@@ -4658,6 +4696,8 @@ function renderTodayWorkouts(today) {
   var card = document.getElementById('todayWorkoutsCard');
   var list = document.getElementById('todayWorkoutsList');
   var titleEl = document.getElementById('todayWorkoutsTitle');
+  if (card) card.style.display = 'none';
+  if (list) list.innerHTML = '';
   if (!card || !list || !today) return;
   var count = today.workoutCount || 0;
   if (count === 0 || !today.workoutType) return;
@@ -4669,7 +4709,7 @@ function renderTodayWorkouts(today) {
   var totalCal = today.workoutEnergy || 0;
   var avgMin = types.length > 0 ? totalMin / types.length : 0;
   var avgCal = types.length > 0 ? totalCal / types.length : 0;
-  titleEl.textContent = 'Today\\u2019s workouts (' + count + ')';
+  titleEl.textContent = (today.date && today.date !== LATEST_DAY ? 'Workouts' : 'Today\\u2019s workouts') + ' (' + count + ')';
   var perSession = todayWorkoutList(today);
   list.innerHTML = types.map(function(t, i) {
     var name = workoutName(t) || 'Workout';
@@ -7688,6 +7728,7 @@ function selectVerdictDay(date) {
   DV_SELECTED = date;
   renderVerdictStrip();
   loadDayVerdict(date, 'dayVerdict');
+  showDayStats(date);
 }
 
 async function loadVerdicts(retry) {
@@ -8349,6 +8390,11 @@ async function boot() {
   loadRecommendations();
   loadPremium();
   // Daily records don't store strain; the server computes today's in /api/trends.
+  DAY_STRAIN = {};
+  (trends.strain30 || trends.strain7 || []).forEach(function (x) { if (x.strain != null) DAY_STRAIN[x.date] = x.strain; });
+  if (today.date && trends.todayStrain != null) DAY_STRAIN[today.date] = trends.todayStrain;
+  LATEST_DAY = today.date || null;
+  LATEST_RECOVERY = trends.readinessScore;
   var todayWithStrain = Object.assign({}, today, { strain: today.strain != null ? today.strain : trends.todayStrain });
   var _todayForBody = { today: todayWithStrain, recoveryScore: trends.readinessScore, recoveryLabel: trends.readinessLabel };
   renderBodyHome(_todayForBody);

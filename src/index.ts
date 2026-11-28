@@ -390,11 +390,12 @@ async function handleGetTrends(req: Request, env: Env): Promise<Response> {
   ]);
   const days = seriesData?.days ?? [];
   const age = profile ? chronologicalAge(profile.birthDate, new Date().toISOString().slice(0, 10)) : null;
-  const strain7 = days.slice(-7).map((d) => ({ date: d.date, strain: d.strain ?? computeStrain(d, age) }));
+  const strain30 = days.slice(-30).map((d) => ({ date: d.date, strain: d.strain ?? computeStrain(d, age) }));
+  const strain7 = strain30.slice(-7);
   const today = days[days.length - 1];
   const todayStrain = today ? (today.strain ?? computeStrain(today, age)) : null;
   const sleepTarget = knowledge?.sleepTargetHours ?? 7.5;
-  return json({ ...computeTrends(days, sleepTarget), todayStrain, strain7 });
+  return json({ ...computeTrends(days, sleepTarget), todayStrain, strain7, strain30 });
 }
 
 interface InsightsCacheEntry {
