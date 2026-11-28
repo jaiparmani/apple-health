@@ -27,6 +27,7 @@ export interface HpRecord {
 }
 
 export interface HpPayload {
+  types?: string[];
   app?: string;
   schema?: string;
   range?: { start?: string; end?: string };
@@ -57,7 +58,7 @@ export function isHealthPipePayload(body: unknown): body is HpPayload {
 export function shortType(type: string): string {
   if (/^HKWorkout(Type|ActivityType)/.test(type) || type === "workout") return "Workout";
   if (type === "HKActivitySummaryType") return "ActivitySummary";
-  return type.replace(/^HK(Quantity|Category|Correlation)TypeIdentifier/, "");
+  return type.replace(/^HK(Quantity|Category|Correlation)TypeIdentifier|^HKDataTypeIdentifier/, "");
 }
 
 /** YYYY-MM-DD of an instant in the user's timezone. */
@@ -394,6 +395,27 @@ function num(v: unknown): number | undefined {
   return undefined;
 }
 
+/** HealthPipe nests workout fields under details.workout; tolerate a flat shape too. */
+function workoutFields(d: Record<string, unknown> | undefined): Record<string, unknown> {
+  const inner = d?.workout;
+  return inner && typeof inner === "object" ? (inner as Record<string, unknown>) : d ?? {};
+}
+
+/** A per-workout statistic from `stats: [{ type, sum | avg, unit }]`. */
+function workoutStat(w: Record<string, unknown>, match: (type: string) => boolean, key: "sum" | "avg"): { value: number; unit: string } | undefined {
+  if (!Array.isArray(w.stats)) return undefined;
+  let total: number | undefined;
+  let unit = "";
+  for (const st of w.stats as Record<string, unknown>[]) {
+    if (typeof st?.type !== "string" || !match(st.type)) continue;
+    const v = num(st[key]);
+    if (v === undefined) continue;
+    total = key === "sum" ? (total ?? 0) + normalizeUnit(shortType(st.type), v, String(st.unit ?? "")) : v;
+    unit = String(st.unit ?? "");
+  }
+  return total === undefined ? undefined : { value: total, unit };
+}
+
 function workoutName(d: Record<string, unknown> | undefined): string {
   const raw = d?.activityTypeName ?? d?.workoutActivityTypeName ?? d?.activityType ?? d?.workoutActivityType ?? d?.name;
   if (typeof raw === "string" && raw) {
@@ -495,20 +517,22 @@ export function aggregateDay(
     const minutesByType = new Map<string, number>();
     const strains: NonNullable<DailyMetrics["workoutStrains"]> = [];
     for (const w of workouts) {
-      const d = w.d ?? {};
+      const d = workoutFields(w.d);
       const durSec = num(d.duration);
       const mins = durSec !== undefined ? (durSec > 600 * 60 ? durSec / 60_000 : durSec / 60) : (w.e - w.s) / 60_000;
       const name = workoutName(d);
       minutes += mins;
-      energy += num(d.totalEnergyBurned) ?? num(d.activeEnergyBurned) ?? num(d.activeEnergy) ?? num(d.energy) ?? 0;
-      let km = num(d.totalDistance) ?? num(d.distance) ?? 0;
+      energy += workoutStat(d, (t) => t.endsWith("ActiveEnergyBurned"), "sum")?.value
+        ?? num(d.totalEnergyBurned) ?? num(d.activeEnergyBurned) ?? num(d.activeEnergy) ?? num(d.energy) ?? 0;
+      const statKm = workoutStat(d, (t) => /Distance/.test(t), "sum")?.value;
+      let km = statKm ?? num(d.totalDistance) ?? num(d.distance) ?? 0;
       const du = String(d.totalDistanceUnit ?? d.distanceUnit ?? "km").toLowerCase();
-      if (du === "m") km /= 1000;
-      else if (du === "mi") km *= 1.60934;
+      if (statKm === undefined && du === "m") km /= 1000;
+      else if (statKm === undefined && du === "mi") km *= 1.60934;
       distance += km;
       minutesByType.set(name, (minutesByType.get(name) ?? 0) + mins);
       const whr = hr.filter((x) => x.s >= w.s && x.s <= w.e).map((x) => x.v!);
-      const avgHR = num(d.averageHeartRate) ?? num(d.avgHeartRate) ?? avg(whr);
+      const avgHR = workoutStat(d, (t) => t.endsWith("HeartRate"), "avg")?.value ?? num(d.averageHeartRate) ?? num(d.avgHeartRate) ?? avg(whr);
       if (avgHR !== undefined) {
         const strain = computeWorkoutStrain(avgHR, m.restingHeartRate ?? 60, mins, opts.age);
         strains.push({ type: name, strain, minutes: round(mins, 1)!, avgHR: round(avgHR, 1)! });
@@ -537,7 +561,7 @@ export function aggregateDay(
   // Everything else lands in `extra` so nothing is silently dropped.
   const handled = new Set([
     ...Object.keys(SUM_FIELDS), ...Object.keys(AVG_FIELDS), ...Object.keys(LAST_FIELDS),
-    "HeartRate", "MindfulSession", "AppleStandHour", "SleepAnalysis", "AppleSleepingWristTemperature", "Workout", "ActivitySummary",
+    "HeartRate", "MindfulSession", "AppleStandHour", "HKCharacteristics", "HeartbeatSeries", "SleepAnalysis", "AppleSleepingWristTemperature", "Workout", "ActivitySummary",
   ]);
   for (const [t, xs] of byType) {
     if (handled.has(t)) continue;
@@ -572,6 +596,7 @@ export function toRows(payload: HpPayload, tz: string): SampleRow[] {
   const rows = new Map<string, SampleRow>();
   for (const r of payload.records ?? []) {
     if (!r || typeof r.type !== "string" || typeof r.start !== "string") continue;
+    if (r.type === "HKCharacteristics") continue; // profile facts, not samples
     const x = compact(r);
     if (!x) continue;
     const uuid = recordKey(r, x);
@@ -612,4 +637,12 @@ export function coveredDays(payload: HpPayload, tz: string): string[] {
   const first = localDate(rs, tz);
   if (localDayStart(first, tz) === rs && !out.includes(first)) out.unshift(first);
   return out.sort();
+}
+
+/** Short type names a payload's job covers (its `types` list, else what it contains). */
+export function payloadTypes(payload: HpPayload): string[] {
+  const src = Array.isArray(payload.types) && payload.types.length
+    ? payload.types
+    : (payload.records ?? []).map((r) => r?.type).filter((t): t is string => typeof t === "string");
+  return [...new Set(src.map(shortType))];
 }

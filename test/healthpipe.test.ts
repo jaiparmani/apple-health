@@ -113,3 +113,22 @@ describe("coveredDays", () => {
     expect(coveredDays(p, TZ)).toEqual([]);
   });
 });
+
+describe("HealthPipe workouts", () => {
+  it("reads HealthPipe's nested workout shape (activityType, duration, stats)", () => {
+    const stores = new Map<string, DayStore>();
+    applyPayload(payload([{
+      uuid: "w1", type: "HKWorkoutTypeIdentifier", start: "2026-11-28T12:14:18+05:30", end: "2026-11-28T13:07:56+05:30", source: watch,
+      details: { workout: { activityType: "traditionalStrengthTraining", duration: 3218, stats: [
+        { type: "HKQuantityTypeIdentifierActiveEnergyBurned", sum: 336.8, unit: "kcal" },
+        { type: "HKQuantityTypeIdentifierHeartRate", avg: 111.5, max: 135, min: 89, unit: "count/min" },
+      ] } },
+    }]), stores, TZ);
+    const d = run(stores, "2026-11-28");
+    expect(d.workoutCount).toBe(1);
+    expect(d.workoutType).toBe("TraditionalStrengthTraining");
+    expect(d.workoutMinutes).toBeCloseTo(53.6, 1);
+    expect(d.workoutEnergy).toBeCloseTo(336.8);
+    expect(d.workoutStrains?.[0].avgHR).toBeCloseTo(111.5);
+  });
+});

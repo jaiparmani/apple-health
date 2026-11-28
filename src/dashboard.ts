@@ -5524,6 +5524,26 @@ function compact(n) { if (n === null || n === undefined) return '—'; return n 
 var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 function niceDate(iso) { var p = iso.split('-'); return Number(p[2]) + ' ' + MONTHS[Number(p[1]) - 1]; }
 
+// When data last arrived: the newest receivedAt across recent days (a sync
+// can rewrite yesterday too), shown as "28 Nov, 8:54 pm".
+function lastSyncedAt(days) {
+  var best = null;
+  days.slice(-7).forEach(function (d) { if (d.receivedAt && (!best || d.receivedAt > best)) best = d.receivedAt; });
+  return best;
+}
+function niceDateTime(iso) {
+  var dt = new Date(iso);
+  if (isNaN(dt.getTime())) return '';
+  var h = dt.getHours(), m = dt.getMinutes();
+  var time = (h % 12 || 12) + ':' + (m < 10 ? '0' : '') + m + ' ' + (h < 12 ? 'am' : 'pm');
+  return dt.getDate() + ' ' + MONTHS[dt.getMonth()] + ', ' + time;
+}
+function syncLabel(days) {
+  if (!days.length) return null;
+  var at = lastSyncedAt(days);
+  return at ? niceDateTime(at) + ' (' + timeAgo(at) + ')' : niceDate(days[days.length - 1].date);
+}
+
 // Tiny inline SVG trend line (nulls skipped, not drawn as zero).
 function spark(values, color, h) {
   h = h || 30;
@@ -5563,7 +5583,7 @@ function renderGreeting(days) {
   document.getElementById('greeting').textContent = greet;
   var lastDate = days.length ? days[days.length - 1].date : null;
   document.getElementById('greetingSub').textContent = lastDate
-    ? 'Your body at a glance. Synced ' + niceDate(lastDate) + '.'
+    ? 'Your body at a glance. Synced ' + syncLabel(days) + '.'
     : 'No data yet. Import your Apple Health export in Settings.';
   var streak = currentStreak(days);
   document.getElementById('greetStreak').innerHTML = streak >= 3
@@ -8131,7 +8151,7 @@ async function boot() {
   var history = analytics.history || [];
   var today = days.length ? days[days.length - 1] : {};
 
-  document.getElementById('lastUpdated').textContent = days.length ? ('Synced ' + days[days.length - 1].date) : 'No data yet';
+  document.getElementById('lastUpdated').textContent = days.length ? ('Synced ' + syncLabel(days)) : 'No data yet';
 
   GUIDE_DAYS = days;
   GUIDE_VALUES = { readiness: trends.readinessScore, strain: trends.todayStrain, biologicalAge: latestAnalytics ? latestAnalytics.deltaYears : null };

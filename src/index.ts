@@ -1,7 +1,7 @@
 import type { BiologicalAgeResult, DailyMetrics, Env, KnowledgeNote, UserKnowledge, UserProfile, AlertPayload } from "./types";
 import { bulkCommit, getJson, putJson, type BulkFile } from "./github";
 import { mergeDaily, normalizePayload } from "./normalize";
-import { aggregateDay, coveredDays, deletedUuids, isHealthPipePayload, rowToSample, toRows, type HpPayload, type SampleRow, type StoredSample } from "./healthpipe";
+import { aggregateDay, coveredDays, deletedUuids, payloadTypes, isHealthPipePayload, rowToSample, toRows, type HpPayload, type SampleRow, type StoredSample } from "./healthpipe";
 import { chronologicalAge, computeStrain, estimateBiologicalAge } from "./analytics";
 import { computeTrends } from "./trends";
 import { computeBaselines } from "./baselines";
@@ -208,9 +208,13 @@ async function hpRecomputeDays(env: Env, days: string[]): Promise<DailyMetrics[]
   const tz = env.TIMEZONE || "Asia/Kolkata";
   const { data: profile } = await getJson<UserProfile>(env, PROFILE_PATH);
   const age = profile ? chronologicalAge(profile.birthDate, localToday(env)) : null;
-  const { results: cov } = await env.DB.prepare("SELECT day FROM hp_coverage WHERE day IN (SELECT value FROM json_each(?1))")
-    .bind(JSON.stringify(days)).all<{ day: string }>();
-  const complete = new Set(cov.map((r) => r.day));
+  const { results: cov } = await env.DB.prepare("SELECT day, t FROM hp_coverage_types WHERE day IN (SELECT value FROM json_each(?1))")
+    .bind(JSON.stringify(days)).all<{ day: string; t: string }>();
+  const completeTypes = new Map<string, Set<string>>();
+  for (const r of cov) {
+    if (!completeTypes.has(r.day)) completeTypes.set(r.day, new Set());
+    completeTypes.get(r.day)!.add(r.t);
+  }
   let lastErr: unknown;
   for (let attempt = 0; attempt < 6; attempt++) {
     if (attempt > 0) await new Promise((r) => setTimeout(r, 400 * attempt + Math.random() * 600));
@@ -221,11 +225,15 @@ async function hpRecomputeDays(env: Env, days: string[]): Promise<DailyMetrics[]
       const updated: DailyMetrics[] = [];
       for (const date of days) {
         const [cur, prev] = await Promise.all([hpDaySamples(env, date), hpDaySamples(env, prevDate(date))]);
-        const agg = aggregateDay(date, cur, prev, { age, tz });
+        // Types received from local midnight onward are complete and win;
+        // anything else may only fill fields that are missing, never
+        // overwrite them (e.g. HealthSync's totals, or a mid-day window edge).
+        const complete = completeTypes.get(date) ?? new Set<string>();
+        const aggAll = aggregateDay(date, cur, prev, { age, tz });
+        const aggComplete = aggregateDay(date, cur.filter((x) => complete.has(x.t)), prev, { age, tz });
         const existing = byDate.get(date) ?? null;
-        // A complete day's aggregate wins; a partially-seen day may only fill
-        // fields that are missing, never overwrite (e.g. HealthSync's totals).
-        const merged = complete.has(date) || !existing ? mergeDaily(existing, agg) : { ...mergeDaily(agg, existing), receivedAt: agg.receivedAt };
+        const base = existing ? mergeDaily(aggAll, existing) : aggAll;
+        const merged = { ...mergeDaily(base, aggComplete), receivedAt: aggAll.receivedAt };
         byDate.set(date, merged);
         updated.push(merged);
         files.push({ path: dayPath(date), content: JSON.stringify(merged, null, 2) });
@@ -264,9 +272,12 @@ async function handleHealthPipe(payload: HpPayload, env: Env): Promise<Response>
     kinds.push("delete");
   }
   const covered = coveredDays(payload, tz);
-  if (covered.length) {
-    stmts.push(env.DB.prepare("INSERT OR IGNORE INTO hp_coverage (day, covered_at) SELECT value, ?2 FROM json_each(?1)")
-      .bind(JSON.stringify(covered), new Date().toISOString()));
+  const types = payloadTypes(payload);
+  if (covered.length && types.length) {
+    const pairs = covered.flatMap((day) => types.map((t) => ({ day, t })));
+    stmts.push(env.DB.prepare(
+      "INSERT OR IGNORE INTO hp_coverage_types (day, t, covered_at) SELECT json_extract(value, '$.day'), json_extract(value, '$.t'), ?2 FROM json_each(?1)"
+    ).bind(JSON.stringify(pairs), new Date().toISOString()));
     kinds.push("coverage");
   }
   const changed = new Set<string>();
