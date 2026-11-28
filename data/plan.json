@@ -1,53 +1,53 @@
 {
-  "weekStart": "2026-11-02",
-  "generatedAt": "2026-11-01T18:46:33.818Z",
+  "weekStart": "2026-11-23",
+  "generatedAt": "2026-11-28T15:32:12.184Z",
   "source": "template",
-  "rationale": "4 sessions: one step up from your 10 active days in the last 4 weeks. Intervals weekly to lift VO2max.",
+  "rationale": "3 sessions: one step up from your 7 active days in the last 4 weeks. Intervals weekly to lift VO2max.",
   "days": [
     {
-      "date": "2026-11-02",
+      "date": "2026-11-23",
       "type": "strength",
       "title": "Strength",
       "minutes": 40,
       "detail": "Squats, push-ups, rows, lunges. 3 sets of 8-12."
     },
     {
-      "date": "2026-11-03",
+      "date": "2026-11-24",
       "type": "walk",
       "title": "Brisk walk",
       "minutes": 30,
       "detail": "Brisk pace, phone in pocket."
     },
     {
-      "date": "2026-11-04",
+      "date": "2026-11-25",
       "type": "intervals",
       "title": "Intervals",
       "minutes": 30,
       "detail": "Warm up 8 min, then 4×4 min hard, 3 min easy."
     },
     {
-      "date": "2026-11-05",
+      "date": "2026-11-26",
       "type": "rest",
       "title": "Rest",
       "minutes": 0,
       "detail": "Light stretching only."
     },
     {
-      "date": "2026-11-06",
-      "type": "strength",
-      "title": "Strength",
-      "minutes": 40,
-      "detail": "Squats, push-ups, rows, lunges. 3 sets of 8-12."
+      "date": "2026-11-27",
+      "type": "mobility",
+      "title": "Mobility",
+      "minutes": 15,
+      "detail": "Hips, hamstrings, upper back."
     },
     {
-      "date": "2026-11-07",
+      "date": "2026-11-28",
       "type": "walk",
       "title": "Brisk walk",
       "minutes": 30,
       "detail": "Brisk pace, phone in pocket."
     },
     {
-      "date": "2026-11-08",
+      "date": "2026-11-29",
       "type": "long",
       "title": "Long easy session",
       "minutes": 60,
