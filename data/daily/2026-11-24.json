@@ -1,0 +1,10 @@
+{
+  "date": "2026-11-24",
+  "receivedAt": "2026-11-28T15:24:17.948Z",
+  "source": "healthpipe",
+  "walkingHeartRateAvg": 119,
+  "vo2max": 41.62,
+  "extra": {
+    "WorkoutEffortScore": 5
+  }
+}

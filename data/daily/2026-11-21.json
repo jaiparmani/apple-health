@@ -1,0 +1,10 @@
+{
+  "date": "2026-11-21",
+  "receivedAt": "2026-11-28T15:24:17.752Z",
+  "source": "healthpipe",
+  "distanceCyclingKm": 1.09,
+  "walkingHeartRateAvg": 113,
+  "extra": {
+    "WorkoutEffortScore": 5
+  }
+}
