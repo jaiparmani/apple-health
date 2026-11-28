@@ -1,8 +1,9 @@
 {
   "date": "2026-11-26",
-  "receivedAt": "2026-11-28T15:30:20.388Z",
+  "receivedAt": "2026-11-28T15:31:30.034Z",
   "source": "healthpipe",
   "steps": 10544,
+  "activeEnergy": 783.2249999999996,
   "distanceKm": 8.81540695462632,
   "walkingHeartRateAvg": 109,
   "sleepHours": 1.9058088888888889,
@@ -22,7 +23,6 @@
   },
   "vo2max": 41.62,
   "hrv": 51.52017285867258,
-  "activeEnergy": 783.2249999999996,
   "basalEnergy": 2390.8099999999986,
   "activeEnergyGoal": 360,
   "exerciseMinutesGoal": 30,
