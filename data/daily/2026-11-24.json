@@ -1,8 +1,9 @@
 {
   "date": "2026-11-24",
-  "receivedAt": "2026-11-28T15:30:05.094Z",
+  "receivedAt": "2026-11-28T15:30:58.765Z",
   "source": "healthpipe",
   "steps": 10337,
+  "activeEnergy": 372.75,
   "distanceKm": 7.7,
   "walkingHeartRateAvg": 119,
   "vo2max": 41.62,

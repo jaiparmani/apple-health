@@ -47126,25 +47126,28 @@
     },
     {
       "date": "2026-11-22",
-      "receivedAt": "2026-11-28T15:30:04.938Z",
+      "receivedAt": "2026-11-28T15:30:58.532Z",
       "source": "healthpipe",
       "steps": 1138,
+      "activeEnergy": 283.81,
       "distanceKm": 0.9,
       "walkingHeartRateAvg": 120
     },
     {
       "date": "2026-11-23",
-      "receivedAt": "2026-11-28T15:30:05.007Z",
+      "receivedAt": "2026-11-28T15:30:58.615Z",
       "source": "healthpipe",
       "steps": 4239,
+      "activeEnergy": 232.8,
       "distanceKm": 3.67,
       "walkingHeartRateAvg": 81.5
     },
     {
       "date": "2026-11-24",
-      "receivedAt": "2026-11-28T15:30:05.094Z",
+      "receivedAt": "2026-11-28T15:30:58.765Z",
       "source": "healthpipe",
       "steps": 10337,
+      "activeEnergy": 372.75,
       "distanceKm": 7.7,
       "walkingHeartRateAvg": 119,
       "vo2max": 41.62,
