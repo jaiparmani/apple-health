@@ -1,6 +1,7 @@
 import type { BiologicalAgeResult, DailyMetrics, Env, KnowledgeNote, UserKnowledge, UserProfile, AlertPayload } from "./types";
 import { bulkCommit, getJson, putJson, type BulkFile } from "./github";
 import { mergeDaily, normalizePayload } from "./normalize";
+import { aggregateDay, applyPayload, isHealthPipePayload, payloadDays, type DayStore, type HpPayload } from "./healthpipe";
 import { chronologicalAge, computeStrain, estimateBiologicalAge } from "./analytics";
 import { computeTrends } from "./trends";
 import { computeBaselines } from "./baselines";
@@ -113,6 +114,8 @@ async function handleIngest(req: Request, env: Env): Promise<Response> {
     return json({ error: "invalid json body" }, 400);
   }
 
+  if (isHealthPipePayload(body)) return handleHealthPipe(body, env);
+
   const source = new URL(req.url).searchParams.get("source") || "shortcut";
   const incoming = normalizePayload(body, source);
 
@@ -136,6 +139,71 @@ async function handleIngest(req: Request, env: Env): Promise<Response> {
   const analytics = await recomputeAnalytics(env, trimmedDays);
 
   return json({ ok: true, date: mergedDay.date, metrics: mergedDay, analytics });
+}
+
+
+// HealthPipe raw samples are stored per local day in KV, keyed by HealthKit
+// UUID, so the phone can re-send "today" (or the last few days) every run and
+// only genuinely new samples change anything. Kept well past any send window.
+const HP_STORE_TTL_SECONDS = 60 * 24 * 60 * 60;
+const hpStoreKey = (date: string) => `hp:day:${date}`;
+
+function prevDate(date: string): string {
+  const d = new Date(`${date}T00:00:00Z`);
+  d.setUTCDate(d.getUTCDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+/**
+ * POST /ingest with a HealthPipe "hp/1" body. Responds with
+ * X-Data-Changed: 0 when every sample was already known, so the router skips
+ * the review rewrite and nothing is committed.
+ */
+async function handleHealthPipe(payload: HpPayload, env: Env): Promise<Response> {
+  const tz = env.TIMEZONE || "Asia/Kolkata";
+  const days = payloadDays(payload, tz);
+  if (days.length > 45) return json({ error: "payload spans too many days; send at most ~30 days per run" }, 413);
+
+  const stores = new Map<string, DayStore>();
+  await Promise.all(days.map(async (d) => {
+    const s = await env.INSIGHTS_CACHE.get<DayStore>(hpStoreKey(d), "json");
+    if (s) stores.set(d, s);
+  }));
+  const { changedDays, added, duplicates, deleted } = applyPayload(payload, stores, tz);
+  const summary = { records: payload.records?.length ?? 0, added, duplicates, deleted, changedDays: [...changedDays].sort() };
+  if (changedDays.size === 0) {
+    return new Response(JSON.stringify({ ok: true, changed: false, ...summary }), {
+      headers: { "Content-Type": "application/json", "X-Data-Changed": "0" },
+    });
+  }
+
+  await Promise.all([...changedDays].map((d) =>
+    env.INSIGHTS_CACHE.put(hpStoreKey(d), JSON.stringify(stores.get(d) ?? {}), { expirationTtl: HP_STORE_TTL_SECONDS })
+  ));
+
+  const [{ data: profile }, { data: seriesData }] = await Promise.all([
+    getJson<UserProfile>(env, PROFILE_PATH),
+    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
+  ]);
+  const age = profile ? chronologicalAge(profile.birthDate, localToday(env)) : null;
+  const byDate = new Map(seriesData?.days.map((d) => [d.date, d]) ?? []);
+  const files: BulkFile[] = [];
+  const updated: DailyMetrics[] = [];
+  for (const date of [...changedDays].sort()) {
+    let prev = stores.get(prevDate(date));
+    if (!prev) prev = (await env.INSIGHTS_CACHE.get<DayStore>(hpStoreKey(prevDate(date)), "json")) ?? {};
+    const agg = aggregateDay(date, Object.values(stores.get(date) ?? {}), Object.values(prev), { age, tz });
+    const merged = mergeDaily(byDate.get(date) ?? null, agg);
+    byDate.set(date, merged);
+    updated.push(merged);
+    files.push({ path: dayPath(date), content: JSON.stringify(merged, null, 2) });
+  }
+  const allDays = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(-MAX_SERIES_DAYS);
+  files.push({ path: SERIES_PATH, content: JSON.stringify({ days: allDays }, null, 2) });
+  await bulkCommit(env, files, `healthpipe: ${summary.changedDays.join(", ")} (+${added}, -${deleted})`);
+  const analytics = await recomputeAnalytics(env, allDays);
+
+  return json({ ok: true, changed: true, ...summary, metrics: updated, analytics });
 }
 
 /**
@@ -1632,11 +1700,11 @@ export default {
   async fetch(req: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
     const url = new URL(req.url);
     try {
-      if (req.method === "POST" && (url.pathname === "/ingest" || url.pathname === "/import-bulk")) {
-        const res = url.pathname === "/ingest" ? await handleIngest(req, env) : await handleImportBulk(req, env);
+      if (req.method === "POST" && (url.pathname === "/ingest" || url.pathname === "/ingest/healthpipe" || url.pathname === "/import-bulk")) {
+        const res = url.pathname !== "/import-bulk" ? await handleIngest(req, env) : await handleImportBulk(req, env);
         // New data: mark every review out of date and rewrite them now, so the
         // dashboard already has them by the time it's opened.
-        if (res.ok) ctx.waitUntil(bumpDataVersion(env).then(() => warmAllReviews(env)).catch(() => undefined));
+        if (res.ok && res.headers.get("X-Data-Changed") !== "0") ctx.waitUntil(bumpDataVersion(env).then(() => warmAllReviews(env)).catch(() => undefined));
         return res;
       }
       if (req.method === "POST" && url.pathname === "/api/warm") {
