@@ -1,8 +1,9 @@
 {
   "date": "2026-11-26",
-  "receivedAt": "2026-11-28T15:30:05.243Z",
+  "receivedAt": "2026-11-28T15:30:20.388Z",
   "source": "healthpipe",
   "steps": 10544,
+  "distanceKm": 8.81540695462632,
   "walkingHeartRateAvg": 109,
   "sleepHours": 1.9058088888888889,
   "sleepCoreHours": 0,
@@ -40,7 +41,6 @@
   "restingHeartRate": 79,
   "standMinutes": 188,
   "flightsClimbed": 5,
-  "distanceKm": 8.81540695462632,
   "daylightMinutes": 104,
   "walkingSpeed": 1.210921052631579,
   "walkingStepLength": 70.32894736842107,
