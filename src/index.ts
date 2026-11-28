@@ -104,14 +104,40 @@ async function recomputeAnalytics(env: Env, series: DailyMetrics[]): Promise<Bio
   return result;
 }
 
+/**
+ * Read a JSON request body that may be gzip/deflate compressed (HealthPipe
+ * can gzip its uploads). Workers don't decode request bodies, so honour
+ * Content-Encoding, and also sniff the gzip magic bytes in case a client
+ * compresses without saying so.
+ */
+async function readJsonBody(req: Request): Promise<unknown> {
+  const bytes = new Uint8Array(await req.arrayBuffer());
+  const enc = (req.headers.get("Content-Encoding") || "").toLowerCase();
+  const isGzip = enc.includes("gzip") || (bytes[0] === 0x1f && bytes[1] === 0x8b);
+  const format: "gzip" | "deflate" | null = isGzip ? "gzip" : enc.includes("deflate") ? "deflate" : null;
+  let text: string;
+  if (format) {
+    const stream = new Blob([bytes]).stream().pipeThrough(new DecompressionStream(format));
+    text = await new Response(stream).text();
+  } else {
+    text = new TextDecoder().decode(bytes);
+  }
+  return JSON.parse(text);
+}
+
 async function handleIngest(req: Request, env: Env): Promise<Response> {
   if (!isAuthed(req, env)) return unauthorized();
 
   let body: unknown;
   try {
-    body = await req.json();
-  } catch {
-    return json({ error: "invalid json body" }, 400);
+    body = await readJsonBody(req);
+  } catch (err) {
+    console.log("ingest: unreadable body", {
+      contentType: req.headers.get("Content-Type"),
+      contentEncoding: req.headers.get("Content-Encoding"),
+      error: String(err),
+    });
+    return json({ error: "invalid json body", detail: String(err) }, 400);
   }
 
   if (isHealthPipePayload(body)) return handleHealthPipe(body, env);
@@ -171,6 +197,7 @@ async function handleHealthPipe(payload: HpPayload, env: Env): Promise<Response>
   }));
   const { changedDays, added, duplicates, deleted } = applyPayload(payload, stores, tz);
   const summary = { records: payload.records?.length ?? 0, added, duplicates, deleted, changedDays: [...changedDays].sort() };
+  console.log("healthpipe ingest", { ...summary, range: payload.range });
   if (changedDays.size === 0) {
     return new Response(JSON.stringify({ ok: true, changed: false, ...summary }), {
       headers: { "Content-Type": "application/json", "X-Data-Changed": "0" },
