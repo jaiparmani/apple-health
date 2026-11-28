@@ -550,3 +550,46 @@ export function aggregateDay(
   if (Object.keys(extra).length) m.extra = extra;
   return m;
 }
+
+// ---------------------------------------------------------------- D1 rows
+
+/** One hp_samples row (see migrations/0001_hp_samples.sql). */
+export interface SampleRow {
+  uuid: string;
+  day: string;
+  t: string;
+  s: number;
+  e: number;
+  v: number | null;
+  n: string | null;
+  src: string | null;
+  w: number | null;
+  d: string | null;
+}
+
+/** Payload records → rows, de-duplicated within the payload (last wins). */
+export function toRows(payload: HpPayload, tz: string): SampleRow[] {
+  const rows = new Map<string, SampleRow>();
+  for (const r of payload.records ?? []) {
+    if (!r || typeof r.type !== "string" || typeof r.start !== "string") continue;
+    const x = compact(r);
+    if (!x) continue;
+    const uuid = recordKey(r, x);
+    rows.set(uuid, {
+      uuid, day: sampleDay(x, tz), t: x.t, s: x.s, e: x.e,
+      v: x.v ?? null, n: x.n ?? null, src: x.src ?? null, w: x.w ?? null,
+      d: x.d === undefined ? null : JSON.stringify(x.d),
+    });
+  }
+  return [...rows.values()];
+}
+
+export function rowToSample(r: Omit<SampleRow, "uuid" | "day">): StoredSample {
+  const x: StoredSample = { t: r.t, s: r.s, e: r.e };
+  if (r.v !== null && r.v !== undefined) x.v = r.v;
+  if (r.n !== null && r.n !== undefined) x.n = r.n;
+  if (r.src) x.src = r.src;
+  if (r.w) x.w = 1;
+  if (r.d) { try { x.d = JSON.parse(r.d); } catch { /* ignore malformed */ } }
+  return x;
+}

@@ -1,7 +1,7 @@
 import type { BiologicalAgeResult, DailyMetrics, Env, KnowledgeNote, UserKnowledge, UserProfile, AlertPayload } from "./types";
 import { bulkCommit, getJson, putJson, type BulkFile } from "./github";
 import { mergeDaily, normalizePayload } from "./normalize";
-import { aggregateDay, applyPayload, isHealthPipePayload, payloadDays, type DayStore, type HpPayload } from "./healthpipe";
+import { aggregateDay, deletedUuids, isHealthPipePayload, rowToSample, toRows, type HpPayload, type SampleRow, type StoredSample } from "./healthpipe";
 import { chronologicalAge, computeStrain, estimateBiologicalAge } from "./analytics";
 import { computeTrends } from "./trends";
 import { computeBaselines } from "./baselines";
@@ -168,16 +168,73 @@ async function handleIngest(req: Request, env: Env): Promise<Response> {
 }
 
 
-// HealthPipe raw samples are stored per local day in KV, keyed by HealthKit
-// UUID, so the phone can re-send "today" (or the last few days) every run and
-// only genuinely new samples change anything. Kept well past any send window.
-const HP_STORE_TTL_SECONDS = 60 * 24 * 60 * 60;
-const hpStoreKey = (date: string) => `hp:day:${date}`;
+// HealthPipe raw samples live in D1 (hp_samples), one row per HealthKit
+// UUID. The phone re-sends overlapping windows, in parallel chunks of up to
+// 2000 samples; an upsert keyed by UUID makes that idempotent and race-free,
+// and RETURNING tells us exactly which days gained/changed/lost samples.
+const HP_UPSERT_SQL = `
+INSERT INTO hp_samples (uuid, day, t, s, e, v, n, src, w, d)
+SELECT json_extract(value, '$.uuid'), json_extract(value, '$.day'), json_extract(value, '$.t'),
+       json_extract(value, '$.s'), json_extract(value, '$.e'), json_extract(value, '$.v'),
+       json_extract(value, '$.n'), json_extract(value, '$.src'), json_extract(value, '$.w'),
+       json_extract(value, '$.d')
+FROM json_each(?1) WHERE true
+ON CONFLICT(uuid) DO UPDATE SET
+  day = excluded.day, t = excluded.t, s = excluded.s, e = excluded.e, v = excluded.v,
+  n = excluded.n, src = excluded.src, w = excluded.w, d = excluded.d
+WHERE hp_samples.day IS NOT excluded.day OR hp_samples.s IS NOT excluded.s OR hp_samples.e IS NOT excluded.e
+   OR hp_samples.v IS NOT excluded.v OR hp_samples.n IS NOT excluded.n OR hp_samples.d IS NOT excluded.d
+RETURNING day`;
+const HP_CHUNK = 500;
 
 function prevDate(date: string): string {
   const d = new Date(`${date}T00:00:00Z`);
   d.setUTCDate(d.getUTCDate() - 1);
   return d.toISOString().slice(0, 10);
+}
+
+async function hpDaySamples(env: Env, day: string): Promise<StoredSample[]> {
+  const { results } = await env.DB.prepare("SELECT t, s, e, v, n, src, w, d FROM hp_samples WHERE day = ?1")
+    .bind(day).all<Omit<SampleRow, "uuid" | "day">>();
+  return results.map(rowToSample);
+}
+
+/**
+ * Re-aggregate days from D1 and commit them. Parallel chunks race on the
+ * GitHub ref, so retry: every attempt re-reads series.json and re-aggregates
+ * from D1, so whichever commit lands last includes every chunk's samples.
+ */
+async function hpRecomputeDays(env: Env, days: string[]): Promise<DailyMetrics[]> {
+  const tz = env.TIMEZONE || "Asia/Kolkata";
+  const { data: profile } = await getJson<UserProfile>(env, PROFILE_PATH);
+  const age = profile ? chronologicalAge(profile.birthDate, localToday(env)) : null;
+  let lastErr: unknown;
+  for (let attempt = 0; attempt < 6; attempt++) {
+    if (attempt > 0) await new Promise((r) => setTimeout(r, 400 * attempt + Math.random() * 600));
+    try {
+      const { data: seriesData } = await getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH);
+      const byDate = new Map(seriesData?.days.map((d) => [d.date, d]) ?? []);
+      const files: BulkFile[] = [];
+      const updated: DailyMetrics[] = [];
+      for (const date of days) {
+        const [cur, prev] = await Promise.all([hpDaySamples(env, date), hpDaySamples(env, prevDate(date))]);
+        const merged = mergeDaily(byDate.get(date) ?? null, aggregateDay(date, cur, prev, { age, tz }));
+        byDate.set(date, merged);
+        updated.push(merged);
+        files.push({ path: dayPath(date), content: JSON.stringify(merged, null, 2) });
+      }
+      const allDays = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(-MAX_SERIES_DAYS);
+      files.push({ path: SERIES_PATH, content: JSON.stringify({ days: allDays }, null, 2) });
+      await bulkCommit(env, files, `healthpipe: ${days.join(", ")}`);
+      // Bio-age history is derived data; a lost race here is fixed by the next sync.
+      await recomputeAnalytics(env, allDays).catch((err) => console.log("healthpipe: analytics skipped", String(err)));
+      return updated;
+    } catch (err) {
+      lastErr = err;
+      console.log("healthpipe: commit attempt failed", { attempt, error: String(err) });
+    }
+  }
+  throw lastErr;
 }
 
 /**
@@ -187,50 +244,37 @@ function prevDate(date: string): string {
  */
 async function handleHealthPipe(payload: HpPayload, env: Env): Promise<Response> {
   const tz = env.TIMEZONE || "Asia/Kolkata";
-  const days = payloadDays(payload, tz);
-  if (days.length > 45) return json({ error: "payload spans too many days; send at most ~30 days per run" }, 413);
-
-  const stores = new Map<string, DayStore>();
-  await Promise.all(days.map(async (d) => {
-    const s = await env.INSIGHTS_CACHE.get<DayStore>(hpStoreKey(d), "json");
-    if (s) stores.set(d, s);
-  }));
-  const { changedDays, added, duplicates, deleted } = applyPayload(payload, stores, tz);
-  const summary = { records: payload.records?.length ?? 0, added, duplicates, deleted, changedDays: [...changedDays].sort() };
+  const rows = toRows(payload, tz);
+  const changed = new Set<string>();
+  let added = 0;
+  const stmts: D1PreparedStatement[] = [];
+  for (let i = 0; i < rows.length; i += HP_CHUNK) {
+    stmts.push(env.DB.prepare(HP_UPSERT_SQL).bind(JSON.stringify(rows.slice(i, i + HP_CHUNK))));
+  }
+  const gone = deletedUuids(payload.deleted);
+  if (gone.length) {
+    stmts.push(env.DB.prepare("DELETE FROM hp_samples WHERE uuid IN (SELECT value FROM json_each(?1)) RETURNING day").bind(JSON.stringify(gone)));
+  }
+  let deleted = 0;
+  if (stmts.length) {
+    const results = await env.DB.batch<{ day: string }>(stmts);
+    results.forEach((res, i) => {
+      const isDelete = gone.length > 0 && i === results.length - 1;
+      for (const r of res.results) changed.add(r.day);
+      if (isDelete) deleted += res.results.length;
+      else added += res.results.length;
+    });
+  }
+  const changedDays = [...changed].sort();
+  const summary = { records: payload.records?.length ?? 0, added, duplicates: rows.length - added, deleted, changedDays };
   console.log("healthpipe ingest", { ...summary, range: payload.range });
-  if (changedDays.size === 0) {
+  if (changedDays.length === 0) {
     return new Response(JSON.stringify({ ok: true, changed: false, ...summary }), {
       headers: { "Content-Type": "application/json", "X-Data-Changed": "0" },
     });
   }
-
-  await Promise.all([...changedDays].map((d) =>
-    env.INSIGHTS_CACHE.put(hpStoreKey(d), JSON.stringify(stores.get(d) ?? {}), { expirationTtl: HP_STORE_TTL_SECONDS })
-  ));
-
-  const [{ data: profile }, { data: seriesData }] = await Promise.all([
-    getJson<UserProfile>(env, PROFILE_PATH),
-    getJson<{ days: DailyMetrics[] }>(env, SERIES_PATH),
-  ]);
-  const age = profile ? chronologicalAge(profile.birthDate, localToday(env)) : null;
-  const byDate = new Map(seriesData?.days.map((d) => [d.date, d]) ?? []);
-  const files: BulkFile[] = [];
-  const updated: DailyMetrics[] = [];
-  for (const date of [...changedDays].sort()) {
-    let prev = stores.get(prevDate(date));
-    if (!prev) prev = (await env.INSIGHTS_CACHE.get<DayStore>(hpStoreKey(prevDate(date)), "json")) ?? {};
-    const agg = aggregateDay(date, Object.values(stores.get(date) ?? {}), Object.values(prev), { age, tz });
-    const merged = mergeDaily(byDate.get(date) ?? null, agg);
-    byDate.set(date, merged);
-    updated.push(merged);
-    files.push({ path: dayPath(date), content: JSON.stringify(merged, null, 2) });
-  }
-  const allDays = [...byDate.values()].sort((a, b) => a.date.localeCompare(b.date)).slice(-MAX_SERIES_DAYS);
-  files.push({ path: SERIES_PATH, content: JSON.stringify({ days: allDays }, null, 2) });
-  await bulkCommit(env, files, `healthpipe: ${summary.changedDays.join(", ")} (+${added}, -${deleted})`);
-  const analytics = await recomputeAnalytics(env, allDays);
-
-  return json({ ok: true, changed: true, ...summary, metrics: updated, analytics });
+  const metrics = await hpRecomputeDays(env, changedDays);
+  return json({ ok: true, changed: true, ...summary, metrics });
 }
 
 /**

@@ -8,6 +8,7 @@ export interface Env {
   LLM_GATEWAY_TOKEN: string;
   LLM_GATEWAY: Fetcher;
   INSIGHTS_CACHE: KVNamespace;
+  DB: D1Database; // HealthPipe raw samples (hp_samples)
   TIMEZONE?: string; // IANA zone the user lives in, e.g. "Asia/Kolkata"
   PUBLIC_URL?: string; // dashboard link for the morning brief
   BRIEF_TOKEN?: string; // bearer token brain-chat / telegram-router use for POST /telegram/brief

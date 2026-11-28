@@ -36,3 +36,11 @@ service = "llm-gateway"
 # triggers. AI reviews are pre-written instead on every sync (/ingest,
 # /import-bulk) and by the 07:00 IST morning-brief call from brain-chat /
 # telegram-router (POST /telegram/brief) — see warmAllReviews in index.ts.
+
+# HealthPipe raw samples (keyed by HealthKit UUID). D1 rather than KV so the
+# parallel chunked uploads HealthPipe sends can't overwrite each other.
+[[d1_databases]]
+binding = "DB"
+database_name = "apple-health"
+database_id = "2e238d23-9999-4beb-a6be-3909372d5b3f"
+migrations_dir = "migrations"
