@@ -582,6 +582,25 @@ export function renderDashboard(): string {
   .hero-explain .he-ask { display:inline-block; margin-top:8px; font-size:11px; color:var(--pulse); font-weight:700; cursor:pointer; }
 
   .dash-row { display:flex; justify-content:center; gap:20px; margin:8px 0 10px; }
+  .sync-btn { background:none; border:0; padding:4px 0; font:inherit; color:var(--dim); cursor:pointer; display:inline-flex; align-items:center; }
+  .sync-btn:hover { color:var(--ink); }
+  .sync-btn[disabled] { opacity:.6; cursor:default; }
+  .today-strip { display:grid; grid-template-columns:repeat(3, minmax(0,1fr)); gap:8px; margin:0 0 10px; }
+  .ts-item { background:var(--panel2); border-radius:10px; padding:8px 10px; text-align:center; min-width:0; }
+  .ts-val { font-family:var(--mono); font-size:17px; font-weight:800; color:var(--ink); }
+  .ts-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.05em; font-weight:600; margin-top:1px; }
+  .ts-sub { font-size:10.5px; color:var(--faint); margin-top:2px; }
+  .ts-workouts { grid-column:1 / -1; text-align:left; display:flex; flex-wrap:wrap; gap:6px 12px; align-items:center; }
+  .ts-workouts .ts-label { margin:0 4px 0 0; }
+  .ts-wk { font-size:12.5px; color:var(--ink); white-space:nowrap; }
+  .ts-wk span { color:var(--dim); font-family:var(--mono); font-size:11.5px; }
+  .hrv-note { background:var(--panel2); border-left:3px solid var(--caution, #fbbf24); border-radius:10px; padding:9px 12px; margin:0 0 10px; cursor:pointer; }
+  .hrv-note .hn-head { font-size:13px; font-weight:700; color:var(--ink); display:flex; justify-content:space-between; gap:8px; }
+  .hrv-note .hn-head span { color:var(--dim); font-weight:500; font-size:11.5px; white-space:nowrap; }
+  .hrv-note .hn-body { display:none; font-size:12.5px; color:var(--dim); line-height:1.55; margin-top:6px; }
+  .hrv-note.open .hn-body { display:block; }
+  .hrv-note ul { margin:4px 0 0 18px; padding:0; }
+  .hrv-note .hn-caveat { color:var(--ink); }
   .dash-cell { text-align:center; cursor:pointer; transition:transform .15s var(--ease-spring); position:relative; }
   .dash-cell:active { transform:scale(.9); }
   .dash-cell:hover { transform:scale(1.08); }
@@ -1732,7 +1751,7 @@ export function renderDashboard(): string {
   <header class="top">
     <div class="row">
       <h1>Body</h1>
-      <div class="sub" id="lastUpdated"><span class="live-dot"></span>—</div>
+      <button type="button" class="sub sync-btn" id="lastUpdated" onclick="refreshNow()" title="Tap to refresh"><span class="live-dot"></span>—</button>
     </div>
     <nav class="tabs primary" id="primaryNav">
       <button class="tab active" data-view="today" onclick="showView('today')"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>Today</span></button>
@@ -1771,7 +1790,7 @@ export function renderDashboard(): string {
 
     <!-- Three pillars: Activity + Sleep + Strain -->
     <div class="dash-row stage stage-3">
-      <div class="dash-cell" id="dashRings" onclick="dashTap(‘dashRings’,’dashRingsDetail’)">
+      <div class="dash-cell" id="dashRings" onclick="dashTap('dashRings','dashRingsDetail')">
         <svg viewBox="0 0 88 88" width="82" height="82" id="dashRingsSvg">
           <circle cx="44" cy="44" r="37" fill="none" stroke="var(--line)" stroke-width="6"/>
           <circle cx="44" cy="44" r="29" fill="none" stroke="var(--line)" stroke-width="6"/>
@@ -1783,7 +1802,7 @@ export function renderDashboard(): string {
         <div class="dash-label">Activity</div>
       </div>
 
-      <div class="dash-cell" id="dashSleep" onclick="dashTap(‘dashSleep’,’dashSleepDetail’)">
+      <div class="dash-cell" id="dashSleep" onclick="dashTap('dashSleep','dashSleepDetail')">
         <svg viewBox="0 0 88 88" width="82" height="82" id="dashSleepSvg">
           <path d="M10 66 A38 38 0 0 1 78 66" fill="none" stroke="var(--line)" stroke-width="6" stroke-linecap="round"/>
           <path id="sleepArc" d="M10 66 A38 38 0 0 1 78 66" fill="none" stroke="#a78bfa" stroke-width="6" stroke-linecap="round" stroke-dasharray="119" stroke-dashoffset="119" class="dash-arc"/>
@@ -1793,7 +1812,7 @@ export function renderDashboard(): string {
         <div class="dash-label">Sleep</div>
       </div>
 
-      <div class="dash-cell" id="dashStrain" onclick="dashTap(‘dashStrain’,’dashStrainDetail’)">
+      <div class="dash-cell" id="dashStrain" onclick="dashTap('dashStrain','dashStrainDetail')">
         <svg viewBox="0 0 88 88" width="82" height="82" id="dashStrainSvg">
           <circle cx="44" cy="44" r="34" fill="none" stroke="var(--line)" stroke-width="6"/>
           <circle id="strainArc" cx="44" cy="44" r="34" fill="none" stroke="#fbbf24" stroke-width="6" stroke-linecap="round" stroke-dasharray="213.6" stroke-dashoffset="213.6" class="dash-arc"/>
@@ -1803,6 +1822,9 @@ export function renderDashboard(): string {
         <div class="dash-label">Strain</div>
       </div>
     </div>
+    <!-- Always-visible numbers for today: steps, calories, exercise, workouts -->
+    <div class="today-strip" id="todayStrip"></div>
+    <div id="hrvNote"></div>
     <!-- Insight tooltip (rendered by dashTap) -->
     <div id="dashInsight"></div>
 
@@ -1826,12 +1848,12 @@ export function renderDashboard(): string {
 
     <!-- Daily Pulse: tap-to-log lifestyle orbs -->
     <div class="pulse-row stage stage-4" id="pulseRow">
-      <div><div class="pulse-orb unlogged" id="po-alcohol" onclick="openPulse(‘alcohol’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">🍷</div><div class="po-check">✓</div></div><div class="pulse-label">Drinks</div></div>
-      <div><div class="pulse-orb unlogged" id="po-caffeine" onclick="openPulse(‘caffeine’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">☕</div><div class="po-check">✓</div></div><div class="pulse-label">Caffeine</div></div>
-      <div><div class="pulse-orb unlogged" id="po-water" onclick="openPulse(‘water’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">💧</div><div class="po-check">✓</div></div><div class="pulse-label">Water</div></div>
-      <div><div class="pulse-orb unlogged" id="po-energy" onclick="openPulse(‘energy’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">⚡</div><div class="po-check">✓</div></div><div class="pulse-label">Energy</div></div>
-      <div><div class="pulse-orb unlogged" id="po-stress" onclick="openPulse(‘stress’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">😤</div><div class="po-check">✓</div></div><div class="pulse-label">Stress</div></div>
-      <div><div class="pulse-orb unlogged" id="po-soreness" onclick="openPulse(‘soreness’)"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">💪</div><div class="po-check">✓</div></div><div class="pulse-label">Sore</div></div>
+      <div><div class="pulse-orb unlogged" id="po-alcohol" onclick="openPulse('alcohol')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">🍷</div><div class="po-check">✓</div></div><div class="pulse-label">Drinks</div></div>
+      <div><div class="pulse-orb unlogged" id="po-caffeine" onclick="openPulse('caffeine')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">☕</div><div class="po-check">✓</div></div><div class="pulse-label">Caffeine</div></div>
+      <div><div class="pulse-orb unlogged" id="po-water" onclick="openPulse('water')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">💧</div><div class="po-check">✓</div></div><div class="pulse-label">Water</div></div>
+      <div><div class="pulse-orb unlogged" id="po-energy" onclick="openPulse('energy')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">⚡</div><div class="po-check">✓</div></div><div class="pulse-label">Energy</div></div>
+      <div><div class="pulse-orb unlogged" id="po-stress" onclick="openPulse('stress')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">😤</div><div class="po-check">✓</div></div><div class="pulse-label">Stress</div></div>
+      <div><div class="pulse-orb unlogged" id="po-soreness" onclick="openPulse('soreness')"><svg viewBox="0 0 48 48" width="48" height="48"><circle cx="24" cy="24" r="20" fill="none" stroke="var(--line)" stroke-width="3"/><circle class="po-ring" cx="24" cy="24" r="20" fill="none" stroke="var(--faint)" stroke-width="3" stroke-linecap="round" stroke-dasharray="125.7" stroke-dashoffset="125.7" transform="rotate(-90 24 24)"/></svg><div class="po-icon">💪</div><div class="po-check">✓</div></div><div class="pulse-label">Sore</div></div>
     </div>
     <div id="pulsePicker"></div>
 
@@ -4124,6 +4146,8 @@ function renderBodyHome(todayData) {
 
   window._todayData = d && d.today;
   renderDashRow(d && d.today);
+  renderTodayStrip(d && d.today);
+  renderHrvNote(d && d.today, GUIDE_DAYS);
   renderQuickGlance(d);
   renderHomeRings(d && d.today);
   renderTodayActivity(d && d.today);
@@ -4343,6 +4367,95 @@ function renderQuickGlance(d) {
 
 // ---- Dashboard hero row SVGs ----
 
+// Tapping "Synced …" re-fetches everything from the server.
+var refreshing = false;
+async function refreshNow() {
+  if (refreshing) return;
+  refreshing = true;
+  var el = document.getElementById('lastUpdated');
+  if (el) { el.disabled = true; el.textContent = 'Refreshing…'; }
+  try { await boot(); }
+  catch (e) { if (el) el.textContent = 'Refresh failed, tap to retry'; }
+  finally { refreshing = false; if (el) el.disabled = false; }
+}
+
+function fmtMin(m) {
+  m = Math.round(m);
+  return m >= 60 ? Math.floor(m / 60) + 'h ' + (m % 60) + 'm' : m + 'm';
+}
+
+// Today's key numbers, always visible (no tap needed).
+function renderTodayStrip(today) {
+  var el = document.getElementById('todayStrip');
+  if (!el) return;
+  if (!today || !today.date) { el.innerHTML = ''; return; }
+  var cell = function (val, label, sub) {
+    return '<div class="ts-item"><div class="ts-val">' + val + '</div><div class="ts-label">' + label + '</div>' + (sub ? '<div class="ts-sub">' + sub + '</div>' : '') + '</div>';
+  };
+  var cells = [];
+  cells.push(cell(today.steps != null ? Math.round(today.steps).toLocaleString() : '—', 'Steps',
+    today.distanceKm != null ? today.distanceKm.toFixed(1) + ' km' : ''));
+  cells.push(cell(today.activeEnergy != null ? Math.round(today.activeEnergy) : '—', 'Active kcal',
+    today.activeEnergyGoal ? 'goal ' + Math.round(today.activeEnergyGoal) : ''));
+  cells.push(cell(today.exerciseMinutes != null ? Math.round(today.exerciseMinutes) : '—', 'Exercise min',
+    today.exerciseMinutesGoal ? 'goal ' + Math.round(today.exerciseMinutesGoal) : ''));
+  var wk = todayWorkoutList(today);
+  if (wk.length) {
+    cells.push('<div class="ts-item ts-workouts"><span class="ts-label">Workouts</span>' + wk.map(function (w) {
+      var bits = [fmtMin(w.minutes)];
+      if (w.strain != null) bits.push('strain ' + w.strain.toFixed(1));
+      return '<span class="ts-wk">' + w.name + ' <span>' + bits.join(' · ') + '</span></span>';
+    }).join('') + '</div>');
+  }
+  el.innerHTML = cells.join('');
+}
+
+// One entry per workout: per-session detail when the sync provides it,
+// otherwise split the day's totals evenly across the listed types.
+function todayWorkoutList(today) {
+  if (!today || !today.workoutCount) return [];
+  if (today.workoutStrains && today.workoutStrains.length) {
+    return today.workoutStrains.map(function (w) { return { name: workoutName(w.type) || w.type, minutes: w.minutes, strain: w.strain, avgHR: w.avgHR }; });
+  }
+  var types = (today.workoutType || '').split(',').map(function (t) { return t.trim(); }).filter(Boolean);
+  if (!types.length) return [];
+  var each = (today.workoutMinutes || 0) / types.length;
+  return types.map(function (t) { return { name: workoutName(t) || t, minutes: each, strain: null }; });
+}
+
+// HRV well below the person's own usual: verdict first, the "what it
+// means / what helps" detail on tap.
+function renderHrvNote(today, days) {
+  var el = document.getElementById('hrvNote');
+  if (!el) return;
+  el.innerHTML = '';
+  if (!today || today.hrv == null) return;
+  var prior = (days || []).filter(function (d) { return d.date < today.date && d.hrv != null; }).slice(-30);
+  if (prior.length < 5) return;
+  var usual = prior.reduce(function (a, d) { return a + d.hrv; }, 0) / prior.length;
+  var drop = (today.hrv - usual) / usual;
+  if (drop > -0.15) return;
+  var overnight = today.extra && today.extra.hrvSleep != null;
+  var pct = Math.round(-drop * 100);
+  var lowDays = 0;
+  for (var i = days.length - 1; i >= 0 && days[i].hrv != null && days[i].hrv < usual * 0.85; i--) lowDays++;
+  var caveat = overnight ? '' :
+    '<p class="hn-caveat">Today\u2019s value comes from daytime readings only, with no overnight HRV yet. Daytime HRV usually runs lower than overnight, so this may look worse than it is. Wear the Watch to bed for a reliable number.</p>';
+  el.innerHTML = '<div class="hrv-note" onclick="this.classList.toggle(\\'open\\')">' +
+    '<div class="hn-head">HRV ' + Math.round(today.hrv) + ' ms, ' + pct + '% below your usual ' + Math.round(usual) + ' <span>what to do \u203A</span></div>' +
+    '<div class="hn-body">' + caveat +
+      '<p>Low HRV means your nervous system is under more load than normal. Common causes: a hard session in the last day or two, short or late sleep, alcohol, a late heavy meal, stress, or an illness starting.</p>' +
+      '<p>What helps today:</p><ul>' +
+        '<li>Keep training easy to moderate. Skip max efforts and PR attempts.</li>' +
+        '<li>Get to bed on time tonight. Sleep is what brings HRV back.</li>' +
+        '<li>Hydrate, and skip alcohol tonight.</li>' +
+        '<li>A walk or light mobility is fine. Breathing slowly (about 6 breaths a minute) for a few minutes can help.</li>' +
+      '</ul>' +
+      (lowDays >= 3 ? '<p class="hn-caveat">It\u2019s been low ' + lowDays + ' days in a row. If resting HR is also up or you feel run down, take a rest day: you may be getting sick.</p>'
+                    : '<p>One low day is normal. It matters if it stays low for several days.</p>') +
+    '</div></div>';
+}
+
 function renderDashRow(today) {
   if (!today) return;
   // Activity rings
@@ -4557,8 +4670,11 @@ function renderTodayWorkouts(today) {
   var avgMin = types.length > 0 ? totalMin / types.length : 0;
   var avgCal = types.length > 0 ? totalCal / types.length : 0;
   titleEl.textContent = 'Today\\u2019s workouts (' + count + ')';
+  var perSession = todayWorkoutList(today);
   list.innerHTML = types.map(function(t, i) {
     var name = workoutName(t) || 'Workout';
+    var sess = perSession[i];
+    if (sess && sess.strain != null) { avgMin = sess.minutes; avgCal = 0; name = sess.name; }
     var key = name.toLowerCase();
     var icon = wkIcons[key] || '\\u{1F4AA}';
     var color = wkColors[key] || C.pulse;
@@ -8151,7 +8267,7 @@ async function boot() {
   var history = analytics.history || [];
   var today = days.length ? days[days.length - 1] : {};
 
-  document.getElementById('lastUpdated').textContent = days.length ? ('Synced ' + syncLabel(days)) : 'No data yet';
+  document.getElementById('lastUpdated').innerHTML = '<span class="live-dot"></span>' + (days.length ? ('Synced ' + syncLabel(days)) : 'No data yet');
 
   GUIDE_DAYS = days;
   GUIDE_VALUES = { readiness: trends.readinessScore, strain: trends.todayStrain, biologicalAge: latestAnalytics ? latestAnalytics.deltaYears : null };
@@ -8232,7 +8348,9 @@ async function boot() {
   loadProgression();
   loadRecommendations();
   loadPremium();
-  var _todayForBody = { today: today, recoveryScore: trends.readinessScore, recoveryLabel: trends.readinessLabel };
+  // Daily records don't store strain; the server computes today's in /api/trends.
+  var todayWithStrain = Object.assign({}, today, { strain: today.strain != null ? today.strain : trends.todayStrain });
+  var _todayForBody = { today: todayWithStrain, recoveryScore: trends.readinessScore, recoveryLabel: trends.readinessLabel };
   renderBodyHome(_todayForBody);
   loadBody().then(function() { renderBodyHome(_todayForBody); });
   loadCoach();
